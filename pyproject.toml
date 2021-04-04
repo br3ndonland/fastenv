@@ -4,7 +4,7 @@ src_paths = ["fastenv", "tests"]
 
 [tool.poetry]
 name = "fastenv"
-version = "0.0.0"
+version = "0.0.1"
 description = "Unified settings management for FastAPI and beyond."
 authors = ["Brendon Smith <br3ndonland@protonmail.com>"]
 license = "MIT"
