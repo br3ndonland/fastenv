@@ -1,0 +1,35 @@
+[tool.isort]
+profile = "black"
+src_paths = ["templatepython", "tests"]
+
+[tool.poetry]
+name = "templatepython"
+version = "0.1.0"
+description = "Template repository for Python projects"
+authors = ["Brendon Smith <br3ndonland@protonmail.com>"]
+license = "MIT"
+homepage = "https://github.com/br3ndonland/template-python"
+readme = "README.md"
+include = ["templatepython/py.typed"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+black = {version = "*", allow-prereleases = true}
+flake8 = "*"
+isort = "^5.6"
+mypy = ">=0.812"
+pre-commit = "^2.8"
+pytest = "^6.2"
+pytest-cov = "^2.10"
+pytest-mock = "^3.3"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+minversion = "6.0"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
