@@ -1,38 +1,26 @@
-# Python template repository
+# fastenv
+
+🔧 _Unified settings management for FastAPI and beyond_ 🚀
 
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://black.readthedocs.io/en/stable/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-[![ci](https://github.com/br3ndonland/template-python/workflows/ci/badge.svg)](https://github.com/br3ndonland/template-python/actions/workflows/ci.yml)
+[![ci](https://github.com/br3ndonland/fastenv/workflows/ci/badge.svg)](https://github.com/br3ndonland/fastenv/actions/workflows/ci.yml)
 
-Brendon Smith ([br3ndonland](https://github.com/br3ndonland))
+🚧 UNDER CONSTRUCTION - NOT FOR PRODUCTION 🚧
 
 ## Description
 
-**Welcome!** This is a template repository for Python projects, engineered for use as a [GitHub template repository](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template). To use the template, click on "Use this template" or browse to [template-python/generate](https://github.com/br3ndonland/template-python/generate). GitHub will create a new repository without the commit history from this one.
+[Environment variables](https://en.wikipedia.org/wiki/Environment_variable) are key-value pairs provided to the operating system with syntax like `VARIABLE_NAME=value`. Collections of environment variables are stored in files commonly named _.env_ and called "dotenv" files. The Python standard library provides tools for reading environment variables, such as `os.getenv("VARIABLE_NAME")`, but these tools only read environment variables that have already been loaded. Additional logic is therefore needed to load environment variables before they can be read by Python.
 
-The `template-python` repo name can be replaced with a one-line terminal command: `git grep -l 'template-python' | xargs sed -i '' 's/template-python/repo-name/g'` (replace `repo-name` with the name of the repository you generate). There may also be a few edits to the _pyproject.toml_ needed. See the [quickstart](#quickstart) section for more.
+This project aims to:
 
-Another common approach, especially for Python, is to use [cookiecutter](https://github.com/cookiecutter/cookiecutter). In a cookiecutter repo, the developer adds template variables throughout, like `{{cookiecutter.repo_name}}`. When a user runs `cookiecutter` using the template repository, the template variables are replaced with the information the user provides. This repo is simple enough that I haven't needed to add cookiecutter yet.
+- **Unify settings management for FastAPI**. [Uvicorn](https://www.uvicorn.org/), [Starlette](https://www.starlette.io/config/), and _[pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)_ each have their own ways of loading environment variables and configuring application settings. This means that, when [configuring a FastAPI application](https://fastapi.tiangolo.com/advanced/settings/), there are at least three different settings management tools available, each with their own pros and cons. It would be helpful to address the limitations of each of these options, potentially providing a similar, improved API for each one.
+- **Replace the aging [python-dotenv](https://github.com/theskumar/python-dotenv) project** with a similar, but more intuitive API, and modern syntax and tooling.
+- **Read settings from TOML**. [It's all about _pyproject.toml_ now](https://snarky.ca/what-the-heck-is-pyproject-toml/). [Poetry](https://python-poetry.org/) has pushed [PEP 517](https://www.python.org/dev/peps/pep-0517/) build tooling and [PEP 518](https://www.python.org/dev/peps/pep-0518/) build requirements forward, and even `setuptools` has [come around](https://setuptools.readthedocs.io/en/latest/build_meta.html). Why don’t we use the metadata from our _pyproject.toml_ files in our Python APIs?
+- **Integrate with object storage**. Dotenv files are commonly kept in object storage like AWS S3, but none of the tools mentioned above integrate with object storage clients.
 
-[Copier](https://copier.readthedocs.io/en/stable/) is similar to cookiecutter, with some additional benefits. [Copier is being refactored](https://www.pythonpodcast.com/copier-project-scaffolding-episode-297/) in preparation for [version 6](https://github.com/copier-org/copier/projects/1), and I may consider updating this repo for Copier 6.
-
-## Quickstart
-
-```sh
-❯ cd path/to/repo
-# Replace instances of template-python with new repo name
-# In the command below, use your repo name instead of 'repo-name'
-❯ git grep -l 'template-python' | xargs sed -i '' 's|template-python|repo-name|g'
-❯ git grep -l 'templatepython' | xargs sed -i '' 's|templatepython|repo-name|g'
-# Install virtual environment with poetry: https://python-poetry.org/docs/
-❯ poetry install
-❯ poetry shell
-# Install pre-commit hooks
-.venv ❯ pre-commit install
-# Try running the tests
-.venv ❯ pytest
-```
+Let's see how this goes!
 
 ## Further information
 
