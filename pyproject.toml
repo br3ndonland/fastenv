@@ -36,6 +36,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.9"
 rtoml = {version = "^0.7", optional = true}
+starlette = {version = "^0.14", optional = true}
 toml = {version = "^0.10", optional = true}
 
 [tool.poetry.dev-dependencies]
@@ -50,8 +51,9 @@ pytest-mock = "^3.3"
 types-toml = ">=0.1.0"
 
 [tool.poetry.extras]
-all = ["rtoml", "toml"]
+all = ["rtoml", "starlette", "toml"]
 rtoml = ["rtoml"]
+starlette = ["starlette"]
 toml = ["toml"]
 
 [tool.pytest.ini_options]
