@@ -2,6 +2,14 @@
 profile = "black"
 src_paths = ["fastenv", "tests"]
 
+[tool.mypy]
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+explicit_package_bases = true
+files = ["**/*.py"]
+namespace_packages = true
+show_error_codes = true
+
 [tool.poetry]
 name = "fastenv"
 version = "0.0.1"
@@ -32,7 +40,7 @@ python = "^3.9"
 black = {version = "21.5b2", allow-prereleases = true}
 flake8 = "^3.8"
 isort = "^5.8"
-mypy = "0.812"
+mypy = ">=0.900"
 pre-commit = "^2.11"
 pytest = "^6.2"
 pytest-cov = "^2.10"
