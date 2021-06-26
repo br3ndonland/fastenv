@@ -337,6 +337,14 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "rtoml"
+version = "0.7.0"
+description = "A better TOML library for python implemented in rust."
+category = "main"
+optional = true
+python-versions = ">=3.7"
+
+[[package]]
 name = "six"
 version = "1.16.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -348,9 +356,17 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+
+[[package]]
+name = "types-toml"
+version = "0.1.3"
+description = "Typing stubs for toml"
+category = "dev"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "typing-extensions"
@@ -378,10 +394,15 @@ six = ">=1.9.0,<2"
 docs = ["proselint (>=0.10.2)", "sphinx (>=3)", "sphinx-argparse (>=0.2.5)", "sphinx-rtd-theme (>=0.4.3)", "towncrier (>=19.9.0rc1)"]
 testing = ["coverage (>=4)", "coverage-enable-subprocess (>=1)", "flaky (>=3)", "pytest (>=4)", "pytest-env (>=0.6.2)", "pytest-freezegun (>=0.4.1)", "pytest-mock (>=2)", "pytest-randomly (>=1)", "pytest-timeout (>=1)", "packaging (>=20.0)", "xonsh (>=0.9.16)"]
 
+[extras]
+all = ["rtoml", "toml"]
+rtoml = ["rtoml"]
+toml = ["toml"]
+
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "c3e76ac77a35ef2156e86e79974d694a8f11ebce79ea3e5b2ce51169672e1431"
+content-hash = "dcce3a4c3181b0b389026ac4bd84c801c2cba3a62e62e35e88744c02cbc4d419"
 
 [metadata.files]
 appdirs = [
@@ -637,6 +658,23 @@ regex = [
     {file = "regex-2021.4.4-cp39-cp39-win_amd64.whl", hash = "sha256:97f29f57d5b84e73fbaf99ab3e26134e6687348e95ef6b48cfd2c06807005a07"},
     {file = "regex-2021.4.4.tar.gz", hash = "sha256:52ba3d3f9b942c49d7e4bc105bb28551c44065f139a65062ab7912bef10c9afb"},
 ]
+rtoml = [
+    {file = "rtoml-0.7.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:d89b09cbe78488a844b0555bc56de151d923d5afa43465e87b3ede9c232e9d7b"},
+    {file = "rtoml-0.7.0-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:de6e902f78cc10164a00be8b708f13ff524d15f171dbc58a1fa8fa512a1f39f7"},
+    {file = "rtoml-0.7.0-cp37-cp37m-manylinux2014_i686.whl", hash = "sha256:ba027d9b061349c5561147235f01a3933a1bf29d0cb90896efa5f76bce843611"},
+    {file = "rtoml-0.7.0-cp37-cp37m-manylinux2014_x86_64.whl", hash = "sha256:b87ecc3c1c7a6d8ca72b141c41772d9cc10e6180182d0314d6e475f72da7ef57"},
+    {file = "rtoml-0.7.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:ba65ffee4032a4ebdb3a62f120fccf72e3e5b1368883da38a29cb800f1f0ef1b"},
+    {file = "rtoml-0.7.0-cp38-cp38-manylinux1_i686.whl", hash = "sha256:7b8bd824bf049a3b7c3facfc01eb26a29256153a427d715c797875ba0099278b"},
+    {file = "rtoml-0.7.0-cp38-cp38-manylinux2014_i686.whl", hash = "sha256:06179b3907f54fe44bb17a37815888fb93b038ae8052de21e359e91075d13473"},
+    {file = "rtoml-0.7.0-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:1059b61142a764655a8a1bb93261c9686d3812d922db97d1a4c0f245d22671e1"},
+    {file = "rtoml-0.7.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:c50aea7c10c6f88eddb58cbb7adaed230606f63890d2ea7214142b518ec5bd15"},
+    {file = "rtoml-0.7.0-cp39-cp39-manylinux1_i686.whl", hash = "sha256:162412ede29603f5fab4e8856719cd4500fddce586dc3da19dfa4051a1196bb8"},
+    {file = "rtoml-0.7.0-cp39-cp39-manylinux2014_i686.whl", hash = "sha256:4671bcf02de6af6d831ee69a404023c8e77c89d27d81c4f7985e060ff631ddf6"},
+    {file = "rtoml-0.7.0-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:1a993192d77daa6f176c0bc0618e1c7331baa9ce63bcf32e38bb411bf84a8463"},
+    {file = "rtoml-0.7.0-cp39-cp39-win32.whl", hash = "sha256:fd06fd8681609c1380d049d36be085ded57a0f5511a584999efcd09f88d34f3c"},
+    {file = "rtoml-0.7.0-cp39-cp39-win_amd64.whl", hash = "sha256:3611a03cf4b534752689003eeaf47eb537cabbf2f6c4e396675ebc1bbe5cac4d"},
+    {file = "rtoml-0.7.0.tar.gz", hash = "sha256:386aca67e591f2ee8e0dc83c3bb6fe51de1f351be9a46c7639380e323bee69bb"},
+]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
@@ -644,6 +682,10 @@ six = [
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
     {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
+]
+types-toml = [
+    {file = "types-toml-0.1.3.tar.gz", hash = "sha256:33ebe67bebaec55a123ecbaa2bd98fe588335d8d8dda2c7ac53502ef5a81a79a"},
+    {file = "types_toml-0.1.3-py2.py3-none-any.whl", hash = "sha256:d4add39a90993173d49ff0b069edd122c66ad4cf5c01082b590e380ca670ee1a"},
 ]
 typing-extensions = [
     {file = "typing_extensions-3.10.0.0-py2-none-any.whl", hash = "sha256:0ac0f89795dd19de6b97debb0c6af1c70987fd80a2d62d1958f7e56fcc31b497"},
