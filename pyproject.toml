@@ -35,6 +35,8 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
+rtoml = {version = "^0.7", optional = true}
+toml = {version = "^0.10", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = {version = "21.6b0", allow-prereleases = true}
@@ -45,6 +47,12 @@ pre-commit = "^2.11"
 pytest = "^6.2"
 pytest-cov = "^2.10"
 pytest-mock = "^3.3"
+types-toml = ">=0.1.0"
+
+[tool.poetry.extras]
+all = ["rtoml", "toml"]
+rtoml = ["rtoml"]
+toml = ["toml"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=fastenv -q"
