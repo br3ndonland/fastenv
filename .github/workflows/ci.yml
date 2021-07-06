@@ -16,7 +16,7 @@ jobs:
         python-version: [3.8, 3.9]
     env:
       CODECOV_UPLOAD: true
-      POETRY_VIRTUALENVS_CREATE: false
+      POETRY_HOME: /opt/poetry
       PYPI_PUBLISH: true
     steps:
       - uses: actions/checkout@v2
@@ -39,16 +39,16 @@ jobs:
           restore-keys: ${{ runner.os }}-pre-commit-
       - name: Install Poetry
         run: |
-          curl -fsS -o get-poetry.py \
-            https://raw.githubusercontent.com/python-poetry/poetry/HEAD/get-poetry.py
-          python get-poetry.py -y
-          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+          curl -fsS -o install-poetry.py \
+            https://raw.githubusercontent.com/python-poetry/poetry/HEAD/install-poetry.py
+          python install-poetry.py -y
+          echo "$POETRY_HOME/bin" >> $GITHUB_PATH
       - name: Install dependencies
         run: poetry install --no-interaction
       - name: Run pre-commit hooks
-        run: pre-commit run --all-files
+        run: poetry run pre-commit run --all-files
       - name: Run unit tests
-        run: pytest --cov-report=xml
+        run: poetry run pytest --cov-report=xml
       - name: Upload test coverage report to Codecov
         uses: codecov/codecov-action@v1
         if: env.CODECOV_UPLOAD == 'true'
