@@ -40,6 +40,7 @@ python = "^3.8"
 black = {version = "21.6b0", allow-prereleases = true}
 flake8 = "^3.8"
 isort = "^5.8"
+mkdocs-material = "^7"
 mypy = ">=0.900"
 pre-commit = "^2.11"
 pytest = "^6.2"
