@@ -9,6 +9,7 @@ markdown_extensions:
       toc_depth: 3
 nav:
   - "index.md"
+  - "environment.md"
 repo_name: br3ndonland/fastenv
 repo_url: https://github.com/br3ndonland/fastenv
 site_name: fastenv docs
