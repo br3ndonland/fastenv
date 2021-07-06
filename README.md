@@ -1,6 +1,6 @@
-# fastenv
+# ⚙️ fastenv 🚀
 
-🔧 _Unified settings management for FastAPI and beyond_ 🚀
+_Unified settings management for FastAPI and beyond_
 
 [![PyPI](https://img.shields.io/pypi/v/fastenv?color=success)](https://pypi.org/project/fastenv/)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
@@ -13,17 +13,25 @@
 
 ## Description
 
-[Environment variables](https://en.wikipedia.org/wiki/Environment_variable) are key-value pairs provided to the operating system with syntax like `VARIABLE_NAME=value`. Collections of environment variables are stored in files commonly named _.env_ and called "dotenv" files. The Python standard library provides tools for reading environment variables, such as `os.getenv("VARIABLE_NAME")`, but these tools only read environment variables that have already been loaded. Additional logic is therefore needed to load environment variables before they can be read by Python.
+[Environment variables](https://en.wikipedia.org/wiki/Environment_variable) are key-value pairs provided to the operating system with syntax like `VARIABLE_NAME=value`. Collections of environment variables are stored in files commonly named _.env_ and called "dotenv" files. The Python standard library `os` module provides tools for reading environment variables, such as `os.getenv("VARIABLE_NAME")`, but only handles strings, and doesn't include tools for file I/O. Additional logic is therefore needed to load environment variables from files before they can be read by Python, and to convert variables from strings to other Python types.
 
 This project aims to:
 
-- **Unify settings management for FastAPI**. [Uvicorn](https://www.uvicorn.org/), [Starlette](https://www.starlette.io/config/), and _[pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)_ each have their own ways of loading environment variables and configuring application settings. This means that, when [configuring a FastAPI application](https://fastapi.tiangolo.com/advanced/settings/), there are at least three different settings management tools available, each with their own pros and cons. It would be helpful to address the limitations of each of these options, potentially providing a similar, improved API for each one.
 - **Replace the aging [python-dotenv](https://github.com/theskumar/python-dotenv) project** with a similar, but more intuitive API, and modern syntax and tooling.
-- **Read settings from TOML**. [It's all about _pyproject.toml_ now](https://snarky.ca/what-the-heck-is-pyproject-toml/). [Poetry](https://python-poetry.org/) has pushed [PEP 517](https://www.python.org/dev/peps/pep-0517/) build tooling and [PEP 518](https://www.python.org/dev/peps/pep-0518/) build requirements forward, and even `setuptools` has [come around](https://setuptools.readthedocs.io/en/latest/build_meta.html). Why don’t we use the metadata from our _pyproject.toml_ files in our Python APIs?
 - **Integrate with object storage**. Dotenv files are commonly kept in object storage like AWS S3, but none of the tools mentioned above integrate with object storage clients.
+- **Implement asynchronous file I/O**. Downloading, reading, and writing files can be done asynchronously with the help of packages like [AnyIO](https://github.com/agronholm/anyio) and [aioaws](https://github.com/samuelcolvin/aioaws).
+- **Read settings from TOML**. [It's all about _pyproject.toml_ now](https://snarky.ca/what-the-heck-is-pyproject-toml/). [Poetry](https://python-poetry.org/) has pushed [PEP 517](https://www.python.org/dev/peps/pep-0517/) build tooling and [PEP 518](https://www.python.org/dev/peps/pep-0518/) build requirements forward, and [even `setuptools` has come around](https://setuptools.readthedocs.io/en/latest/build_meta.html). Why don’t we use the metadata from our _pyproject.toml_ files in our Python APIs?
+- **Unify settings management for FastAPI**. [Uvicorn](https://www.uvicorn.org/), [Starlette](https://www.starlette.io/config/), and _[pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)_ each have their own ways of loading environment variables and configuring application settings. This means that, when [configuring a FastAPI application](https://fastapi.tiangolo.com/advanced/settings/), there are at least three different settings management tools available, each with their own pros and cons. It would be helpful to address the limitations of each of these options, potentially providing a similar, improved API for each one.
 
-Let's see how this goes!
+The source code is 100% type-annotated and unit-tested.
 
-## Further information
+## Documentation
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md).
+Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed on [Vercel](https://vercel.com/), and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
+
+[Vercel build configuration](https://vercel.com/docs/build-step):
+
+- Build command: `python3 -m pip install 'mkdocs-material>=7.0.0,<=8.0.0' && mkdocs build --site-dir public`
+- Output directory: `public` (default)
+
+[Vercel site configuration](https://vercel.com/docs/configuration) is specified in _vercel.json_.
