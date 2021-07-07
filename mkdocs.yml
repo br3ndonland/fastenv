@@ -1,0 +1,42 @@
+edit_uri: ""
+markdown_extensions:
+  - admonition
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+      toc_depth: 3
+nav:
+  - "index.md"
+  - "environment.md"
+  - "comparisons.md"
+repo_name: br3ndonland/fastenv
+repo_url: https://github.com/br3ndonland/fastenv
+site_name: fastenv docs
+site_url: https://fastenv.bws.bio
+theme:
+  features:
+    - header.autohide
+    - navigation.instant
+    - navigation.top
+  font: false
+  icon:
+    logo: octicons/gear-24
+    repo: octicons/mark-github-16
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      accent: deep orange
+      primary: deep orange
+      scheme: slate
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      accent: deep orange
+      primary: deep orange
+      scheme: default
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
