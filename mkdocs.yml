@@ -14,7 +14,7 @@ nav:
 repo_name: br3ndonland/fastenv
 repo_url: https://github.com/br3ndonland/fastenv
 site_name: fastenv docs
-site_url: https://fastenv.bws.bio
+site_url: ""
 theme:
   features:
     - header.autohide
@@ -40,3 +40,4 @@ theme:
       toggle:
         icon: material/weather-sunny
         name: Switch to dark mode
+use_directory_urls: false
