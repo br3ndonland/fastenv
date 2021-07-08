@@ -2,7 +2,7 @@
 
 ## environ
 
-The [Python standard library `os` module](https://docs.python.org/3/library/os.html) offers operating system utilities, including `os.environ` for working with environment variables. `os.environ` is instantiated from `os._Environ`, which is an implementation of `collections.abc.MutableMapping`. The source code for `collections.abc.MutableMapping` can be found in _[python/cpython/Lib/\_collections_abc.py](https://github.com/python/cpython/blob/0a7dcbdb13f1f2ab6e76e1cff47e80fb263f5da0/Lib/_collections_abc.py#L875-L959)_. As explained in the docstring for `MutableMapping`:
+The [Python standard library `os` module](https://docs.python.org/3/library/os.html) offers operating system utilities, including `os.environ` for working with environment variables. `os.environ` is instantiated from `os._Environ`, which is an implementation of [`collections.abc.MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping). The source code for `os.environ` can be found in _[python/cpython/Lib/os.py](https://github.com/python/cpython/blob/0a7dcbdb13f1f2ab6e76e1cff47e80fb263f5da0/Lib/os.py#L663-L778)_, and the source code for `collections.abc.MutableMapping` can be found in _[python/cpython/Lib/\_collections_abc.py](https://github.com/python/cpython/blob/0a7dcbdb13f1f2ab6e76e1cff47e80fb263f5da0/Lib/_collections_abc.py#L875-L959)_. As explained in the docstring for `MutableMapping`:
 
 > A MutableMapping is a generic container for associating key/value pairs.
 >
@@ -10,17 +10,16 @@ The [Python standard library `os` module](https://docs.python.org/3/library/os.h
 
 Subclasses of `collections.abc.MutableMapping`, such as `os._Environ`, need to provide implementations of each of those methods.
 
-Type stubs for `collections.abc.MutableMapping` are located in [python/typeshed/stdlib/typing.pyi](https://github.com/python/typeshed/blob/14add7520bb2f6dd468338c50fe94a5ac9a6ae0c/stdlib/typing.pyi#L453-L480). These are the type stubs for the standard library `typing` module, which [aliases `collections.abc.MutableMapping`](https://github.com/python/cpython/blob/0a7dcbdb13f1f2ab6e76e1cff47e80fb263f5da0/Lib/typing.py#L1670).
+[Type stubs](https://mypy.readthedocs.io/en/stable/stubs.html) for `os.environ` are in _[python/typeshed/stdlib/os/\_\_init\_\_.pyi](https://github.com/python/typeshed/blob/14add7520bb2f6dd468338c50fe94a5ac9a6ae0c/stdlib/os/__init__.pyi#L186-L223)_. Stubs for `collections.abc.MutableMapping` are in _[python/typeshed/stdlib/typing.pyi](https://github.com/python/typeshed/blob/14add7520bb2f6dd468338c50fe94a5ac9a6ae0c/stdlib/typing.pyi#L453-L480)_ (these are the type stubs for the standard library `typing` module, which [aliases `collections.abc.MutableMapping`](https://github.com/python/cpython/blob/0a7dcbdb13f1f2ab6e76e1cff47e80fb263f5da0/Lib/typing.py#L1670)).
 
 See the [`os` module docs](https://docs.python.org/3/library/os.html) and the [docs on mapping types](https://docs.python.org/3/library/stdtypes.html#mapping-types-dict) for more information.
 
 ## environs
 
--   [environs](https://github.com/sloria/environs) is a project with useful features for managing _.env_ files and application settings. Its API was inspired by [django-environ](https://github.com/joke2k/django-environ) and [envparse](https://github.com/rconradharris/envparse). The maintainers [considered](https://github.com/rconradharris/envparse/issues/12) merging environs and envparse into one project.
--   The _[README](https://github.com/sloria/environs#why)_ compares environs to `os.environ`, and offers a concise justification of the additional features that environs provides.
--   While it separates config from code, as suggested by the [twelve-factor app](https://12factor.net/config) methodology, it also combines environment variables and settings. Environment variables and their type-casted setting counterparts are combined into the same model.
+-   [environs](https://github.com/sloria/environs) is a project with useful features for managing _.env_ files and application settings. Its API was inspired by [django-environ](https://github.com/joke2k/django-environ) and [envparse](https://github.com/rconradharris/envparse) (and the maintainers [considered](https://github.com/rconradharris/envparse/issues/12) merging environs and envparse into one project). The _README_ [compares](https://github.com/sloria/environs#why) environs to `os.environ`, and justifies the additional features that environs provides.
+-   While it _separates_ config from code, as suggested by the [twelve-factor app](https://12factor.net/config) methodology, it also _combines_ environment variables and settings. Environment variables and their type-casted setting counterparts are combined into the same model.
 -   Initially, the source code wasn't consistently type-annotated ([sloria/environs#186](https://github.com/sloria/environs/issues/186)), but based on its [PEP 561](https://www.python.org/dev/peps/pep-0561/) marker file, it appears to be type-annotated now.
--   Depends on marshmallow and python-dotenv ([sloria/environs#196](https://github.com/sloria/environs/issues/196)), so it inherits the limitations described in the [python-dotenv section](#python-dotenv).
+-   Depends on python-dotenv ([sloria/environs#196](https://github.com/sloria/environs/issues/196)), so it inherits the limitations described in the [python-dotenv section](#python-dotenv).
 
 ## _pydantic_
 
@@ -69,6 +68,8 @@ _pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/u
 -   [python-dotenv](https://github.com/theskumar/python-dotenv) is a package for loading _.env_ files and setting environment variables. It was [started](https://github.com/theskumar/python-dotenv/commit/5fc02b7303e8854243970e12564f2433da7a1f7f) by Django co-creator Jacob Kaplan-Moss in 2013, and was originally called django-dotenv. It is used by [Uvicorn](https://www.uvicorn.org/) and _[pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)_, and suggested in the [FastAPI docs](https://fastapi.tiangolo.com/advanced/settings/).
 -   Its primary data structure, `dotenv.main.DotEnv`, inherits from `object`. As a result, it requires its own mapping mathods (`dict`, `get_key`, `set_key`, `unset_key`) that could be easily eliminated by inheriting from a mapping data structure such as `collections.abc.MutableMapping`.
 -   Other methods have confusing, counter-intuitive APIs. For example, the `load_dotenv()` function is supposed to "Parse a _.env_ file and then load all the variables found as environment variables," according to its docstring. However, the function always returns `True`, even if no _.env_ file is found or no environment variables are set, because of `DotEnv.set_as_environment_variables()`. Furthermore, this confusing behavior is not documented, because, as the maintainer [commented](https://github.com/theskumar/python-dotenv/issues/164#issuecomment-494750043), "The return value of `load_dotenv` is undocumented as I was planning to do something useful with it, but could not settle down to one."
+-   Loads files with the synchronous `open()` built-in function. Asyncio support is not provided.
+-   Does not integrate with object storage like AWS S3.
 -   Maintainers have not been receptive to improvements. See [theskumar/python-dotenv#263](https://github.com/theskumar/python-dotenv/pull/263) for context.
 -   Continues supporting Python 2 after its [end-of-life](https://www.python.org/doc/sunset-python-2/), so it has to use [Python 2 type comments](https://mypy.readthedocs.io/en/stable/python2.html) and other legacy cruft.
 
@@ -98,7 +99,7 @@ Type-casting provides improvements over some aspects of the standard library. Fo
 !!!example "Type-casting with `starlette.config`"
 
     ```py
-    ❯ python3
+    .venv ❯ python3
 
     >>> bool("false")
     True
@@ -114,13 +115,13 @@ Starlette has an opinionated one-way configuration preference (environment varia
 
 While it is useful to have `starlette.config.environ` synchronized with `os.environ`, the downside is that `starlette.config.environ` contains local environment variables loaded from `os.environ`, and therefore wouldn't typically be dumped to a file.
 
-It is also important to note that the one-way preference will only be enforced when using `starlette.environ`. If a variable is changed using `os.environ`, it will be updated correspondingly in `starlette.environ`, but no exception will be raised, and the `config` value will not be updated.
+It is also important to note that the one-way preference will only be enforced when using `starlette.environ`. If a variable is changed using `os.environ`, it will be updated correspondingly in `starlette.environ`, but no exception will be raised, and the `Config` instance value will not be updated.
 
 <!-- prettier-ignore -->
 !!!example "Environment variables with `starlette.config`"
 
     ```py
-    ❯ python3
+    .venv ❯ python3
 
     >>> import os
     >>> import starlette.config
