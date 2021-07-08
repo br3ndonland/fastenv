@@ -1,6 +1,6 @@
 # ⚙️ fastenv 🚀
 
-_Unified settings management for FastAPI and beyond_
+_Unified environment variable and settings management for FastAPI and beyond_
 
 [![PyPI](https://img.shields.io/pypi/v/fastenv?color=success)](https://pypi.org/project/fastenv/)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
