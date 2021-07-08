@@ -4,6 +4,9 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.tasklist:
+      clickable_checkbox: false
+      custom_checkbox: true
   - toc:
       permalink: true
       toc_depth: 3
