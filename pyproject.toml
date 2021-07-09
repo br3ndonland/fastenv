@@ -18,6 +18,7 @@ authors = ["Brendon Smith <bws@bws.bio>"]
 license = "MIT"
 homepage = "https://github.com/br3ndonland/fastenv"
 repository = "https://github.com/br3ndonland/fastenv"
+documentation = "https://fastenv.bws.bio"
 readme = "README.md"
 include = ["fastenv/py.typed"]
 keywords = ["asgi", "dotenv", "environment variables", "fastapi", "settings"]
