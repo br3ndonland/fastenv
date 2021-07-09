@@ -7,10 +7,11 @@ from typing import Iterator, MutableMapping
 
 
 class DotEnv(MutableMapping):
-    __slots__ = "_data"
+    __slots__ = "_data", "source"
 
     def __init__(self, *args: str, **kwargs: str) -> None:
         self._data: MutableMapping[str, str] = {}
+        self.source: pathlib.Path | None = None
         self.setenv(*args, **kwargs)
 
     def __getitem__(self, key: str) -> str | None:
@@ -29,6 +30,11 @@ class DotEnv(MutableMapping):
 
     def __len__(self) -> int:
         return len(self._data)
+
+    def __str__(self) -> str:
+        return "".join(
+            f"{key}={shlex.quote(value)}\n" for key, value in self._data.items()
+        )
 
     def __call__(self, *args: str, **kwargs: str) -> str | dict[str, str | None] | None:
         if self._is_single_arg_to_get(*args, **kwargs):
@@ -108,25 +114,23 @@ class DotEnv(MutableMapping):
                 self.__delitem__(key)
 
 
-def find_dotenv(
-    filename: os.PathLike[str] | str = ".env",
+async def find_dotenv(
+    file: os.PathLike[str] | str = ".env",
+    *,
     starting_dir: os.PathLike[str] | str = pathlib.Path.cwd(),
 ) -> pathlib.Path:
-    """Find a dotenv file, starting in the given directory, and
-    walking upwards until a file with the given filename is found.
+    """Find a dotenv file, starting in the given directory, and walking
+    upwards until a file with the given file is found. Returns the path
+    to the file if found, or raises `FileNotFoundError` if not found.
     """
-    raise NotImplementedError("This method hasn't yet been implemented")
-
-
-async def dump_dotenv(
-    source: DotEnv | str,
-    destination: os.PathLike[str] | str = ".env",
-    *,
-    encoding: str | None = "utf-8",
-    raise_exceptions: bool = True,
-) -> pathlib.Path:
-    """Dump a `DotEnv` model to a file."""
-    raise NotImplementedError("This method hasn't yet been implemented. Coming soon!")
+    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
+    if (file_in_starting_dir := pathlib.Path(starting_dir).joinpath(file)).is_file():
+        return file_in_starting_dir.resolve()
+    file_to_find = pathlib.Path(file)
+    for parent in pathlib.Path(starting_dir).parents:
+        if file_to_find.name in (file.name for file in parent.iterdir()):
+            return parent.joinpath(file).resolve()
+    raise FileNotFoundError(f"Could not find {file}")
 
 
 async def load_dotenv(
@@ -137,9 +141,34 @@ async def load_dotenv(
     raise_exceptions: bool = True,
 ) -> DotEnv:
     """Load environment variables from a file into a `DotEnv` model."""
-    if not raise_exceptions:
-        return DotEnv()
-    raise NotImplementedError("File I/O hasn't yet been implemented.")
+    try:
+        import anyio
+
+        # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
+        dotenv_source = (
+            await find_dotenv(source)
+            if find_source
+            else pathlib.Path(source).resolve(strict=raise_exceptions)
+        )
+        # TODO: `pathlib.Path.read_text` https://github.com/agronholm/anyio/pull/327
+        async with await anyio.open_file(dotenv_source, "r", encoding=encoding) as f:
+            contents = await f.read()
+        dotenv = DotEnv(str(contents))
+        dotenv.source = dotenv_source
+        return dotenv
+
+    except ImportError as e:
+        if raise_exceptions:
+            error_message = (
+                "AnyIO is required to load environment variables from a file. Install"
+                " with `poetry add fastenv -E files` or `pip install fastenv[files]`."
+            )
+            raise ImportError(error_message) from e
+    except Exception:
+        if raise_exceptions:
+            raise
+
+    return DotEnv()
 
 
 async def dotenv_values(
@@ -159,3 +188,32 @@ async def dotenv_values(
         raise_exceptions=raise_exceptions,
     )
     return dict(dotenv)
+
+
+async def dump_dotenv(
+    source: DotEnv | str,
+    destination: os.PathLike[str] | str = ".env",
+    *,
+    encoding: str | None = "utf-8",
+    raise_exceptions: bool = True,
+) -> pathlib.Path:
+    """Dump a `DotEnv` model to a file."""
+    try:
+        import anyio
+
+        # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
+        async with await anyio.open_file(destination, "w", encoding=encoding) as f:
+            await f.write(str(source))  # type: ignore[arg-type]
+
+    except ImportError as e:
+        if raise_exceptions:
+            error_message = (
+                "AnyIO is required to dump environment variables to a file. Install "
+                "with `poetry add fastenv -E files` or `pip install fastenv[files]`."
+            )
+            raise ImportError(error_message) from e
+    except Exception:
+        if raise_exceptions:
+            raise
+    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
+    return pathlib.Path(destination).resolve(strict=raise_exceptions)

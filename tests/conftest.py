@@ -1,5 +1,6 @@
 import pathlib
 
+import anyio
 import pytest
 
 
@@ -33,19 +34,36 @@ def env_str() -> str:
 
 
 @pytest.fixture(scope="session")
-def env_file(env_str: str, tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+@pytest.mark.anyio
+async def env_file(
+    env_str: str, tmp_path_factory: pytest.TempPathFactory
+) -> pathlib.Path:
     """Create custom temporary .env.testing file."""
     tmp_dir = tmp_path_factory.mktemp("env_files")
     tmp_file = tmp_dir / ".env.testing"
-    with open(tmp_file, "x") as f:
-        f.write(env_str)
+    # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
+    async with await anyio.open_file(tmp_file, "x") as f:
+        await f.write(env_str)  # type: ignore[arg-type]
+    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
     return pathlib.Path(tmp_file)
 
 
 @pytest.fixture(scope="session")
-def env_file_empty(env_file: pathlib.Path) -> pathlib.Path:
+@pytest.mark.anyio
+async def env_file_empty(env_file: pathlib.Path) -> pathlib.Path:
     """Create and load custom temporary .env.testing file with no variables."""
     tmp_file = env_file.parent / ".env.empty"
-    with open(tmp_file, "x") as f:
-        f.write("\n")
+    # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
+    async with await anyio.open_file(tmp_file, "x") as f:
+        await f.write("\n")  # type: ignore[arg-type]
+    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
     return pathlib.Path(tmp_file)
+
+
+@pytest.fixture(scope="session")
+@pytest.mark.anyio
+async def env_file_child_dir(env_file: pathlib.Path) -> pathlib.Path:
+    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
+    starting_dir = env_file.parent / "child1" / "child2" / "child3"
+    starting_dir.mkdir(parents=True, exist_ok=False)
+    return pathlib.Path(starting_dir)
