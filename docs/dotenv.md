@@ -151,7 +151,7 @@ Let's update the `example.py` script to not only load `.env`, but also dump it b
 
 Try running `python example.py` again, then opening `.env.dump` in a text editor. The new `.env.dump` file should have the same contents as the original `.env` file.
 
-## Exceptions
+## Exceptions and logging
 
 !!!tip "Handling exceptions"
 
@@ -161,7 +161,8 @@ Try running `python example.py` again, then opening `.env.dump` in a text editor
 
     If exceptions are encountered, `fastenv.load_dotenv(raise_exceptions=False)` will return an empty `DotEnv()` instance, `fastenv.dotenv_values(raise_exceptions=False)` will return an empty dictionary, and `fastenv.dump_dotenv(raise_exceptions=False)` will simply return the path to the destination file.
 
+!!!tip "Logging"
 
-    Python's default behavior is to raise exceptions, and fastenv follows this convention, with its default `raise_exceptions=True`. However, it may be preferable in some cases to fail silently instead of raising an exception. In these cases, `raise_exceptions=False` can be used. If exceptions are encountered, `fastenv.load_dotenv(raise_exceptions=False)` will return an empty `DotEnv()` instance, and `fastenv.dump_dotenv(raise_exceptions=False)` will simply return the path to the destination file.
+    fastenv will provide a small amount of [logging](https://docs.python.org/3/library/logging.html) when loading or dumping _.env_ files. Successes will be logged at the `logging.INFO` level, and errors will be logged at the `logging.ERROR` level.
 
-    If exceptions are encountered, `fastenv.load_dotenv(raise_exceptions=False)` will return an empty `DotEnv()` instance, and `fastenv.dump_dotenv(raise_exceptions=False)` will simply return the path to the destination file that was provided.
+    If you're managing your loggers individually in a logging configuration file, all fastenv logging uses the `"fastenv"` logger. Logging can be disabled by adding `{"loggers": {"fastenv": {"propagate": False}}}` to a logging configuration dictionary.

@@ -620,6 +620,7 @@ class TestDotEnvMethods:
         directory above and `find_source=True` finds and loads the file.
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         fastenv.dotenv.os.chdir(env_file_child_dir)
         dotenv = await fastenv.dotenv.load_dotenv(env_file, find_source=True)
         assert fastenv.dotenv.pathlib.Path.cwd() == env_file_child_dir
@@ -631,6 +632,9 @@ class TestDotEnvMethods:
         assert fastenv.dotenv.os.getenv(output_key) == output_value
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == env_file
+        logger.info.assert_called_once_with(
+            f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
+        )
 
     @pytest.mark.anyio
     async def test_find_and_load_dotenv_with_file_not_found_and_raise(
@@ -640,11 +644,15 @@ class TestDotEnvMethods:
         name of a source file that does not exist raises `FileNotFoundError`.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         with pytest.raises(FileNotFoundError) as e:
             await fastenv.dotenv.load_dotenv(
                 ".env.nofile", find_source=True, raise_exceptions=True
             )
         assert ".env.nofile" in str(e.value)
+        logger.error.assert_called_once_with(
+            f"fastenv error: FileNotFoundError {e.value}"
+        )
 
     @pytest.mark.anyio
     async def test_find_and_load_dotenv_with_file_not_found_no_raise(
@@ -655,10 +663,12 @@ class TestDotEnvMethods:
         does not exist returns an empty `DotEnv` instance.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(
             ".env.nofile", find_source=True, raise_exceptions=False
         )
         assert len(dotenv) == 0
+        assert "FileNotFoundError" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
@@ -674,6 +684,7 @@ class TestDotEnvMethods:
         to a dotenv file returns a `DotEnv` instance.
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(env_file, raise_exceptions=True)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
         assert dotenv(output_key) == output_value
@@ -683,6 +694,9 @@ class TestDotEnvMethods:
         assert fastenv.dotenv.os.getenv(output_key) == output_value
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == env_file
+        logger.info.assert_called_once_with(
+            f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
+        )
 
     @pytest.mark.anyio
     async def test_load_dotenv_empty_file(
@@ -692,11 +706,15 @@ class TestDotEnvMethods:
         to an empty file returns an empty `DotEnv` instance.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(env_file_empty, raise_exceptions=True)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
         assert dotenv.source == env_file_empty
         assert dotenv.source.is_file()
         assert len(dotenv) == 0
+        logger.info.assert_called_once_with(
+            f"fastenv loaded 0 variables from {env_file_empty}"
+        )
 
     @pytest.mark.anyio
     async def test_load_dotenv_incorrect_path_no_raise(
@@ -706,10 +724,12 @@ class TestDotEnvMethods:
         `raise_exceptions=False` returns an empty `DotEnv` instance.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv("/not/a/file", raise_exceptions=False)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
         assert not dotenv.source
         assert len(dotenv) == 0
+        assert "FileNotFoundError" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
     async def test_load_dotenv_incorrect_path_with_raise(
@@ -719,8 +739,10 @@ class TestDotEnvMethods:
         `raise_exceptions=True` raises an exception.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         with pytest.raises(FileNotFoundError):
             await fastenv.dotenv.load_dotenv("/not/a/file", raise_exceptions=True)
+        assert "FileNotFoundError" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
     async def test_load_dotenv_import_error(
@@ -729,9 +751,11 @@ class TestDotEnvMethods:
         """Assert that calling `load_dotenv` without AnyIO raises `ImportError`."""
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         mocker.patch("anyio.open_file", side_effect=ModuleNotFoundError)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         with pytest.raises(ImportError) as e:
             await fastenv.dotenv.load_dotenv(env_file_empty, raise_exceptions=True)
         assert "AnyIO is required" in str(e.value)
+        assert "AnyIO is required" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
     async def test_dotenv_values_with_dotenv_instance(
@@ -776,6 +800,7 @@ class TestDotEnvMethods:
         `DotEnv` instance into a dictionary as expected.
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         result = await fastenv.dotenv.dotenv_values(env_file)
         assert isinstance(result, dict)
         assert result[output_key] == output_value
@@ -783,6 +808,9 @@ class TestDotEnvMethods:
         assert environ.get(output_key) == output_value
         assert fastenv.dotenv.os.getenv(output_key) == output_value
         assert len(result) == len(dotenv_args)
+        logger.info.assert_called_once_with(
+            f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
+        )
 
     @pytest.mark.anyio
     async def test_dump_dotenv_incorrect_path_no_raise(
@@ -792,12 +820,14 @@ class TestDotEnvMethods:
         and `raise_exceptions=False` returns a `pathlib.Path` instance.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         source = fastenv.dotenv.DotEnv()
         destination = fastenv.dotenv.pathlib.Path("s3://mybucket/.env")
         result = await fastenv.dotenv.dump_dotenv(
             source, destination, raise_exceptions=False
         )
         assert isinstance(result, fastenv.dotenv.pathlib.Path)
+        assert "FileNotFoundError" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
     async def test_dump_dotenv_incorrect_path_with_raise(
@@ -807,10 +837,12 @@ class TestDotEnvMethods:
         and `raise_exceptions=True` raises an exception.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         source = fastenv.dotenv.DotEnv()
         destination = "s3://mybucket/.env"
         with pytest.raises(FileNotFoundError):
             await fastenv.dotenv.dump_dotenv(source, destination, raise_exceptions=True)
+        assert "FileNotFoundError" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
     async def test_dump_dotenv_import_error(
@@ -818,12 +850,14 @@ class TestDotEnvMethods:
     ) -> None:
         """Assert that calling `dump_dotenv` without AnyIO raises `ImportError`."""
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        mocker.patch("anyio.open_file", side_effect=ModuleNotFoundError)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         source = fastenv.dotenv.DotEnv()
         destination = env_file_empty
-        mocker.patch("anyio.open_file", side_effect=ModuleNotFoundError)
         with pytest.raises(ImportError) as e:
             await fastenv.dotenv.dump_dotenv(source, destination, raise_exceptions=True)
         assert "AnyIO is required" in str(e.value)
+        assert "AnyIO is required" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
@@ -840,6 +874,7 @@ class TestDotEnvMethods:
         that the resultant `DotEnv` instance contains the expected contents.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch("fastenv.utilities.logger", autospec=True)
         source = await fastenv.dotenv.load_dotenv(env_file)
         destination = env_file.parent / ".env.dumped"
         dump = await fastenv.dotenv.dump_dotenv(str(source), destination)
@@ -848,3 +883,12 @@ class TestDotEnvMethods:
         assert dotenv[output_key] == output_value
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == destination
+        assert logger.info.call_count == 3
+        logger.info.assert_has_calls(
+            calls=[
+                mocker.call(
+                    f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
+                ),
+                mocker.call(f"fastenv dumped to {destination}"),
+            ]
+        )
