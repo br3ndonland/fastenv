@@ -210,7 +210,7 @@ async def dump_dotenv(
 
         # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
         async with await anyio.open_file(destination, "w", encoding=encoding) as f:
-            await f.write(str(source))  # type: ignore[arg-type]
+            await f.write(str(source))
         logger.info(f"fastenv dumped to {destination}")
 
     except ImportError as e:

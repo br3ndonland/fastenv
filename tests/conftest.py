@@ -43,7 +43,7 @@ async def env_file(
     tmp_file = tmp_dir / ".env.testing"
     # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
     async with await anyio.open_file(tmp_file, "x") as f:
-        await f.write(env_str)  # type: ignore[arg-type]
+        await f.write(env_str)
     # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
     return pathlib.Path(tmp_file)
 
@@ -55,7 +55,7 @@ async def env_file_empty(env_file: pathlib.Path) -> pathlib.Path:
     tmp_file = env_file.parent / ".env.empty"
     # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
     async with await anyio.open_file(tmp_file, "x") as f:
-        await f.write("\n")  # type: ignore[arg-type]
+        await f.write("\n")
     # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
     return pathlib.Path(tmp_file)
 
