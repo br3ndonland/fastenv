@@ -5,6 +5,10 @@ import pathlib
 import shlex
 from typing import Iterator, MutableMapping
 
+import anyio
+
+from fastenv.utilities import logger
+
 
 class DotEnv(MutableMapping):
     __slots__ = "_data", "source"
@@ -141,11 +145,7 @@ async def load_dotenv(
     raise_exceptions: bool = True,
 ) -> DotEnv:
     """Load environment variables from a file into a `DotEnv` model."""
-    from fastenv.utilities import logger
-
     try:
-        import anyio
-
         # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
         dotenv_source = (
             await find_dotenv(source)
@@ -159,20 +159,10 @@ async def load_dotenv(
         dotenv.source = dotenv_source
         logger.info(f"fastenv loaded {len(dotenv)} variables from {dotenv_source}")
         return dotenv
-
-    except ImportError as e:
-        error_message = (
-            "AnyIO is required to load environment variables from a file. Install"
-            " with `poetry add fastenv -E files` or `pip install fastenv[files]`."
-        )
-        logger.error(f"fastenv error: {e.__class__.__qualname__} {error_message}")
-        if raise_exceptions:
-            raise ImportError(error_message) from e
     except Exception as e:
         logger.error(f"fastenv error: {e.__class__.__qualname__} {e}")
         if raise_exceptions:
             raise
-
     return DotEnv()
 
 
@@ -203,24 +193,11 @@ async def dump_dotenv(
     raise_exceptions: bool = True,
 ) -> pathlib.Path:
     """Dump a `DotEnv` model to a file."""
-    from fastenv.utilities import logger
-
     try:
-        import anyio
-
         # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
         async with await anyio.open_file(destination, "w", encoding=encoding) as f:
             await f.write(str(source))
         logger.info(f"fastenv dumped to {destination}")
-
-    except ImportError as e:
-        error_message = (
-            "AnyIO is required to dump environment variables to a file. Install "
-            "with `poetry add fastenv -E files` or `pip install fastenv[files]`."
-        )
-        logger.error(f"fastenv error: {e.__class__.__qualname__} {error_message}")
-        if raise_exceptions:
-            raise ImportError(error_message) from e
     except Exception as e:
         logger.error(f"fastenv error: {e.__class__.__qualname__} {e}")
         if raise_exceptions:

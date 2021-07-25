@@ -3,7 +3,7 @@ name = "anyio"
 version = "3.3.0"
 description = "High level compatibility layer for multiple asynchronous event loop implementations"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6.2"
 
 [package.dependencies]
@@ -164,7 +164,7 @@ name = "idna"
 version = "3.2"
 description = "Internationalized Domain Names in Applications (IDNA)"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 
 [[package]]
@@ -535,7 +535,7 @@ name = "sniffio"
 version = "1.2.0"
 description = "Sniff out which async library your code is running under"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 
 [[package]]
@@ -596,14 +596,12 @@ docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [extras]
-all = ["anyio"]
-anyio = ["anyio"]
-files = ["anyio"]
+all = []
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "801cfad7f6da55d28d0eb036fbf1e0ea39b3bc1720deba7705db7c12786e0634"
+content-hash = "23827ec1dbcab57d63068c9350e44c5bdd3b48502691f4e01c81d1adde651e2a"
 
 [metadata.files]
 anyio = [

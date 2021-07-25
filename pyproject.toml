@@ -37,7 +37,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-anyio = {version = "^3.3", optional = true}
+anyio = "^3.3"
 
 [tool.poetry.dev-dependencies]
 black = {version = "21.6b0", allow-prereleases = true}
@@ -51,9 +51,7 @@ pytest-cov = "^2.10"
 pytest-mock = "^3.3"
 
 [tool.poetry.extras]
-all = ["anyio"]
-anyio = ["anyio"]
-files = ["anyio"]
+all = []
 
 [tool.pytest.ini_options]
 addopts = "--cov=fastenv -q"

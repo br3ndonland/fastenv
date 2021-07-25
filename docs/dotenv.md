@@ -6,7 +6,7 @@ Collections of environment variables are stored in files commonly named _.env_ a
 
 ## Getting started
 
-To get started, let's set up a virtual environment and install fastenv from the command line. If you've been through the [environment variable docs](environment.md#getting-started), the only change here is installing the optional extras for working with files. File I/O is implemented with [AnyIO](https://anyio.readthedocs.io/en/stable/fileio.html).
+To get started, let's set up a virtual environment and install fastenv from the command line. If you've been through the [environment variable docs](environment.md#getting-started), you're all set.
 
 !!!example "Setting up a virtual environment"
 
@@ -14,7 +14,7 @@ To get started, let's set up a virtual environment and install fastenv from the 
     # set up a virtual environment and install fastenv
     ❯ python3 -m venv .venv
     ❯ . .venv/bin/activate
-    .venv ❯ python -m pip install fastenv[files]
+    .venv ❯ python -m pip install fastenv
     ```
 
 We'll work with an example _.env_ file that contains variables in various formats. Copy the code block below using the "Copy to clipboard" icon in the top right of the code block, paste the contents into a new file in your text editor, and save it as `.env`.
@@ -43,7 +43,7 @@ These environment variables are formatted as described in the [environment varia
 
 ## Loading a _.env_ file
 
-Files can be loaded with `await fastenv.load_dotenv()`. This function returns a [`DotEnv`](environment.md) instance.
+Files can be loaded with `await fastenv.load_dotenv()`. File I/O is implemented with [AnyIO](https://anyio.readthedocs.io/en/stable/fileio.html), and the function returns a [`DotEnv`](environment.md) instance.
 
 !!!info "Asynchronous functions"
 
