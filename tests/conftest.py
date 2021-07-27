@@ -1,5 +1,3 @@
-import pathlib
-
 import anyio
 import pytest
 
@@ -37,33 +35,27 @@ def env_str() -> str:
 @pytest.mark.anyio
 async def env_file(
     env_str: str, tmp_path_factory: pytest.TempPathFactory
-) -> pathlib.Path:
+) -> anyio.Path:
     """Create custom temporary .env.testing file."""
     tmp_dir = tmp_path_factory.mktemp("env_files")
-    tmp_file = tmp_dir / ".env.testing"
-    # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
-    async with await anyio.open_file(tmp_file, "x") as f:
-        await f.write(env_str)
-    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
-    return pathlib.Path(tmp_file)
+    tmp_file = anyio.Path(tmp_dir) / ".env.testing"
+    await tmp_file.write_text(env_str)
+    return tmp_file
 
 
 @pytest.fixture(scope="session")
 @pytest.mark.anyio
-async def env_file_empty(env_file: pathlib.Path) -> pathlib.Path:
+async def env_file_empty(env_file: anyio.Path) -> anyio.Path:
     """Create and load custom temporary .env.testing file with no variables."""
     tmp_file = env_file.parent / ".env.empty"
-    # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
-    async with await anyio.open_file(tmp_file, "x") as f:
-        await f.write("\n")
-    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
-    return pathlib.Path(tmp_file)
+    await tmp_file.write_text("\n")
+    return tmp_file
 
 
 @pytest.fixture(scope="session")
 @pytest.mark.anyio
-async def env_file_child_dir(env_file: pathlib.Path) -> pathlib.Path:
-    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
-    starting_dir = env_file.parent / "child1" / "child2" / "child3"
-    starting_dir.mkdir(parents=True, exist_ok=False)
-    return pathlib.Path(starting_dir)
+async def env_file_child_dir(env_file: anyio.Path) -> anyio.Path:
+    """Create child directories to test `find_dotenv`."""
+    starting_dir = anyio.Path(env_file.parent) / "child1" / "child2" / "child3"
+    await starting_dir.mkdir(parents=True, exist_ok=False)
+    return starting_dir

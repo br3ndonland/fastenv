@@ -559,58 +559,48 @@ class TestDotEnvMethods:
 
     @pytest.mark.anyio
     async def test_find_dotenv_with_file_in_same_dir(
-        self, env_file: fastenv.dotenv.pathlib.Path, mocker: MockerFixture
+        self, env_file: fastenv.dotenv.anyio.Path, mocker: MockerFixture
     ) -> None:
         """Assert that calling `find_dotenv` with the name of a dotenv file in the
         same directory returns the path straight away without further iteration.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        iterdir = mocker.patch.object(fastenv.dotenv.pathlib.Path, "iterdir")
-        result = await fastenv.dotenv.find_dotenv(
-            env_file, starting_dir=env_file.parent
-        )
-        assert result == env_file.resolve()
+        iterdir = mocker.patch.object(fastenv.dotenv.anyio.Path, "iterdir")
+        result = await fastenv.dotenv.find_dotenv(env_file)
+        assert result == await env_file.resolve()
         iterdir.assert_not_called()
 
     @pytest.mark.anyio
     async def test_find_dotenv_with_file_from_sub_dir(
         self,
-        env_file: fastenv.dotenv.pathlib.Path,
-        env_file_child_dir: fastenv.dotenv.pathlib.Path,
+        env_file: fastenv.dotenv.anyio.Path,
+        env_file_child_dir: fastenv.dotenv.anyio.Path,
         mocker: MockerFixture,
     ) -> None:
         """Assert that calling `find_dotenv` from a sub-directory, with the name of
         a dotenv file in a directory above, returns the path to the dotenv file.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        result = await fastenv.dotenv.find_dotenv(
-            env_file.name, starting_dir=env_file_child_dir
-        )
-        assert result == env_file.resolve()
+        fastenv.dotenv.os.chdir(env_file_child_dir)
+        result = await fastenv.dotenv.find_dotenv(env_file.name)
+        assert result == await env_file.resolve()
 
     @pytest.mark.anyio
-    async def test_find_dotenv_no_file(
-        self, mocker: MockerFixture, tmp_path_factory: pytest.TempPathFactory
-    ) -> None:
+    async def test_find_dotenv_no_file(self, mocker: MockerFixture) -> None:
         """Assert that calling `find_dotenv` when the dotenv file cannot be found
         raises a `FileNotFoundError` with the filename included in the exception.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        base_dir = tmp_path_factory.getbasetemp()
-        incorrect_child_dir = base_dir / "incorrect1" / "incorrect2" / "incorrect3"
-        incorrect_child_dir.mkdir(parents=True, exist_ok=False)
         with pytest.raises(FileNotFoundError) as e:
-            await fastenv.dotenv.find_dotenv(
-                ".env.nofile", starting_dir=incorrect_child_dir
-            )
+            await fastenv.dotenv.find_dotenv(".env.nofile")
         assert ".env.nofile" in str(e.value)
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     async def test_find_and_load_dotenv_with_file_in_sub_dir(
         self,
-        env_file: fastenv.dotenv.pathlib.Path,
-        env_file_child_dir: fastenv.dotenv.pathlib.Path,
+        env_file: fastenv.dotenv.anyio.Path,
+        env_file_child_dir: fastenv.dotenv.anyio.Path,
         input_arg: str,
         output_key: str,
         output_value: str,
@@ -623,7 +613,7 @@ class TestDotEnvMethods:
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         fastenv.dotenv.os.chdir(env_file_child_dir)
         dotenv = await fastenv.dotenv.load_dotenv(env_file, find_source=True)
-        assert fastenv.dotenv.pathlib.Path.cwd() == env_file_child_dir
+        assert await fastenv.dotenv.anyio.Path.cwd() == env_file_child_dir
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
         assert dotenv(output_key) == output_value
         assert dotenv[output_key] == output_value
@@ -674,7 +664,7 @@ class TestDotEnvMethods:
     @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     async def test_load_dotenv_file(
         self,
-        env_file: fastenv.dotenv.pathlib.Path,
+        env_file: fastenv.dotenv.anyio.Path,
         input_arg: str,
         output_key: str,
         output_value: str,
@@ -700,7 +690,7 @@ class TestDotEnvMethods:
 
     @pytest.mark.anyio
     async def test_load_dotenv_empty_file(
-        self, env_file_empty: fastenv.dotenv.pathlib.Path, mocker: MockerFixture
+        self, env_file_empty: fastenv.dotenv.anyio.Path, mocker: MockerFixture
     ) -> None:
         """Assert that calling `load_dotenv` with a correct path
         to an empty file returns an empty `DotEnv` instance.
@@ -710,7 +700,7 @@ class TestDotEnvMethods:
         dotenv = await fastenv.dotenv.load_dotenv(env_file_empty, raise_exceptions=True)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
         assert dotenv.source == env_file_empty
-        assert dotenv.source.is_file()
+        assert await dotenv.source.is_file()
         assert len(dotenv) == 0
         logger.info.assert_called_once_with(
             f"fastenv loaded 0 variables from {env_file_empty}"
@@ -757,7 +747,7 @@ class TestDotEnvMethods:
 
     @pytest.mark.anyio
     async def test_dotenv_values_with_env_file_path_and_mock_load(
-        self, env_file_empty: fastenv.dotenv.pathlib.Path, mocker: MockerFixture
+        self, env_file_empty: fastenv.dotenv.anyio.Path, mocker: MockerFixture
     ) -> None:
         """Assert that calling `dotenv_values` with a path instantiates a `DotEnv`
         instance, and serializes the `DotEnv` instance into a dictionary as expected.
@@ -776,7 +766,7 @@ class TestDotEnvMethods:
     @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     async def test_dotenv_values_with_env_file_path(
         self,
-        env_file: fastenv.dotenv.pathlib.Path,
+        env_file: fastenv.dotenv.anyio.Path,
         input_arg: str,
         output_key: str,
         output_value: str,
@@ -801,7 +791,7 @@ class TestDotEnvMethods:
 
     @pytest.mark.anyio
     async def test_dump_dotenv_incorrect_path_no_raise(
-        self, mocker: MockerFixture, tmp_path: fastenv.dotenv.pathlib.Path
+        self, mocker: MockerFixture, tmp_path: fastenv.dotenv.anyio.Path
     ) -> None:
         """Assert that calling `dump_dotenv` with an incorrect destination
         and `raise_exceptions=False` returns a `pathlib.Path` instance.
@@ -809,11 +799,11 @@ class TestDotEnvMethods:
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         source = fastenv.dotenv.DotEnv()
-        destination = fastenv.dotenv.pathlib.Path("s3://mybucket/.env")
+        destination = fastenv.dotenv.anyio.Path("s3://mybucket/.env")
         result = await fastenv.dotenv.dump_dotenv(
             source, destination, raise_exceptions=False
         )
-        assert isinstance(result, fastenv.dotenv.pathlib.Path)
+        assert isinstance(result, fastenv.dotenv.anyio.Path)
         assert "FileNotFoundError" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
@@ -835,7 +825,7 @@ class TestDotEnvMethods:
     @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     async def test_load_and_dump_dotenv_file(
         self,
-        env_file: fastenv.dotenv.pathlib.Path,
+        env_file: fastenv.dotenv.anyio.Path,
         input_arg: str,
         output_key: str,
         output_value: str,

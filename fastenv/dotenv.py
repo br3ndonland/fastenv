@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import pathlib
 import shlex
 from typing import Iterator, MutableMapping
 
@@ -15,7 +14,7 @@ class DotEnv(MutableMapping):
 
     def __init__(self, *args: str, **kwargs: str) -> None:
         self._data: MutableMapping[str, str] = {}
-        self.source: pathlib.Path | None = None
+        self.source: anyio.Path | None = None
         self.setenv(*args, **kwargs)
 
     def __getitem__(self, key: str) -> str | None:
@@ -118,23 +117,20 @@ class DotEnv(MutableMapping):
                 self.__delitem__(key)
 
 
-async def find_dotenv(
-    file: os.PathLike[str] | str = ".env",
-    *,
-    starting_dir: os.PathLike[str] | str = pathlib.Path.cwd(),
-) -> pathlib.Path:
-    """Find a dotenv file, starting in the given directory, and walking
+async def find_dotenv(filename: os.PathLike[str] | str = ".env") -> anyio.Path:
+    """Find a dotenv file, starting in the current directory, and walking
     upwards until a file with the given file is found. Returns the path
     to the file if found, or raises `FileNotFoundError` if not found.
     """
-    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
-    if (file_in_starting_dir := pathlib.Path(starting_dir).joinpath(file)).is_file():
-        return file_in_starting_dir.resolve()
-    file_to_find = pathlib.Path(file)
-    for parent in pathlib.Path(starting_dir).parents:
-        if file_to_find.name in (file.name for file in parent.iterdir()):
-            return parent.joinpath(file).resolve()
-    raise FileNotFoundError(f"Could not find {file}")
+    starting_dir = await anyio.Path.cwd()
+    if await (file_in_starting_dir := starting_dir.joinpath(filename)).is_file():
+        return await file_in_starting_dir.resolve(strict=True)
+    file_to_find = anyio.Path(filename)
+    for parent in starting_dir.parents:
+        async for file_in_parent_dir in parent.iterdir():
+            if file_in_parent_dir.name == file_to_find.name:
+                return await file_in_parent_dir.resolve(strict=True)
+    raise FileNotFoundError(f"Could not find {filename}")
 
 
 async def load_dotenv(
@@ -146,16 +142,12 @@ async def load_dotenv(
 ) -> DotEnv:
     """Load environment variables from a file into a `DotEnv` model."""
     try:
-        # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
         dotenv_source = (
             await find_dotenv(source)
             if find_source
-            else pathlib.Path(source).resolve(strict=raise_exceptions)
+            else await anyio.Path(source).resolve(strict=raise_exceptions)
         )
-        # TODO: `pathlib.Path.read_text` https://github.com/agronholm/anyio/pull/327
-        async with await anyio.open_file(dotenv_source, "r", encoding=encoding) as f:
-            contents = await f.read()
-        dotenv = DotEnv(str(contents))
+        dotenv = DotEnv(str(await dotenv_source.read_text(encoding=encoding)))
         dotenv.source = dotenv_source
         logger.info(f"fastenv loaded {len(dotenv)} variables from {dotenv_source}")
         return dotenv
@@ -191,16 +183,15 @@ async def dump_dotenv(
     *,
     encoding: str | None = "utf-8",
     raise_exceptions: bool = True,
-) -> pathlib.Path:
+) -> anyio.Path:
     """Dump a `DotEnv` model to a file."""
     try:
-        # TODO: `pathlib.Path.write_text` https://github.com/agronholm/anyio/pull/327
-        async with await anyio.open_file(destination, "w", encoding=encoding) as f:
-            await f.write(str(source))
-        logger.info(f"fastenv dumped to {destination}")
+        dotenv_path = anyio.Path(destination)
+        await dotenv_path.write_text(str(source), encoding=encoding)
+        logger.info(f"fastenv dumped to {dotenv_path}")
+        return await dotenv_path.resolve(strict=raise_exceptions)
     except Exception as e:
         logger.error(f"fastenv error: {e.__class__.__qualname__} {e}")
         if raise_exceptions:
             raise
-    # TODO: async `pathlib.Path` https://github.com/agronholm/anyio/pull/327
-    return pathlib.Path(destination).resolve(strict=raise_exceptions)
+    return dotenv_path
