@@ -119,7 +119,7 @@ class DotEnv(MutableMapping):
 
 async def find_dotenv(filename: os.PathLike[str] | str = ".env") -> anyio.Path:
     """Find a dotenv file, starting in the current directory, and walking
-    upwards until a file with the given file is found. Returns the path
+    upwards until a file with the given name is found. Returns the path
     to the file if found, or raises `FileNotFoundError` if not found.
     """
     starting_dir = await anyio.Path.cwd()
