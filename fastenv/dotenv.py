@@ -14,7 +14,7 @@ class DotEnv(MutableMapping):
 
     def __init__(self, *args: str, **kwargs: str) -> None:
         self._data: MutableMapping[str, str] = {}
-        self.source: anyio.Path | None = None
+        self.source: anyio.Path | list[anyio.Path] | None = None
         self.setenv(*args, **kwargs)
 
     def __getitem__(self, key: str) -> str | None:
@@ -134,22 +134,34 @@ async def find_dotenv(filename: os.PathLike[str] | str = ".env") -> anyio.Path:
 
 
 async def load_dotenv(
-    source: os.PathLike[str] | str = ".env",
-    *,
+    *sources: os.PathLike[str] | str,
     encoding: str | None = "utf-8",
     find_source: bool = False,
     raise_exceptions: bool = True,
 ) -> DotEnv:
-    """Load environment variables from a file into a `DotEnv` model."""
+    """Load environment variables from one or more files into a `DotEnv` model."""
     try:
-        dotenv_source = (
-            await find_dotenv(source)
-            if find_source
-            else await anyio.Path(source).resolve(strict=raise_exceptions)
-        )
-        dotenv = DotEnv(str(await dotenv_source.read_text(encoding=encoding)))
-        dotenv.source = dotenv_source
-        logger.info(f"fastenv loaded {len(dotenv)} variables from {dotenv_source}")
+        if len(sources) == 1:
+            dotenv_source = (
+                await find_dotenv(*sources)
+                if find_source
+                else await anyio.Path(*sources).resolve(strict=raise_exceptions)
+            )
+            dotenv = DotEnv(await dotenv_source.read_text(encoding=encoding))
+            dotenv.source = dotenv_source
+        else:
+            dotenv_sources = [
+                await find_dotenv(source)
+                if find_source
+                else await anyio.Path(source).resolve(strict=raise_exceptions)
+                for source in sources
+            ]
+            dotenv_source_contents: list[str] = [
+                await source.read_text(encoding=encoding) for source in dotenv_sources
+            ]
+            dotenv = DotEnv(*iter(dotenv_source_contents))
+            dotenv.source = dotenv_sources
+        logger.info(f"fastenv loaded {len(dotenv)} variables from {dotenv.source}")
         return dotenv
     except Exception as e:
         logger.error(f"fastenv error: {e.__class__.__qualname__} {e}")

@@ -68,6 +68,15 @@ dotenv_args: tuple[tuple[str, str, str], ...] = (
     ),
 )
 
+dotenv_args_multi: tuple[tuple[str, str], ...] = (
+    ("AWS_ACCESS_KEY_ID", "AKIAIOSMULTI2EXAMPLE"),
+    ("AWS_SECRET_ACCESS_KEY", "wJalrXUtnFEMI/K7MDENG/bPMULTI2EXAMPLE"),
+    ("CSV_VARIABLE", "multi,2,example"),
+    ("MULTI_0_VARIABLE", "multi_0_value"),
+    ("MULTI_1_VARIABLE", "multi_1_value"),
+    ("MULTI_2_VARIABLE", "multi_2_value"),
+)
+
 dotenv_args_with_incorrect_types: tuple = ({"key": "value"}, 123, [1, 2, 3])
 
 dotenv_kwargs_with_incorrect_types: tuple[tuple[dict, str, str], ...] = (
@@ -607,7 +616,8 @@ class TestDotEnvMethods:
         mocker: MockerFixture,
     ) -> None:
         """Assert that calling `load_dotenv` with a source file in a
-        directory above and `find_source=True` finds and loads the file.
+        directory above and `find_source=True` finds and loads the file,
+        and returns a `DotEnv` instance with all expected values.
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
@@ -625,6 +635,35 @@ class TestDotEnvMethods:
         logger.info.assert_called_once_with(
             f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
         )
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize("output_key, output_value", dotenv_args_multi)
+    async def test_find_and_load_dotenv_with_files_in_sub_dirs(
+        self,
+        env_file_child_dir: fastenv.dotenv.anyio.Path,
+        env_files_in_child_dirs: list[fastenv.dotenv.anyio.Path],
+        output_key: str,
+        output_value: str,
+        mocker: MockerFixture,
+    ) -> None:
+        """Assert that calling `load_dotenv` with paths to multiple source files
+        in multiple directories and `find_source=True` finds and loads the files,
+        overwrites values of duplicate keys in left-to-right insertion order, and
+        returns a `DotEnv` instance with all expected values.
+        """
+        environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        filenames = tuple(file.name for file in env_files_in_child_dirs)
+        fastenv.dotenv.os.chdir(env_file_child_dir)
+        dotenv = await fastenv.dotenv.load_dotenv(*filenames, find_source=True)
+        assert isinstance(dotenv, fastenv.dotenv.DotEnv)
+        assert dotenv(output_key) == output_value
+        assert dotenv[output_key] == output_value
+        assert environ[output_key] == output_value
+        assert environ.get(output_key) == output_value
+        assert fastenv.dotenv.os.getenv(output_key) == output_value
+        assert "fastenv loaded" in logger.info.call_args.args[0]
+        assert str(env_files_in_child_dirs) in logger.info.call_args.args[0]
 
     @pytest.mark.anyio
     async def test_find_and_load_dotenv_with_file_not_found_and_raise(
@@ -700,11 +739,61 @@ class TestDotEnvMethods:
         dotenv = await fastenv.dotenv.load_dotenv(env_file_empty, raise_exceptions=True)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
         assert dotenv.source == env_file_empty
+        assert isinstance(dotenv.source, fastenv.dotenv.anyio.Path)
         assert await dotenv.source.is_file()
         assert len(dotenv) == 0
         logger.info.assert_called_once_with(
             f"fastenv loaded 0 variables from {env_file_empty}"
         )
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize("output_key, output_value", dotenv_args_multi)
+    async def test_load_dotenv_files_in_same_dir(
+        self,
+        env_files_in_same_dir: list[fastenv.dotenv.anyio.Path],
+        output_key: str,
+        output_value: str,
+        mocker: MockerFixture,
+    ) -> None:
+        """Assert that calling `load_dotenv` with paths to multiple source files
+        loads the files, overwrites values of duplicate keys in left-to-right
+        insertion order, and returns a `DotEnv` instance with all expected values.
+        """
+        environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        dotenv = await fastenv.dotenv.load_dotenv(*env_files_in_same_dir)
+        assert isinstance(dotenv, fastenv.dotenv.DotEnv)
+        assert dotenv(output_key) == output_value
+        assert dotenv[output_key] == output_value
+        assert environ[output_key] == output_value
+        assert environ.get(output_key) == output_value
+        assert fastenv.dotenv.os.getenv(output_key) == output_value
+        assert dotenv.source == env_files_in_same_dir
+        for env_file in env_files_in_same_dir:
+            assert isinstance(env_file, fastenv.dotenv.anyio.Path)
+            assert await env_file.is_file()
+        assert "fastenv loaded" in logger.info.call_args.args[0]
+        assert str(env_files_in_same_dir) in logger.info.call_args.args[0]
+
+    @pytest.mark.anyio
+    async def test_load_dotenv_files_in_other_dirs_no_find(
+        self,
+        env_file_child_dir: fastenv.dotenv.anyio.Path,
+        env_files_in_child_dirs: list[fastenv.dotenv.anyio.Path],
+        mocker: MockerFixture,
+    ) -> None:
+        """Assert that calling `load_dotenv` with paths to multiple source files
+        in multiple directories and `find_source=False` raises `FileNotFoundError`.
+        """
+        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        for env_file in env_files_in_child_dirs:
+            assert await env_file.is_file()
+        filenames = tuple(file.name for file in env_files_in_child_dirs)
+        fastenv.dotenv.os.chdir(env_file_child_dir)
+        with pytest.raises(FileNotFoundError):
+            await fastenv.dotenv.load_dotenv(*filenames, find_source=False)
+        assert "FileNotFoundError" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
     async def test_load_dotenv_incorrect_path_no_raise(
