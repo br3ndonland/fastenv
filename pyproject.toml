@@ -23,7 +23,6 @@ readme = "README.md"
 include = ["fastenv/py.typed"]
 keywords = ["asgi", "dotenv", "environment variables", "fastapi", "settings"]
 classifiers = [
-  "Development Status :: 1 - Planning",
   "Environment :: Web Environment",
   "Intended Audience :: Developers",
   "Natural Language :: English",
