@@ -11,10 +11,9 @@ To get started, let's set up a virtual environment and install fastenv from the 
 !!!example "Setting up a virtual environment"
 
     ```sh
-    # set up a virtual environment and install fastenv
-    ❯ python3 -m venv .venv
-    ❯ . .venv/bin/activate
-    .venv ❯ python -m pip install fastenv
+    python3 -m venv .venv
+    . .venv/bin/activate
+    python -m pip install fastenv
     ```
 
 We'll work with an example _.env_ file that contains variables in various formats. Copy the code block below using the "Copy to clipboard" icon in the top right of the code block, paste the contents into a new file in your text editor, and save it as `.env`.

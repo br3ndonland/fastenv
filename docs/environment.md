@@ -19,10 +19,9 @@ To get started, let's set up a virtual environment and install fastenv from the 
 !!!example "Setting up a virtual environment"
 
     ```sh
-    # set up a virtual environment and install fastenv
-    ❯ python3 -m venv .venv
-    ❯ . .venv/bin/activate
-    .venv ❯ python -m pip install fastenv
+    python3 -m venv .venv
+    . .venv/bin/activate
+    python -m pip install fastenv
     ```
 
 Next, we will [use the Python interpreter](https://docs.python.org/3/tutorial/interpreter.html) to run a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) ("Read-Eval-Print Loop"), import fastenv, and create a `DotEnv` instance.
