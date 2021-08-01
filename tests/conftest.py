@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import anyio
 import pytest
 
@@ -32,6 +34,20 @@ def env_str() -> str:
 
 
 @pytest.fixture(scope="session")
+def env_str_multi() -> tuple[str, ...]:
+    """Specify environment variables within a string for testing."""
+    return tuple(
+        (
+            f"AWS_ACCESS_KEY_ID=AKIAIOSMULTI{i}EXAMPLE\n"
+            f"AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPMULTI{i}EXAMPLE\n"
+            f"CSV_VARIABLE=multi,{i},example\n"
+            f"MULTI_{i}_VARIABLE=multi_{i}_value"
+        )
+        for i in range(3)
+    )
+
+
+@pytest.fixture(scope="session")
 @pytest.mark.anyio
 async def env_file(
     env_str: str, tmp_path_factory: pytest.TempPathFactory
@@ -59,3 +75,33 @@ async def env_file_child_dir(env_file: anyio.Path) -> anyio.Path:
     starting_dir = anyio.Path(env_file.parent) / "child1" / "child2" / "child3"
     await starting_dir.mkdir(parents=True, exist_ok=False)
     return starting_dir
+
+
+@pytest.fixture(scope="session")
+@pytest.mark.anyio
+async def env_files_in_same_dir(
+    env_file: anyio.Path,
+    env_str_multi: tuple[str, ...],
+) -> list[anyio.Path]:
+    """Create multiple .env files in a single directory to test `load_dotenv`."""
+    env_files: list[anyio.Path] = [env_file]
+    for i, env_str in enumerate(env_str_multi):
+        new_file = env_file.parent / f".env.child{i}"
+        await new_file.write_text(env_str)
+        env_files.append(new_file)
+    return env_files
+
+
+@pytest.fixture(scope="session")
+@pytest.mark.anyio
+async def env_files_in_child_dirs(
+    env_file_child_dir: anyio.Path,
+    env_str_multi: tuple[str, ...],
+) -> list[anyio.Path]:
+    """Create multiple .env files in child directories to test `load_dotenv`."""
+    env_files: list[anyio.Path] = []
+    for i, env_str in enumerate(env_str_multi):
+        new_file = env_file_child_dir.parents[i] / f".env.child{i}"
+        await new_file.write_text(env_str)
+        env_files.append(new_file)
+    return env_files

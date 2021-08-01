@@ -102,6 +102,7 @@ _pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/u
 
 -   fastenv: `await fastenv.load_dotenv()` (async)
 -   python-dotenv: `dotenv.load_dotenv()` (sync)
+-   `fastenv.load_dotenv` can load multiple _.env_ files in a single call, `dotenv.load_dotenv` cannot
 -   `fastenv.load_dotenv` logs the number of environment variables loaded, `dotenv.load_dotenv` does not
 -   `fastenv.load_dotenv` returns a `DotEnv` model, `dotenv.load_dotenv` returns `True` (even if no _.env_ file was found and no environment variables were loaded)
 

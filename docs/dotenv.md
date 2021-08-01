@@ -85,8 +85,8 @@ The example below demonstrates how this works. Note that this is written as a _s
     ```sh
     .venv ❯ python example.py
 
-    /Users/brendon/dev/fastenv-docs/.env
     # output formatted for clarity
+    /Users/brendon/dev/fastenv-docs/.env
     {
       'AWS_ACCESS_KEY_ID': 'AKIAIOSFODNN7EXAMPLE',
       'AWS_SECRET_ACCESS_KEY': 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE',
@@ -115,6 +115,78 @@ Comments were removed automatically, and each `KEY=value` string was converted i
 
     In some cases, you may simply want a dictionary of the keys and values in a _.env_ file, instead of the `DotEnv` model itself. Rather than running `await fastenv.load_dotenv()` and then `dict(dotenv)` to serialize the model into a dictionary, as we did in the example above, consider `await fastenv.dotenv_values()`, which will load a _.env_ file and return the dictionary directly.
 
+## Loading multiple _.env_ files
+
+`fastenv.load_dotenv` can load more than one _.env_ file into a single `DotEnv` model. To see this, let's add another _.env_ file named `.env.override`.
+
+!!!example "Example _.env_ file with overrides for local development"
+
+    ```sh
+    # .env.override
+    APPLICATION_ENVIRONMENT=local
+    CSV_VARIABLE=comma,separated,override
+    URL_EXAMPLE=https://github.com
+    ```
+
+This is a common scenario in software development. Applications will often have a _.env_ file that is used for deployments, and developers will have additional _.env_ files to override deployment configurations for local development environments.
+
+Now, we will update our `example.py` module to load both files. The order is important here. Values are set in left-to-right insertion order, so if the same variables are present in both files, values in the second file will override values in the first.
+
+!!!example "Loading multiple _.env_ files into a `DotEnv` model"
+
+    ```py
+    #!/usr/bin/env python3
+    # example.py
+    import anyio
+    import fastenv
+
+
+    async def load_my_dotenv() -> fastenv.DotEnv:
+        dotenv = await fastenv.load_dotenv()
+        print(dotenv.source)
+        print(dict(dotenv))
+        return dotenv
+
+
+    async def load_my_dotenvs(*filenames: str) -> fastenv.DotEnv:
+        dotenv = await fastenv.load_dotenv(*filenames)
+        print(dotenv.source)
+        print(dict(dotenv))
+        return dotenv
+
+
+    if __name__ == "__main__":
+        # anyio.run(load_my_dotenv)
+        anyio.run(load_my_dotenvs, ".env", ".env.override")
+    ```
+
+    ```sh
+    .venv ❯ python example.py
+
+    # output formatted for clarity
+    [
+      Path('/Users/brendon/dev/fastenv-docs/.env'),
+      Path('/Users/brendon/dev/fastenv-docs/.env.override')
+    ]
+    {
+      'AWS_ACCESS_KEY_ID': 'AKIAIOSFODNN7EXAMPLE',
+      'AWS_SECRET_ACCESS_KEY': 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE',
+      'CSV_VARIABLE': 'comma,separated,override',
+      'EMPTY_VARIABLE': '',
+      'INLINE_COMMENT': 'no_comment',
+      'JSON_EXAMPLE': '{"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}',
+      'PASSWORD': '64w2Q$!&,,[EXAMPLE',
+      'QUOTES_AND_WHITESPACE': 'text and spaces',
+      'URI_TO_DIRECTORY': '~/dev',
+      'URI_TO_S3_BUCKET': 's3://mybucket/.env',
+      'URI_TO_SQLITE_DB': 'sqlite:////path/to/db.sqlite',
+      'URL_EXAMPLE': 'https://github.com',
+      'APPLICATION_ENVIRONMENT': 'local'
+    }
+    ```
+
+There are now two source paths listed, our variables `CSV_VARIABLE` and `URL_EXAMPLE` have been updated with the values from `.env.override`, and the new `APPLICATION_ENVIRONMENT` variable has been loaded.
+
 ## Dumping a `DotEnv` instance to a _.env_ file
 
 We can also go in the opposite direction by using `await fastenv.dump_dotenv()` to write a `DotEnv` model out to a file. Under the hood, the `DotEnv` class uses its [`__str__()`](https://docs.python.org/3/reference/datamodel.html#object.__str__) method to deserialize the `DotEnv` instance into a string, which is then written to the file.
@@ -137,18 +209,26 @@ Let's update the `example.py` script to not only load `.env`, but also dump it b
         return dotenv
 
 
-    async def load_and_dump_my_dotenv() -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv()
+    async def load_my_dotenvs(*filenames: str) -> fastenv.DotEnv:
+        dotenv = await fastenv.load_dotenv(*filenames)
+        print(dotenv.source)
+        print(dict(dotenv))
+        return dotenv
+
+
+    async def load_and_dump_my_dotenvs(*filenames: str) -> fastenv.DotEnv:
+        dotenv = await fastenv.load_dotenv(*filenames)
         await fastenv.dump_dotenv(dotenv, ".env.dump")
         return dotenv
 
 
     if __name__ == "__main__":
         # anyio.run(load_my_dotenv)
-        anyio.run(load_and_dump_my_dotenv)
+        # anyio.run(load_my_dotenvs, ".env", ".env.override")
+        anyio.run(load_and_dump_my_dotenvs, ".env", ".env.override")
     ```
 
-Try running `python example.py` again, then opening `.env.dump` in a text editor. The new `.env.dump` file should have the same contents as the original `.env` file.
+Try running `python example.py` again, then opening `.env.dump` in a text editor. The new `.env.dump` file should have the variables from the `DotEnv` instance.
 
 ## Exceptions and logging
 
