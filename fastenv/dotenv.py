@@ -133,6 +133,36 @@ async def find_dotenv(filename: os.PathLike[str] | str = ".env") -> anyio.Path:
     raise FileNotFoundError(f"Could not find {filename}")
 
 
+async def _set_dotenv_source(
+    *sources: os.PathLike[str] | str,
+    find_source: bool = False,
+    raise_exceptions: bool = True,
+) -> anyio.Path | list[anyio.Path]:
+    if len(sources) == 1:
+        return (
+            await find_dotenv(*sources)
+            if find_source
+            else await anyio.Path(*sources).resolve(strict=raise_exceptions)
+        )
+    return [
+        await find_dotenv(source)
+        if find_source
+        else await anyio.Path(source).resolve(strict=raise_exceptions)
+        for source in sources
+    ]
+
+
+async def _read_dotenv_source(
+    source: anyio.Path | list[anyio.Path], encoding: str | None = "utf-8"
+) -> DotEnv:
+    if isinstance(source, anyio.Path):
+        return DotEnv(await source.read_text(encoding=encoding))
+    source_contents: list[str] = [
+        await source_item.read_text(encoding=encoding) for source_item in source
+    ]
+    return DotEnv(*iter(source_contents))
+
+
 async def load_dotenv(
     *sources: os.PathLike[str] | str,
     encoding: str | None = "utf-8",
@@ -141,26 +171,11 @@ async def load_dotenv(
 ) -> DotEnv:
     """Load environment variables from one or more files into a `DotEnv` model."""
     try:
-        if len(sources) == 1:
-            dotenv_source = (
-                await find_dotenv(*sources)
-                if find_source
-                else await anyio.Path(*sources).resolve(strict=raise_exceptions)
-            )
-            dotenv = DotEnv(await dotenv_source.read_text(encoding=encoding))
-            dotenv.source = dotenv_source
-        else:
-            dotenv_sources = [
-                await find_dotenv(source)
-                if find_source
-                else await anyio.Path(source).resolve(strict=raise_exceptions)
-                for source in sources
-            ]
-            dotenv_source_contents: list[str] = [
-                await source.read_text(encoding=encoding) for source in dotenv_sources
-            ]
-            dotenv = DotEnv(*iter(dotenv_source_contents))
-            dotenv.source = dotenv_sources
+        dotenv_source = await _set_dotenv_source(
+            *sources, find_source=find_source, raise_exceptions=raise_exceptions
+        )
+        dotenv = await _read_dotenv_source(dotenv_source, encoding=encoding)
+        dotenv.source = dotenv_source
         logger.info(f"fastenv loaded {len(dotenv)} variables from {dotenv.source}")
         return dotenv
     except Exception as e:
