@@ -529,6 +529,20 @@ class TestDotEnvMethods:
     """Test methods associated with `class DotEnv`."""
 
     @pytest.mark.anyio
+    async def test_find_dotenv_with_resolved_path_to_file(
+        self, env_file: fastenv.dotenv.anyio.Path, mocker: MockerFixture
+    ) -> None:
+        """Assert that calling `find_dotenv` with a resolved filepath
+        returns the path straight away without further iteration.
+        """
+        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        iterdir = mocker.patch.object(fastenv.dotenv.anyio.Path, "iterdir")
+        resolved_path = await env_file.resolve()
+        result = await fastenv.dotenv.find_dotenv(resolved_path)
+        assert result == resolved_path
+        iterdir.assert_not_called()
+
+    @pytest.mark.anyio
     async def test_find_dotenv_with_file_in_same_dir(
         self, env_file: fastenv.dotenv.anyio.Path, mocker: MockerFixture
     ) -> None:
@@ -537,8 +551,10 @@ class TestDotEnvMethods:
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         iterdir = mocker.patch.object(fastenv.dotenv.anyio.Path, "iterdir")
-        result = await fastenv.dotenv.find_dotenv(env_file)
-        assert result == await env_file.resolve()
+        resolved_path = await env_file.resolve()
+        fastenv.dotenv.os.chdir(env_file.parent)
+        result = await fastenv.dotenv.find_dotenv(env_file.name)
+        assert result == resolved_path
         iterdir.assert_not_called()
 
     @pytest.mark.anyio
@@ -552,12 +568,13 @@ class TestDotEnvMethods:
         a dotenv file in a directory above, returns the path to the dotenv file.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        resolved_path = await env_file.resolve()
         fastenv.dotenv.os.chdir(env_file_child_dir)
         result = await fastenv.dotenv.find_dotenv(env_file.name)
-        assert result == await env_file.resolve()
+        assert result == resolved_path
 
     @pytest.mark.anyio
-    async def test_find_dotenv_no_file(self, mocker: MockerFixture) -> None:
+    async def test_find_dotenv_no_file_with_raise(self, mocker: MockerFixture) -> None:
         """Assert that calling `find_dotenv` when the dotenv file cannot be found
         raises a `FileNotFoundError` with the filename included in the exception.
         """
