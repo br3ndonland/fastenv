@@ -838,7 +838,7 @@ class TestDotEnvMethods:
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
-    async def dump_dotenv_file(
+    async def test_dump_dotenv_file(
         self,
         env_file: fastenv.dotenv.anyio.Path,
         input_arg: str,
@@ -851,12 +851,11 @@ class TestDotEnvMethods:
         """
         mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        dotenv = fastenv.dotenv.DotEnv(*input_args)
+        dotenv_source = fastenv.dotenv.DotEnv(*input_args)
         destination = env_file.parent / ".env.dumped"
-        dump = await fastenv.dotenv.dump_dotenv(dotenv, destination)
-        dotenv = await fastenv.dotenv.load_dotenv(dump)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
-        assert len(dotenv) == len(dotenv_args)
+        dump = await fastenv.dotenv.dump_dotenv(dotenv_source, destination)
+        result = await fastenv.dotenv.load_dotenv(dump)
+        assert variable_is_set(result, environ, output_key, output_value)
 
     @pytest.mark.anyio
     async def test_dump_dotenv_incorrect_path_with_raise(
