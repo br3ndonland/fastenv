@@ -567,27 +567,21 @@ class TestDotEnvMethods:
         assert ".env.nofile" in str(e.value)
 
     @pytest.mark.anyio
-    async def test_load_dotenv_with_file_not_found_and_raise(
-        self, mocker: MockerFixture
-    ) -> None:
+    async def test_load_dotenv_no_file_with_raise(self, mocker: MockerFixture) -> None:
         """Assert that calling `load_dotenv` with `find_source=True` and the
         name of a source file that does not exist raises `FileNotFoundError`.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         with pytest.raises(FileNotFoundError) as e:
-            await fastenv.dotenv.load_dotenv(
-                ".env.nofile", find_source=True, raise_exceptions=True
-            )
+            await fastenv.dotenv.load_dotenv(".env.nofile", find_source=True)
         assert ".env.nofile" in str(e.value)
         logger.error.assert_called_once_with(
-            f"fastenv error: FileNotFoundError {e.value}"
+            "fastenv error: FileNotFoundError Could not find .env.nofile"
         )
 
     @pytest.mark.anyio
-    async def test_load_dotenv_with_file_not_found_no_raise(
-        self, mocker: MockerFixture
-    ) -> None:
+    async def test_load_dotenv_no_file_no_raise(self, mocker: MockerFixture) -> None:
         """Assert that calling `load_dotenv` with `find_source=True`,
         `raise_exceptions=False`, and the name of a source file that
         does not exist returns an empty `DotEnv` instance.
@@ -598,7 +592,9 @@ class TestDotEnvMethods:
             ".env.nofile", find_source=True, raise_exceptions=False
         )
         assert len(dotenv) == 0
-        assert "FileNotFoundError" in logger.error.call_args.args[0]
+        logger.error.assert_called_once_with(
+            "fastenv error: FileNotFoundError Could not find .env.nofile"
+        )
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
@@ -610,12 +606,12 @@ class TestDotEnvMethods:
         output_value: str,
         mocker: MockerFixture,
     ) -> None:
-        """Assert that calling `load_dotenv` with a correct path
-        to a dotenv file returns a `DotEnv` instance.
+        """Assert that calling `load_dotenv` with a correct path to a dotenv file
+        returns a `DotEnv` instance with all expected variables set.
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
-        dotenv = await fastenv.dotenv.load_dotenv(env_file, raise_exceptions=True)
+        dotenv = await fastenv.dotenv.load_dotenv(env_file)
         assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == env_file
