@@ -88,6 +88,9 @@ class DotEnv(MutableMapping):
             for k in kwargs
         }
 
+    def _sort_dotenv(self) -> None:
+        self._data = {key: value for key, value in sorted(self._data.items())}
+
     def getenv(self, key: str, default: str | None = None) -> str | None:
         """Get an environment variable from a `DotEnv` instance, or return `None` if it
         doesn't exist. The optional second argument can specify an alternate default.
@@ -153,14 +156,21 @@ async def _set_dotenv_source(
 
 
 async def _read_dotenv_source(
-    source: anyio.Path | list[anyio.Path], encoding: str | None = "utf-8"
+    source: anyio.Path | list[anyio.Path],
+    *,
+    encoding: str | None = "utf-8",
+    sort_dotenv: bool = False,
 ) -> DotEnv:
     if isinstance(source, anyio.Path):
-        return DotEnv(await source.read_text(encoding=encoding))
-    source_contents: list[str] = [
-        await source_item.read_text(encoding=encoding) for source_item in source
-    ]
-    return DotEnv(*iter(source_contents))
+        dotenv = DotEnv(await source.read_text(encoding=encoding))
+    else:
+        source_contents: list[str] = [
+            await source_item.read_text(encoding=encoding) for source_item in source
+        ]
+        dotenv = DotEnv(*iter(source_contents))
+    if sort_dotenv:
+        dotenv._sort_dotenv()
+    return dotenv
 
 
 async def load_dotenv(
@@ -168,13 +178,16 @@ async def load_dotenv(
     encoding: str | None = "utf-8",
     find_source: bool = False,
     raise_exceptions: bool = True,
+    sort_dotenv: bool = False,
 ) -> DotEnv:
     """Load environment variables from one or more files into a `DotEnv` model."""
     try:
         dotenv_source = await _set_dotenv_source(
             *sources, find_source=find_source, raise_exceptions=raise_exceptions
         )
-        dotenv = await _read_dotenv_source(dotenv_source, encoding=encoding)
+        dotenv = await _read_dotenv_source(
+            dotenv_source, encoding=encoding, sort_dotenv=sort_dotenv
+        )
         dotenv.source = dotenv_source
         logger.info(f"fastenv loaded {len(dotenv)} variables from {dotenv.source}")
         return dotenv
@@ -191,15 +204,19 @@ async def dotenv_values(
     encoding: str | None = "utf-8",
     find_source: bool = False,
     raise_exceptions: bool = True,
+    sort_dotenv: bool = False,
 ) -> dict[str, str]:
     """Serialize a `DotEnv` source into a dictionary."""
     if isinstance(source, DotEnv):
+        if sort_dotenv:
+            source._sort_dotenv()
         return dict(source)
     dotenv = await load_dotenv(
         source,
         encoding=encoding,
         find_source=find_source,
         raise_exceptions=raise_exceptions,
+        sort_dotenv=sort_dotenv,
     )
     return dict(dotenv)
 
@@ -210,9 +227,12 @@ async def dump_dotenv(
     *,
     encoding: str | None = "utf-8",
     raise_exceptions: bool = True,
+    sort_dotenv: bool = False,
 ) -> anyio.Path:
     """Dump a `DotEnv` model to a file."""
     try:
+        if isinstance(source, DotEnv) and sort_dotenv:
+            source._sort_dotenv()
         dotenv_path = anyio.Path(destination)
         await dotenv_path.write_text(str(source), encoding=encoding)
         logger.info(f"fastenv dumped to {dotenv_path}")

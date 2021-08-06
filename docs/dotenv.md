@@ -115,6 +115,10 @@ Comments were removed automatically, and each `KEY=value` string was converted i
 
     In some cases, you may simply want a dictionary of the keys and values in a _.env_ file, instead of the `DotEnv` model itself. Rather than running `await fastenv.load_dotenv()` and then `dict(dotenv)` to serialize the model into a dictionary, as we did in the example above, consider `await fastenv.dotenv_values()`, which will load a _.env_ file and return the dictionary directly.
 
+!!!tip "Sorting environment variables"
+
+    The `load_dotenv`, `dotenv_values`, and `dump_dotenv` methods offer a Boolean `sort_dotenv` argument. If `True`, environment variables in the result will be sorted.
+
 ## Loading multiple _.env_ files
 
 `fastenv.load_dotenv` can load more than one _.env_ file into a single `DotEnv` model. To see this, let's add another _.env_ file named `.env.override`.

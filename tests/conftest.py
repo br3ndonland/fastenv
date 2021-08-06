@@ -34,8 +34,14 @@ def env_str() -> str:
 
 
 @pytest.fixture(scope="session")
+def env_str_unsorted() -> str:
+    """Specify unsorted environment variables within a string for testing."""
+    return "KEY3=value3\nKEY1=value1\nKEY2=value2\n"
+
+
+@pytest.fixture(scope="session")
 def env_str_multi() -> tuple[str, ...]:
-    """Specify environment variables within a string for testing."""
+    """Specify environment variables within multiple strings for testing."""
     return tuple(
         (
             f"AWS_ACCESS_KEY_ID=AKIAIOSMULTI{i}EXAMPLE\n"
@@ -52,7 +58,7 @@ def env_str_multi() -> tuple[str, ...]:
 async def env_file(
     env_str: str, tmp_path_factory: pytest.TempPathFactory
 ) -> anyio.Path:
-    """Create custom temporary .env.testing file."""
+    """Create .env.testing file with environment variables."""
     tmp_dir = tmp_path_factory.mktemp("env_files")
     tmp_file = anyio.Path(tmp_dir) / ".env.testing"
     await tmp_file.write_text(env_str)
@@ -61,8 +67,17 @@ async def env_file(
 
 @pytest.fixture(scope="session")
 @pytest.mark.anyio
+async def env_file_unsorted(env_file: anyio.Path, env_str_unsorted: str) -> anyio.Path:
+    """Create .env file with unsorted environment variables."""
+    tmp_file = env_file.parent / ".env.unsorted"
+    await tmp_file.write_text(env_str_unsorted)
+    return tmp_file
+
+
+@pytest.fixture(scope="session")
+@pytest.mark.anyio
 async def env_file_empty(env_file: anyio.Path) -> anyio.Path:
-    """Create and load custom temporary .env.testing file with no variables."""
+    """Create .env file with no variables."""
     tmp_file = env_file.parent / ".env.empty"
     await tmp_file.write_text("\n")
     return tmp_file

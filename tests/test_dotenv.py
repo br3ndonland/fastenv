@@ -637,6 +637,25 @@ class TestDotEnvMethods:
         )
 
     @pytest.mark.anyio
+    @pytest.mark.parametrize("sort_dotenv", (False, True))
+    async def test_load_dotenv_sorted(
+        self,
+        env_file_unsorted: fastenv.dotenv.anyio.Path,
+        mocker: MockerFixture,
+        sort_dotenv: bool,
+    ) -> None:
+        """Assert that `load_dotenv` returns a `DotEnv` instance that is
+        sorted if `sort_dotenv=True`, or unsorted if `sort_dotenv=False`.
+        """
+        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        dotenv = await fastenv.dotenv.load_dotenv(
+            env_file_unsorted, sort_dotenv=sort_dotenv
+        )
+        dotenv_keys = list(dict(dotenv).keys())
+        assert (dotenv_keys == sorted(dotenv_keys)) is sort_dotenv
+
+    @pytest.mark.anyio
     async def test_load_dotenv_empty_file(
         self, env_file_empty: fastenv.dotenv.anyio.Path, mocker: MockerFixture
     ) -> None:
@@ -791,10 +810,24 @@ class TestDotEnvMethods:
     ) -> None:
         """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         example_dict = {"KEY1": "value1", "KEY2": "value2", "KEY3": "value3"}
         dotenv = fastenv.dotenv.DotEnv(**example_dict)
         result = await fastenv.dotenv.dotenv_values(dotenv)
         assert result == dict(dotenv) == example_dict
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize("sort_dotenv", (False, True))
+    async def test_dotenv_values_with_dotenv_instance_sorted(
+        self, mocker: MockerFixture, sort_dotenv: bool
+    ) -> None:
+        """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
+        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        example_dict = {"KEY3": "value3", "KEY1": "value1", "KEY2": "value2"}
+        dotenv = fastenv.dotenv.DotEnv(**example_dict)
+        result = await fastenv.dotenv.dotenv_values(dotenv, sort_dotenv=sort_dotenv)
+        dotenv_keys = list(result.keys())
+        assert (dotenv_keys == sorted(dotenv_keys)) is sort_dotenv
 
     @pytest.mark.anyio
     async def test_dotenv_values_with_env_file_path_and_mock_load(
@@ -837,6 +870,26 @@ class TestDotEnvMethods:
         )
 
     @pytest.mark.anyio
+    @pytest.mark.parametrize("sort_dotenv", (False, True))
+    async def test_dotenv_values_with_env_file_path_sorted(
+        self,
+        env_file_unsorted: fastenv.dotenv.anyio.Path,
+        mocker: MockerFixture,
+        sort_dotenv: bool,
+    ) -> None:
+        """Assert that `dotenv_values` returns a `DotEnv` instance that is
+        sorted if `sort_dotenv=True`, or unsorted if `sort_dotenv=False`.
+        """
+        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        result = await fastenv.dotenv.dotenv_values(
+            env_file_unsorted, sort_dotenv=sort_dotenv
+        )
+        assert isinstance(result, dict)
+        dotenv_keys = list(result.keys())
+        assert (dotenv_keys == sorted(dotenv_keys)) is sort_dotenv
+
+    @pytest.mark.anyio
     async def test_dump_dotenv_str(
         self, env_file: fastenv.dotenv.anyio.Path, env_str: str, mocker: MockerFixture
     ) -> None:
@@ -869,6 +922,29 @@ class TestDotEnvMethods:
         dump = await fastenv.dotenv.dump_dotenv(dotenv_source, destination)
         result = await fastenv.dotenv.load_dotenv(dump)
         assert variable_is_set(result, environ, output_key, output_value)
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize("sort_dotenv", (False, True))
+    async def test_dump_dotenv_file_sorted(
+        self,
+        env_file: fastenv.dotenv.anyio.Path,
+        env_str_unsorted: str,
+        mocker: MockerFixture,
+        sort_dotenv: bool,
+    ) -> None:
+        """Dump a `DotEnv` instance to a file, load the file into a new `DotEnv`
+        instance, and assert that the new `DotEnv` instance is sorted as expected.
+        """
+        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        dotenv_source = fastenv.dotenv.DotEnv(env_str_unsorted)
+        destination = env_file.parent / ".env.dumpedandsorted"
+        dump = await fastenv.dotenv.dump_dotenv(
+            dotenv_source, destination, sort_dotenv=sort_dotenv
+        )
+        dotenv = await fastenv.dotenv.load_dotenv(dump)
+        dotenv_keys = list(dict(dotenv).keys())
+        assert (dotenv_keys == sorted(dotenv_keys)) is sort_dotenv
 
     @pytest.mark.anyio
     async def test_dump_dotenv_incorrect_path_with_raise(
