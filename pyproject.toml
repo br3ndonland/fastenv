@@ -12,7 +12,7 @@ show_error_codes = true
 
 [tool.poetry]
 name = "fastenv"
-version = "0.1.1"
+version = "0.1.2"
 description = "Unified environment variable and settings management for FastAPI and beyond."
 authors = ["Brendon Smith <bws@bws.bio>"]
 license = "MIT"
