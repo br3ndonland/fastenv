@@ -21,6 +21,7 @@ repo_url: https://github.com/br3ndonland/fastenv
 site_name: fastenv docs
 site_url: ""
 theme:
+  favicon: assets/images/favicon.png
   features:
     - header.autohide
     - navigation.instant
