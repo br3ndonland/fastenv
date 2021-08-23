@@ -109,7 +109,7 @@ Comments were removed automatically, and each `KEY=value` string was converted i
 
     If you're not sure of the exact path to the _.env_ file, fastenv can locate it for you. Adding the `find_source=True` argument (`await fastenv.load_dotenv(find_source=True)`) will instruct fastenv to look for a _.env_ file using its `find_dotenv` method. By default, it will look for a file named `.env`, starting in the current working directory and walking upwards until a file with the given file is found. It will return the path to the file if found, or raise a `FileNotFoundError` if not found.
 
-    If you like, you may also use the `fastenv.find_dotenv` method on its own. It accepts a path to (or just the name of) the file, and the directory in which to start its search.
+    If you like, you may also use the `fastenv.find_dotenv` method on its own. It accepts a path to (or just the name of) the file.
 
 !!!tip "Simplifying serialization with `fastenv.dotenv_values()`"
 
