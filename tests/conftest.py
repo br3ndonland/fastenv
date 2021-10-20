@@ -17,8 +17,8 @@ def env_str() -> str:
     """Specify environment variables within a string for testing."""
     return (
         "# comment\n"
-        "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\n"
-        "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE\n"
+        "AWS_ACCESS_KEY_ID_EXAMPLE=AKIAIOSFODNN7EXAMPLE\n"
+        "AWS_SECRET_ACCESS_KEY_EXAMPLE=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE\n"
         "CSV_VARIABLE=comma,separated,value\n"
         "EMPTY_VARIABLE= \n"
         "# comment\n"
@@ -44,8 +44,8 @@ def env_str_multi() -> tuple[str, ...]:
     """Specify environment variables within multiple strings for testing."""
     return tuple(
         (
-            f"AWS_ACCESS_KEY_ID=AKIAIOSMULTI{i}EXAMPLE\n"
-            f"AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPMULTI{i}EXAMPLE\n"
+            f"AWS_ACCESS_KEY_ID_EXAMPLE=AKIAIOSMULTI{i}EXAMPLE\n"
+            f"AWS_SECRET_ACCESS_KEY_EXAMPLE=wJalrXUtnFEMI/K7MDENG/bPMULTI{i}EXAMPLE\n"
             f"CSV_VARIABLE=multi,{i},example\n"
             f"MULTI_{i}_VARIABLE=multi_{i}_value"
         )

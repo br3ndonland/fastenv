@@ -7,13 +7,13 @@ import fastenv.dotenv
 
 dotenv_args: tuple[tuple[str, str, str], ...] = (
     (
-        "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\n",
-        "AWS_ACCESS_KEY_ID",
+        "AWS_ACCESS_KEY_ID_EXAMPLE=AKIAIOSFODNN7EXAMPLE\n",
+        "AWS_ACCESS_KEY_ID_EXAMPLE",
         "AKIAIOSFODNN7EXAMPLE",
     ),
     (
-        "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE\n",
-        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SECRET_ACCESS_KEY_EXAMPLE=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE\n",
+        "AWS_SECRET_ACCESS_KEY_EXAMPLE",
         "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
     ),
     (
@@ -81,8 +81,8 @@ dotenv_kwargs_with_incorrect_types: tuple[tuple[dict, str, str], ...] = (
 )
 
 dotenv_files_output: tuple[tuple[str, str], ...] = (
-    ("AWS_ACCESS_KEY_ID", "AKIAIOSMULTI2EXAMPLE"),
-    ("AWS_SECRET_ACCESS_KEY", "wJalrXUtnFEMI/K7MDENG/bPMULTI2EXAMPLE"),
+    ("AWS_ACCESS_KEY_ID_EXAMPLE", "AKIAIOSMULTI2EXAMPLE"),
+    ("AWS_SECRET_ACCESS_KEY_EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPMULTI2EXAMPLE"),
     ("CSV_VARIABLE", "multi,2,example"),
     ("MULTI_0_VARIABLE", "multi_0_value"),
     ("MULTI_1_VARIABLE", "multi_1_value"),
@@ -233,7 +233,7 @@ class TestDotEnvClass:
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(
-            "AWS_ACCESS_KEY_ID=OVERRIDETHIS1EXAMPLE",
+            "AWS_ACCESS_KEY_ID_EXAMPLE=OVERRIDETHIS1EXAMPLE",
             *input_args,
             **input_kwargs,
         )
@@ -393,7 +393,7 @@ class TestDotEnvClass:
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(
-            "AWS_ACCESS_KEY_ID=OVERRIDETHIS1EXAMPLE",
+            "AWS_ACCESS_KEY_ID_EXAMPLE=OVERRIDETHIS1EXAMPLE",
             *input_args,
             **input_kwargs,
         )

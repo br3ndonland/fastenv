@@ -22,8 +22,8 @@ We'll work with an example _.env_ file that contains variables in various format
 
     ```sh
     # .env
-    AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-    AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE
+    AWS_ACCESS_KEY_ID_EXAMPLE=AKIAIOSFODNN7EXAMPLE
+    AWS_SECRET_ACCESS_KEY_EXAMPLE=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE
     CSV_VARIABLE=comma,separated,value
     EMPTY_VARIABLE=''
     # comment
@@ -88,8 +88,8 @@ The example below demonstrates how this works. Note that this is written as a _s
     # output formatted for clarity
     /Users/brendon/dev/fastenv-docs/.env
     {
-      'AWS_ACCESS_KEY_ID': 'AKIAIOSFODNN7EXAMPLE',
-      'AWS_SECRET_ACCESS_KEY': 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE',
+      'AWS_ACCESS_KEY_ID_EXAMPLE': 'AKIAIOSFODNN7EXAMPLE',
+      'AWS_SECRET_ACCESS_KEY_EXAMPLE': 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE',
       'CSV_VARIABLE': 'comma,separated,value',
       'EMPTY_VARIABLE': '',
       'INLINE_COMMENT': 'no_comment',
@@ -173,8 +173,8 @@ Now, we will update our `example.py` module to load both files. The order is imp
       Path('/Users/brendon/dev/fastenv-docs/.env.override')
     ]
     {
-      'AWS_ACCESS_KEY_ID': 'AKIAIOSFODNN7EXAMPLE',
-      'AWS_SECRET_ACCESS_KEY': 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE',
+      'AWS_ACCESS_KEY_ID_EXAMPLE': 'AKIAIOSFODNN7EXAMPLE',
+      'AWS_SECRET_ACCESS_KEY_EXAMPLE': 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE',
       'CSV_VARIABLE': 'comma,separated,override',
       'EMPTY_VARIABLE': '',
       'INLINE_COMMENT': 'no_comment',
