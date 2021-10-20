@@ -2,7 +2,9 @@
 
 ## environ
 
-The [Python standard library `os` module](https://docs.python.org/3/library/os.html) offers operating system utilities, including `os.environ` for working with environment variables. `os.environ` is instantiated from `os._Environ`, which is an implementation of [`collections.abc.MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping). The source code for `os.environ` can be found in _[python/cpython/Lib/os.py](https://github.com/python/cpython/blob/0a7dcbdb13f1f2ab6e76e1cff47e80fb263f5da0/Lib/os.py#L663-L778)_, and the source code for `collections.abc.MutableMapping` can be found in _[python/cpython/Lib/\_collections_abc.py](https://github.com/python/cpython/blob/0a7dcbdb13f1f2ab6e76e1cff47e80fb263f5da0/Lib/_collections_abc.py#L875-L959)_. As explained in the docstring for `MutableMapping`:
+The [Python standard library `os` module](https://docs.python.org/3/library/os.html) offers operating system utilities, including `os.environ` for working with environment variables. `os.environ` only handles strings, and doesn't include tools for file I/O.
+
+`os.environ` is instantiated from `os._Environ`, which is an implementation of [`collections.abc.MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping). The source code for `os.environ` can be found in _[python/cpython/Lib/os.py](https://github.com/python/cpython/blob/0a7dcbdb13f1f2ab6e76e1cff47e80fb263f5da0/Lib/os.py#L663-L778)_, and the source code for `collections.abc.MutableMapping` can be found in _[python/cpython/Lib/\_collections_abc.py](https://github.com/python/cpython/blob/0a7dcbdb13f1f2ab6e76e1cff47e80fb263f5da0/Lib/_collections_abc.py#L875-L959)_. As explained in the docstring for `MutableMapping`:
 
 > A MutableMapping is a generic container for associating key/value pairs.
 >
