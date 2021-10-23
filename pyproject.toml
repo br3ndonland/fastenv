@@ -39,14 +39,14 @@ python = "^3.8"
 anyio = "^3.3"
 
 [tool.poetry.dev-dependencies]
-black = {version = "21.8b0", allow-prereleases = true}
-flake8 = "^3.8"
+black = {version = "21.9b0", allow-prereleases = true}
+flake8 = "^4"
 isort = "^5.8"
 mkdocs-material = "^7"
 mypy = ">=0.900"
 pre-commit = "^2.11"
 pytest = "^6.2"
-pytest-cov = "^2.10"
+pytest-cov = "^3"
 pytest-mock = "^3.3"
 
 [tool.poetry.extras]
