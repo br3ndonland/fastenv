@@ -16,7 +16,8 @@ jobs:
         python-version: [3.8, 3.9]
     env:
       CODECOV_UPLOAD: true
-      POETRY_HOME: /opt/poetry
+      PIPX_VERSION: "0.16.4"
+      POETRY_VERSION: "1.1.11"
       PYPI_PUBLISH: true
     steps:
       - uses: actions/checkout@v2
@@ -37,12 +38,19 @@ jobs:
           path: ~/.cache/pre-commit
           key: ${{ runner.os }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: ${{ runner.os }}-pre-commit-
+      - name: Install pipx for Python ${{ matrix.python-version }}
+        run: python -m pip install "pipx==$PIPX_VERSION"
       - name: Install Poetry
+        run: pipx install "poetry==$POETRY_VERSION"
+      - name: Test Poetry version
         run: |
-          curl -fsS -o install-poetry.py \
-            https://raw.githubusercontent.com/python-poetry/poetry/HEAD/install-poetry.py
-          python install-poetry.py -y
-          echo "$POETRY_HOME/bin" >> $GITHUB_PATH
+          POETRY_VERSION_INSTALLED=$(poetry -V)
+          echo "The POETRY_VERSION environment variable is set to $POETRY_VERSION."
+          echo "The installed Poetry version is $POETRY_VERSION_INSTALLED."
+          case $POETRY_VERSION_INSTALLED in
+          *$POETRY_VERSION*) echo "Poetry version correct." ;;
+          *) echo "Poetry version incorrect." && exit 1 ;;
+          esac
       - name: Install dependencies
         run: poetry install --no-interaction -E all
       - name: Run pre-commit hooks
