@@ -1,7 +1,14 @@
 from __future__ import annotations
 
+import datetime
+import os
+import secrets
+from collections import namedtuple
+
 import anyio
 import pytest
+
+import fastenv.cloud
 
 
 @pytest.fixture(scope="session")
@@ -10,6 +17,190 @@ def anyio_backend() -> str:
     with [AnyIO](https://anyio.readthedocs.io/en/stable/testing.html).
     """
     return "asyncio"
+
+
+CloudParams = namedtuple(
+    "CloudParams",
+    (
+        "access_key_variable",
+        "secret_key_variable",
+        "session_token_variable",
+        "bucket_host_variable",
+        "bucket_region_variable",
+    ),
+)
+
+_cloud_params_aws_session = CloudParams(
+    access_key_variable="AWS_SESSION_ACCESS_KEY",
+    secret_key_variable="AWS_SESSION_SECRET_KEY",
+    session_token_variable="AWS_SESSION_TOKEN",
+    bucket_host_variable="AWS_S3_BUCKET_DOMAIN",
+    bucket_region_variable="AWS_S3_REGION",
+)
+_cloud_params_aws_static = CloudParams(
+    access_key_variable="AWS_FASTENV_ACCESS_KEY",
+    secret_key_variable="AWS_FASTENV_SECRET_KEY",
+    session_token_variable="",
+    bucket_host_variable="AWS_S3_BUCKET_DOMAIN",
+    bucket_region_variable="AWS_S3_REGION",
+)
+_cloud_params_backblaze_static = CloudParams(
+    access_key_variable="BACKBLAZE_FASTENV_ACCESS_KEY",
+    secret_key_variable="BACKBLAZE_FASTENV_SECRET_KEY",
+    session_token_variable="",
+    bucket_host_variable="BACKBLAZE_B2_BUCKET_DOMAIN",
+    bucket_region_variable="BACKBLAZE_B2_REGION",
+)
+
+
+@pytest.fixture(
+    params=(
+        _cloud_params_aws_session,
+        _cloud_params_aws_static,
+        _cloud_params_backblaze_static,
+    ),
+    scope="session",
+)
+def cloud_config(request: pytest.FixtureRequest) -> fastenv.cloud.S3Config:
+    """Provide cloud configurations for testing.
+
+    This fixture will retrieve cloud credentials from environment variables, then
+    use the credentials to return instances of `fastenv.cloud.S3Config` for testing.
+
+    This is a parametrized fixture. When the fixture is used in a test, the test
+    will be automatically parametrized, running once for each fixture parameter.
+    https://docs.pytest.org/en/latest/how-to/fixtures.html
+    """
+    request_param = getattr(request, "param")
+    access_key = os.getenv(request_param.access_key_variable, "")
+    secret_key = os.getenv(request_param.secret_key_variable, "")
+    session_token = (
+        os.getenv(request_param.session_token_variable)
+        if request_param.session_token_variable
+        else ""
+    )
+    bucket_host = os.getenv(request_param.bucket_host_variable, "")
+    bucket_region = os.getenv(request_param.bucket_region_variable, "us-east-2")
+    if not access_key or not secret_key or session_token is None:
+        pytest.skip("Required cloud credentials not present.")
+    return fastenv.cloud.S3Config(
+        aws_access_key=access_key,
+        aws_secret_key=secret_key,
+        aws_region=bucket_region,
+        aws_s3_bucket=bucket_host,
+        aws_session_token=str(session_token),
+    )
+
+
+@pytest.fixture(scope="session")
+def cloud_config_aws_static() -> fastenv.cloud.S3Config:
+    """Provide a single cloud configuration instance for testing.
+
+    Rather than parametrizing all the cloud configurations, this fixture sets up
+    a single instance of `aioaws.s3.S3Config` for testing a specific configuration.
+
+    This fixture also tests the effect of providing the bucket as a bucket name alone,
+    instead of as a domain. Bucket names can be used for AWS S3, but not Backblaze B2,
+    because of how `aioaws.core.AwsClient` determines the `host` attribute.
+    """
+    access_key = os.getenv(_cloud_params_aws_static.access_key_variable, "")
+    secret_key = os.getenv(_cloud_params_aws_static.secret_key_variable, "")
+    if not access_key or not secret_key:
+        pytest.skip("Required cloud credentials not present.")
+    bucket_host = os.getenv(_cloud_params_aws_static.bucket_host_variable, "")
+    bucket_name = str(bucket_host).split(sep=".", maxsplit=1)[0]
+    bucket_region = os.getenv(
+        _cloud_params_aws_static.bucket_region_variable, "us-east-2"
+    )
+    return fastenv.cloud.S3Config(
+        aws_access_key=access_key,
+        aws_secret_key=secret_key,
+        aws_region=bucket_region,
+        aws_s3_bucket=bucket_name,
+    )
+
+
+@pytest.fixture(scope="session")
+def cloud_config_backblaze_static() -> fastenv.cloud.S3Config:
+    """Provide a single cloud configuration instance for testing.
+
+    Rather than parametrizing all the cloud configurations, this fixture sets up
+    a single instance of `aioaws.s3.S3Config` for testing a specific configuration.
+    """
+    access_key = os.getenv(_cloud_params_backblaze_static.access_key_variable, "")
+    secret_key = os.getenv(_cloud_params_backblaze_static.secret_key_variable, "")
+    if not access_key or not secret_key:
+        pytest.skip("Required cloud credentials not present.")
+    bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable, "")
+    bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable, "")
+    bucket_region = os.getenv(_cloud_params_backblaze_static.bucket_region_variable, "")
+    return fastenv.cloud.S3Config(
+        aws_access_key=access_key,
+        aws_secret_key=secret_key,
+        aws_region=bucket_region,
+        aws_s3_bucket=bucket_host,
+    )
+
+
+@pytest.fixture(scope="session")
+def cloud_config_incorrect() -> fastenv.cloud.S3Config:
+    """Provide a single cloud configuration instance for testing.
+
+    Rather than parametrizing all the cloud configurations, this fixture sets up
+    a single instance of `aioaws.s3.S3Config` for testing a specific configuration.
+
+    This particular configuration is provided for testing authorization errors.
+    """
+    bucket_host = os.getenv("AWS_S3_BUCKET_DOMAIN")
+    bucket_name = str(bucket_host).split(sep=".", maxsplit=1)[0]
+    bucket_region = os.getenv("AWS_S3_REGION", "us-east-2")
+    return fastenv.cloud.S3Config(
+        aws_access_key="AKIAIOSFODNN7EXAMPLE",
+        aws_secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
+        aws_region=bucket_region,
+        aws_s3_bucket=bucket_name,
+    )
+
+
+@pytest.fixture(scope="session")
+def cloud_client_upload_prefix() -> str:
+    """Provide a bucket prefix for uploading to cloud object storage.
+
+    The prefix includes the test session time as a formatted string. The string
+    will be formatted like "2022-01-01-220123-UTC". There is also a random text
+    string added, to ensure that each test run has a unique prefix.
+    """
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    now_string = now.strftime("%Y-%m-%d-%H%M%S-%Z")
+    hex_prefix = secrets.token_hex()[:10]
+    return f"uploads/{now_string}-{hex_prefix}"
+
+
+@pytest.fixture(scope="session")
+def cloud_client_backblaze_b2_upload_url_response(
+    cloud_config_backblaze_static: fastenv.cloud.S3Config,
+) -> fastenv.cloud.httpx.Response:
+    """Provide a mock `httpx.Response` from a call to Backblaze `b2_get_upload_url`.
+
+    https://www.backblaze.com/b2/docs/b2_get_upload_url.html
+    """
+    authorization_token = (
+        f"4_{cloud_config_backblaze_static.aws_access_key}"
+        "_01a10000_fd9b00_upld_a_27_character_alphanumeric="
+    )
+    bucket_id = "123456789012123456789012"
+    upload_url = (
+        "https://pod-000-1111-01.backblaze.com/b2api/v2/"
+        f"b2_upload_file/{bucket_id}/c001_v0001111_t0030"
+    )
+    upload_url_response_text = (
+        "{"
+        f'\n  "authorizationToken": "{authorization_token}",'
+        f'\n  "bucketId": "{bucket_id}",'
+        f'\n  "uploadUrl": "{upload_url}"'
+        "\n}\n"
+    )
+    return fastenv.cloud.httpx.Response(200, text=upload_url_response_text)
 
 
 _dotenv_args: tuple[tuple[str, str, str], ...] = (
@@ -220,6 +411,16 @@ def env_str(input_args: tuple[str, ...]) -> str:
 
 
 @pytest.fixture(scope="session")
+def env_bytes(env_str: str) -> bytes:
+    """Specify environment variables as bytes for testing."""
+    env_str_with_byte_variable = (
+        "# This content was provided to fastenv as bytes prior to upload.\n"
+        "BYTE_VARIABLE_KEY=byte_variable_value\n\n"
+    ) + env_str
+    return env_str_with_byte_variable.encode()
+
+
+@pytest.fixture(scope="session")
 def env_str_unsorted() -> str:
     """Specify unsorted environment variables within a string for testing."""
     return "KEY3=value3\nKEY1=value1\nKEY2=value2\n"
@@ -309,7 +510,7 @@ async def env_files_in_child_dirs(
 
 
 @pytest.fixture(scope="session")
-def env_files_output(request: pytest.FixtureRequest) -> tuple[tuple[str, str], ...]:
+def env_files_output() -> tuple[tuple[str, str], ...]:
     """Define the variable keys and values that are expected to be set
     when the test .env files are loaded into `DotEnv` instances.
 
@@ -333,3 +534,24 @@ def env_files_output(request: pytest.FixtureRequest) -> tuple[tuple[str, str], .
         ("MULTI_1_VARIABLE", "multi_1_value"),
         ("MULTI_2_VARIABLE", "multi_2_value"),
     )
+
+
+@pytest.fixture(scope="session")
+def env_file_object_additional_input() -> dict[str, str]:
+    """Add a variable that will only be added to files in object storage."""
+    return {
+        "OBJECT_STORAGE_VARIABLE": "DUDE!!! This variable came from object storage!"
+    }
+
+
+@pytest.fixture(scope="session")
+def env_file_object_expected_output(
+    env_file_object_additional_input: dict[str, str], input_kwargs: dict[str, str]
+) -> dict[str, str]:
+    """Define the variable keys and values that are expected to be set
+    when test .env files are loaded from cloud object storage.
+
+    The test .env files in object storage have the same values from the `env_file`
+    fixture, with additional variables specific to the cloud objects.
+    """
+    return {**input_kwargs, **env_file_object_additional_input}

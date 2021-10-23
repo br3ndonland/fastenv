@@ -12,11 +12,17 @@ coverage:
     patch:
       default:
         threshold: 1%
-        flags: [unit]
+        flags: [unit, integration]
     project:
       default:
         threshold: 1%
-        flags: [unit]
+        flags: [unit, integration]
+flag_management:
+  default_rules:
+    statuses:
+      - type: project
+      - target: auto
+      - threshold: 1%
 parsers:
   gcov:
     branch_detection:

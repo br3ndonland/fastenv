@@ -116,6 +116,53 @@ poetry export -f requirements.txt > requirements.txt --dev  # export deps
 
 [GitHub Actions](https://github.com/features/actions) is a continuous integration/continuous deployment (CI/CD) service that runs on GitHub repos. It replaces other services like Travis CI. Actions are grouped into workflows and stored in _.github/workflows_. See [Getting the Gist of GitHub Actions](https://gist.github.com/br3ndonland/f9c753eb27381f97336aa21b8d932be6) for more info.
 
+### GitHub Actions and AWS
+
+An IAM user must be created in order to allow GitHub Actions to access AWS. The IAM user for this repo was created following [IAM best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html). In AWS, there is a `GitHubActions` IAM group, with a `fastenv` IAM user (one user per repo). The `fastenv` user has an IAM policy attached specifying its permissions.
+
+The AWS CLI was used for setup, with the following [`aws iam` commands](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/iam/index.html):
+
+```sh
+~
+❯ aws iam create-group --group-name GitHubActions
+
+~
+❯ aws iam attach-group-policy --group-name GitHubActions \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+~
+❯ aws iam create-user --user-name fastenv
+
+~
+❯ aws iam add-user-to-group --group-name GitHubActions --user-name fastenv
+
+~
+❯ aws iam create-access-key --user-name fastenv
+
+```
+
+The S3 bucket itself was created using the AWS CLI, using `aws s3 mb`.
+
+A bucket URL is stored in [GitHub Secrets](https://docs.github.com/en/actions/reference/encrypted-secrets) as `AWS_S3_BUCKET_URL`, in the "[virtual hosted style URL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html)" format (`https://<bucketname>.s3.<region>.amazonaws.com`).
+
+On GitHub, the `fastenv` user access key is stored in GitHub Secrets:
+
+-   `AWS_ACCESS_KEY_ID_FASTENV`
+-   `AWS_SECRET_ACCESS_KEY_FASTENV`.
+
+In addition to the static access key, GitHub Actions also retrieves temporary security credentials from AWS using OpenID Connect (OIDC). See the GitHub [changelog](https://github.blog/changelog/2021-10-27-github-actions-secure-cloud-deployments-with-openid-connect/) and [docs](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments) for further info.
+
+### GitHub Actions and Backblaze B2
+
+A [B2 application key](https://www.backblaze.com/b2/docs/application_keys.html) with read and list permissions is stored in [GitHub Secrets](https://docs.github.com/en/actions/reference/encrypted-secrets):
+
+-   `BACKBLAZE_B2_APPLICATION_KEY_ID` (equivalent to `AWS_ACCESS_KEY_ID`)
+-   `BACKBLAZE_B2_APPLICATION_KEY` (equivalent to `AWS_SECRET_ACCESS_KEY`)
+
+A bucket URL is stored in GitHub Secrets as `BACKBLAZE_B2_BUCKET_URL`, in the "virtual hosted style URL" format (`https://<bucket-name>.s3.<region-name>.backblazeb2.com`).
+
+See the [Backblaze B2 S3-compatible API docs](https://www.backblaze.com/b2/docs/s3_compatible_api.html) for further info.
+
 ## Maintainers
 
 -   **The default branch is `develop`.**
@@ -124,11 +171,11 @@ poetry export -f requirements.txt > requirements.txt --dev  # export deps
 -   **Branch protection is enabled on `develop` and `main`.**
     -   `develop`:
         -   Require signed commits
-        -   Include adminstrators
+        -   Include administrators
         -   Allow force pushes
     -   `main`:
         -   Require signed commits
-        -   Include adminstrators
+        -   Include administrators
         -   Do not allow force pushes
         -   Require status checks to pass before merging (commits must have previously been pushed to `develop` and passed all checks)
 -   **To create a release:**
