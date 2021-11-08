@@ -107,6 +107,21 @@ def variable_is_set(
     return True
 
 
+def variable_is_unset(
+    dotenv: fastenv.dotenv.DotEnv,
+    environ: fastenv.dotenv.MutableMapping,
+    unset_key: str,
+) -> bool:
+    """Assert that a `DotEnv` instance has unset the given variable."""
+    assert isinstance(dotenv, fastenv.dotenv.DotEnv)
+    assert dotenv.get(unset_key) is None
+    assert dotenv.getenv(unset_key, "not_set") == "not_set"
+    assert environ.get(unset_key) is None
+    with pytest.raises(KeyError):
+        dotenv[unset_key]
+    return True
+
+
 def response_is_correct(
     dotenv: fastenv.dotenv.DotEnv,
     response: dict | str | None,
@@ -461,11 +476,7 @@ class TestDotEnvClass:
         dotenv = fastenv.dotenv.DotEnv(**example_dict)
         for key in example_dict:
             del dotenv[key]
-            assert dotenv.get(key) is None
-            assert dotenv.getenv(key, "not_set") == "not_set"
-            assert environ.get(key) is None
-            with pytest.raises(KeyError):
-                dotenv[key]
+            assert variable_is_unset(dotenv, environ, key)
         assert len(dotenv) == 0
 
     def test_delete_variables(self, mocker: MockerFixture) -> None:
@@ -477,11 +488,7 @@ class TestDotEnvClass:
         dotenv = fastenv.dotenv.DotEnv(**example_dict)
         dotenv.delenv(*example_dict.keys())
         for key in example_dict:
-            assert dotenv.get(key) is None
-            assert dotenv.getenv(key, "not_set") == "not_set"
-            assert environ.get(key) is None
-            with pytest.raises(KeyError):
-                dotenv[key]
+            assert variable_is_unset(dotenv, environ, key)
         assert len(dotenv) == 0
 
     def test_delete_variables_skip_unset(self, mocker: MockerFixture) -> None:
