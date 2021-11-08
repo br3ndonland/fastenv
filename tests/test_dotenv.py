@@ -279,8 +279,8 @@ class TestDotEnvClass:
         dotenv = fastenv.dotenv.DotEnv(**example_dict)
         assert dotenv(*example_dict.keys()) == example_dict
         assert dotenv("KEY1 KEY2 KEY3 # inline comment") == example_dict
-        for key in example_dict:
-            assert dotenv.get(key) == example_dict[key]
+        for key, value in example_dict.items():
+            assert dotenv.get(key) == value
 
     def test_get_and_set_variables_in_single_call(self, mocker: MockerFixture) -> None:
         """Assert that calling a `DotEnv` instance with a combination of variables
@@ -291,8 +291,8 @@ class TestDotEnvClass:
         expected_result = {**example_dict, "KEY4": "value4"}
         dotenv = fastenv.dotenv.DotEnv("KEY4=value4")
         assert dotenv("KEY4", **example_dict) == expected_result
-        for key in expected_result:
-            assert dotenv.get(key) == expected_result[key]
+        for key, value in expected_result.items():
+            assert dotenv.get(key) == value
 
     @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_set_variable_with_call(
