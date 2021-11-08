@@ -116,7 +116,7 @@ class DotEnv(MutableMapping):
         (`delenv("KEY1", "KEY2")`).
         """
         for key in self._parse_args_to_get(*args):
-            if self.getenv(key) and os.getenv(key):
+            if self.getenv(key) is not None and os.getenv(key) is not None:
                 self.__delitem__(key)
 
 

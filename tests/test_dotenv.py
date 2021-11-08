@@ -472,9 +472,8 @@ class TestDotEnvClass:
         corresponding variable from both the `DotEnv` instance and `os.environ`.
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        example_dict = {"KEY1": "value1", "KEY2": "value2", "KEY3": "value3"}
-        dotenv = fastenv.dotenv.DotEnv(**example_dict)
-        for key in example_dict:
+        dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
+        for key in input_kwargs:
             del dotenv[key]
             assert variable_is_unset(dotenv, environ, key)
         assert len(dotenv) == 0
@@ -484,10 +483,9 @@ class TestDotEnvClass:
         corresponding variables from both the `DotEnv` instance and `os.environ`.
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        example_dict = {"KEY1": "value1", "KEY2": "value2", "KEY3": "value3"}
-        dotenv = fastenv.dotenv.DotEnv(**example_dict)
-        dotenv.delenv(*example_dict.keys())
-        for key in example_dict:
+        dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
+        dotenv.delenv(*input_kwargs.keys())
+        for key in input_kwargs:
             assert variable_is_unset(dotenv, environ, key)
         assert len(dotenv) == 0
 
