@@ -290,11 +290,9 @@ class TestDotEnvClass:
         returns a dict containing the keys and corresponding values.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        example_dict = {"KEY1": "value1", "KEY2": "value2", "KEY3": "value3"}
-        dotenv = fastenv.dotenv.DotEnv(**example_dict)
-        assert dotenv(*example_dict.keys()) == example_dict
-        assert dotenv("KEY1 KEY2 KEY3 # inline comment") == example_dict
-        for key, value in example_dict.items():
+        dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
+        assert dotenv(*input_kwargs.keys()) == input_kwargs
+        for key, value in input_kwargs.items():
             assert dotenv.get(key) == value
 
     def test_get_and_set_variables_in_single_call(self, mocker: MockerFixture) -> None:
@@ -302,10 +300,9 @@ class TestDotEnvClass:
         to get and set returns a dict containing the keys and corresponding values.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        example_dict = {"KEY1": "value1", "KEY2": "value2", "KEY3": "value3"}
-        expected_result = {**example_dict, "KEY4": "value4"}
+        expected_result = {**input_kwargs, "KEY4": "value4"}
         dotenv = fastenv.dotenv.DotEnv("KEY4=value4")
-        assert dotenv("KEY4", **example_dict) == expected_result
+        assert dotenv("KEY4", **input_kwargs) == expected_result
         for key, value in expected_result.items():
             assert dotenv.get(key) == value
 
@@ -508,26 +505,21 @@ class TestDotEnvClass:
         `DotEnv` instance appropriately iterates over its keys.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        example_dict = {"KEY1": "value1", "KEY2": "value2", "KEY3": "value3"}
-        dotenv = fastenv.dotenv.DotEnv(**example_dict)
+        dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
         dotenv_iterator = iter(dotenv)
-        assert list(dotenv) == list(example_dict.keys())
-        for i in (
-            next(dotenv_iterator),
-            next(dotenv_iterator),
-            next(dotenv_iterator),
-        ):
-            assert i in example_dict
-            assert isinstance(i, str)
+        assert list(dotenv) == list(input_kwargs.keys())
+        for _ in input_kwargs:
+            iteration_result = next(dotenv_iterator)
+            assert iteration_result in input_kwargs
+            assert isinstance(iteration_result, str)
         with pytest.raises(StopIteration):
             next(dotenv_iterator)
 
     def test_dict(self, mocker: MockerFixture) -> None:
         """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        example_dict = {"KEY1": "value1", "KEY2": "value2", "KEY3": "value3"}
-        dotenv = fastenv.dotenv.DotEnv(**example_dict)
-        assert dict(dotenv) == example_dict
+        dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
+        assert dict(dotenv) == input_kwargs
 
 
 class TestDotEnvMethods:
@@ -816,10 +808,9 @@ class TestDotEnvMethods:
         """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
-        example_dict = {"KEY1": "value1", "KEY2": "value2", "KEY3": "value3"}
-        dotenv = fastenv.dotenv.DotEnv(**example_dict)
+        dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
         result = await fastenv.dotenv.dotenv_values(dotenv)
-        assert result == dict(dotenv) == example_dict
+        assert result == dict(dotenv) == input_kwargs
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("sort_dotenv", (False, True))
@@ -828,8 +819,7 @@ class TestDotEnvMethods:
     ) -> None:
         """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        example_dict = {"KEY3": "value3", "KEY1": "value1", "KEY2": "value2"}
-        dotenv = fastenv.dotenv.DotEnv(**example_dict)
+        dotenv = fastenv.dotenv.DotEnv("zzz=123", **input_kwargs)
         result = await fastenv.dotenv.dotenv_values(dotenv, sort_dotenv=sort_dotenv)
         dotenv_keys = list(result.keys())
         assert (dotenv_keys == sorted(dotenv_keys)) is sort_dotenv
