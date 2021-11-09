@@ -12,25 +12,211 @@ def anyio_backend() -> str:
     return "asyncio"
 
 
+_dotenv_args: tuple[tuple[str, str, str], ...] = (
+    (
+        "AWS_ACCESS_KEY_ID_EXAMPLE=AKIAIOSFODNN7EXAMPLE",
+        "AWS_ACCESS_KEY_ID_EXAMPLE",
+        "AKIAIOSFODNN7EXAMPLE",
+    ),
+    (
+        "AWS_SECRET_ACCESS_KEY_EXAMPLE=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
+        "AWS_SECRET_ACCESS_KEY_EXAMPLE",
+        "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
+    ),
+    (
+        "CSV_VARIABLE=comma,separated,value",
+        "CSV_VARIABLE",
+        "comma,separated,value",
+    ),
+    (
+        "EMPTY_VARIABLE= \n",
+        "EMPTY_VARIABLE",
+        "",
+    ),
+    (
+        "INLINE_COMMENT=no_comment  # inline comment ",
+        "INLINE_COMMENT",
+        "no_comment",
+    ),
+    (
+        'JSON_EXAMPLE=\'{"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}\'',
+        "JSON_EXAMPLE",
+        '{"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}',
+    ),
+    (
+        "PASSWORD='64w2Q$!&,,[EXAMPLE'",
+        "PASSWORD",
+        "64w2Q$!&,,[EXAMPLE",
+    ),
+    (
+        "QUOTES_AND_WHITESPACE=\"' text and spaces '\"",
+        "QUOTES_AND_WHITESPACE",
+        "text and spaces",
+    ),
+    (
+        "URI_TO_DIRECTORY=~/dev",
+        "URI_TO_DIRECTORY",
+        "~/dev",
+    ),
+    (
+        "URI_TO_S3_BUCKET=s3://mybucket/.env",
+        "URI_TO_S3_BUCKET",
+        "s3://mybucket/.env",
+    ),
+    (
+        "URI_TO_SQLITE_DB=sqlite:////path/to/db.sqlite",
+        "URI_TO_SQLITE_DB",
+        "sqlite:////path/to/db.sqlite",
+    ),
+    (
+        "URL_EXAMPLE=https://start.duckduckgo.com/",
+        "URL_EXAMPLE",
+        "https://start.duckduckgo.com/",
+    ),
+)
+
+_dotenv_kwargs: tuple[tuple[dict[str, str], str, str], ...] = tuple(
+    ({expected_key: expected_value}, expected_key, expected_value)
+    for input_arg, expected_key, expected_value in _dotenv_args
+)
+
+_input_args: tuple[str, ...] = tuple(i[0] for i in _dotenv_args)
+
+_input_kwargs: dict[str, str] = {i[1]: i[2] for i in _dotenv_args}
+
+
 @pytest.fixture(scope="session")
-def env_str() -> str:
+def dotenv_args() -> tuple[tuple[str, str, str], ...]:
+    """Provide example positional input arguments and their expected outputs."""
+    return _dotenv_args
+
+
+@pytest.fixture(params=_dotenv_args, scope="session")
+def dotenv_arg(request: pytest.FixtureRequest) -> tuple[str, str, str]:
+    """Parametrize the example positional input arguments and their expected outputs.
+
+    Each item is a three-tuple which contains:
+
+    0. A `"key=value"` string that will be passed to a `DotEnv` instance
+       as a positional argument to set a variable
+    1. The variable key that is expected to be set
+    2. The variable value that is expected to be set
+
+    The tuple is usually unpacked within each test:
+    `input_arg, output_key, output_value = dotenv_arg`.
+
+    This is a parametrized fixture. When the fixture is used in a test, the test
+    will be automatically parametrized, running once for each fixture parameter.
+    https://docs.pytest.org/en/latest/how-to/fixtures.html
+    """
+    return getattr(request, "param")
+
+
+@pytest.fixture(scope="session")
+def dotenv_kwargs() -> tuple[tuple[dict[str, str], str, str], ...]:
+    """Provide example keyword input arguments and their expected outputs."""
+    return _dotenv_kwargs
+
+
+@pytest.fixture(params=_dotenv_kwargs, scope="session")
+def dotenv_kwarg(request: pytest.FixtureRequest) -> tuple[dict[str, str], str, str]:
+    """Parametrize the example keyword input arguments and their expected outputs.
+
+    Each item is a three-tuple which contains:
+
+    0. A `{key: value}` dictionary that will be passed to a `DotEnv` instance
+       as a positional argument to set a variable
+    1. The variable key that is expected to be set
+    2. The variable value that is expected to be set
+
+    The tuple is usually unpacked within each test:
+    `input_kwarg, output_key, output_value = dotenv_kwarg`
+
+    This is a parametrized fixture. When the fixture is used in a test, the test
+    will be automatically parametrized, running once for each fixture parameter.
+    https://docs.pytest.org/en/latest/how-to/fixtures.html
+    """
+    return getattr(request, "param")
+
+
+@pytest.fixture(
+    params=(
+        ({"dict": {"key": "value"}}, "DICT", "{'key': 'value'}"),
+        ({"int": 123}, "INT", "123"),
+        ({"list": [1, 2, 3]}, "LIST", "[1, 2, 3]"),
+    ),
+    scope="session",
+)
+def dotenv_kwarg_incorrect_type(
+    request: pytest.FixtureRequest,
+) -> tuple[dict, str, str]:
+    """Provide example keyword arguments with incorrect types.
+
+    `DotEnv` instances convert non-string keyword arguments ("kwargs") to strings.
+
+    Each item is a three-tuple which contains:
+
+    0. A `{key: value}` dictionary that will be passed to a `DotEnv` instance
+       as a positional argument to set a variable
+    1. The variable key that is expected to be set
+    2. The variable value that is expected to be set
+
+    The tuple is usually unpacked within each test:
+    `input_kwarg, output_key, output_value = dotenv_kwarg_incorrect_type`
+
+    This is a parametrized fixture. When the fixture is used in a test, the test
+    will be automatically parametrized, running once for each fixture parameter.
+    https://docs.pytest.org/en/latest/how-to/fixtures.html
+    """
+    return getattr(request, "param")
+
+
+@pytest.fixture(scope="session")
+def input_args() -> tuple[str, ...]:
+    """Provide example positional input arguments.
+
+    An `input_arg` as defined here is just the `"key=value"` string that will be
+    passed to a `DotEnv` instance as a positional argument to set a variable.
+
+    This fixture is provided separately so that all the positional arguments can
+    be passed in to a `DotEnv` instance simultaneously, by unpacking the tuple.
+    """
+    return _input_args
+
+
+@pytest.fixture(params=({"key": "value"}, 123, [1, 2, 3]), scope="session")
+def input_arg_incorrect_type(request: pytest.FixtureRequest) -> dict | int | list:
+    """Provide example positional arguments with incorrect types.
+
+    Environment variable keys and values should be strings. If non-string positional
+    arguments ("args") are passed to a `DotEnv` instance, it will raise a `TypeError`,
+    rather than attempting to handle the args. This is because args can be used either
+    to get or set variables, and it can be challenging to infer the user's intent when
+    non-string args are used in this situation.
+
+    This is a parametrized fixture. When the fixture is used in a test, the test
+    will be automatically parametrized, running once for each fixture parameter.
+    https://docs.pytest.org/en/latest/how-to/fixtures.html
+    """
+    return getattr(request, "param")
+
+
+@pytest.fixture(scope="session")
+def input_kwargs() -> dict[str, str]:
+    """Provide example keyword input arguments.
+
+    The `input_kwargs` return value is a dictionary of all test `key: value` pairs.
+
+    This fixture is provided separately so that all the keyword arguments can
+    be passed in to a `DotEnv` instance simultaneously, by unpacking the dictionary.
+    """
+    return _input_kwargs
+
+
+@pytest.fixture(scope="session")
+def env_str(input_args: tuple[str, ...]) -> str:
     """Specify environment variables within a string for testing."""
-    return (
-        "# comment\n"
-        "AWS_ACCESS_KEY_ID_EXAMPLE=AKIAIOSFODNN7EXAMPLE\n"
-        "AWS_SECRET_ACCESS_KEY_EXAMPLE=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE\n"
-        "CSV_VARIABLE=comma,separated,value\n"
-        "EMPTY_VARIABLE= \n"
-        "# comment\n"
-        "INLINE_COMMENT=no_comment  # inline comment  \n"
-        'JSON_EXAMPLE=\'{"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}\'\n'
-        "PASSWORD='64w2Q$!&,,[EXAMPLE'\n"
-        "QUOTES_AND_WHITESPACE=\"' text and spaces '\"\n"
-        "URI_TO_DIRECTORY=~/dev\n"
-        "URI_TO_S3_BUCKET=s3://mybucket/.env\n"
-        "URI_TO_SQLITE_DB=sqlite:////path/to/db.sqlite\n"
-        "URL_EXAMPLE=https://start.duckduckgo.com/\n"
-    )
+    return "\n".join(input_args)
 
 
 @pytest.fixture(scope="session")
@@ -120,3 +306,30 @@ async def env_files_in_child_dirs(
         await new_file.write_text(env_str)
         env_files.append(new_file)
     return env_files
+
+
+@pytest.fixture(scope="session")
+def env_files_output(request: pytest.FixtureRequest) -> tuple[tuple[str, str], ...]:
+    """Define the variable keys and values that are expected to be set
+    when the test .env files are loaded into `DotEnv` instances.
+
+    The test .env files are generated by writing the output of the `env_str_multi`
+    fixture into multiple files, then loading the files.
+
+    Each item is a two-tuple which contains:
+
+    0. The variable key that is expected to be set
+    1. The variable value that is expected to be set
+
+    Variable values should be updated in left-to-right order, so if `CSV_VARIABLE`
+    is defined multiple times, the last file loaded will determine the value that
+    is set (`multi,2,example` here).
+    """
+    return (
+        ("AWS_ACCESS_KEY_ID_EXAMPLE", "AKIAIOSMULTI2EXAMPLE"),
+        ("AWS_SECRET_ACCESS_KEY_EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPMULTI2EXAMPLE"),
+        ("CSV_VARIABLE", "multi,2,example"),
+        ("MULTI_0_VARIABLE", "multi_0_value"),
+        ("MULTI_1_VARIABLE", "multi_1_value"),
+        ("MULTI_2_VARIABLE", "multi_2_value"),
+    )

@@ -5,90 +5,6 @@ from pytest_mock import MockerFixture
 
 import fastenv.dotenv
 
-dotenv_args: tuple[tuple[str, str, str], ...] = (
-    (
-        "AWS_ACCESS_KEY_ID_EXAMPLE=AKIAIOSFODNN7EXAMPLE\n",
-        "AWS_ACCESS_KEY_ID_EXAMPLE",
-        "AKIAIOSFODNN7EXAMPLE",
-    ),
-    (
-        "AWS_SECRET_ACCESS_KEY_EXAMPLE=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE\n",
-        "AWS_SECRET_ACCESS_KEY_EXAMPLE",
-        "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
-    ),
-    (
-        "CSV_VARIABLE=comma,separated,value\n",
-        "CSV_VARIABLE",
-        "comma,separated,value",
-    ),
-    (
-        "EMPTY_VARIABLE= \n",
-        "EMPTY_VARIABLE",
-        "",
-    ),
-    (
-        "INLINE_COMMENT=no_comment  # inline comment  \n",
-        "INLINE_COMMENT",
-        "no_comment",
-    ),
-    (
-        'JSON_EXAMPLE=\'{"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}\'',
-        "JSON_EXAMPLE",
-        '{"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}',
-    ),
-    (
-        "PASSWORD='64w2Q$!&,,[EXAMPLE'\n",
-        "PASSWORD",
-        "64w2Q$!&,,[EXAMPLE",
-    ),
-    (
-        "QUOTES_AND_WHITESPACE=\"' text and spaces '\"\n",
-        "QUOTES_AND_WHITESPACE",
-        "text and spaces",
-    ),
-    (
-        "URI_TO_DIRECTORY=~/dev",
-        "URI_TO_DIRECTORY",
-        "~/dev",
-    ),
-    (
-        "URI_TO_S3_BUCKET=s3://mybucket/.env\n",
-        "URI_TO_S3_BUCKET",
-        "s3://mybucket/.env",
-    ),
-    (
-        "URI_TO_SQLITE_DB=sqlite:////path/to/db.sqlite",
-        "URI_TO_SQLITE_DB",
-        "sqlite:////path/to/db.sqlite",
-    ),
-    (
-        "URL_EXAMPLE=https://start.duckduckgo.com/",
-        "URL_EXAMPLE",
-        "https://start.duckduckgo.com/",
-    ),
-)
-
-input_args: tuple[str, ...] = tuple(arg[0] for arg in dotenv_args)
-
-input_kwargs: dict[str, str] = {arg[1]: arg[2] for arg in dotenv_args}
-
-dotenv_args_with_incorrect_types: tuple = ({"key": "value"}, 123, [1, 2, 3])
-
-dotenv_kwargs_with_incorrect_types: tuple[tuple[dict, str, str], ...] = (
-    ({"dict": {"key": "value"}}, "DICT", "{'key': 'value'}"),
-    ({"int": 123}, "INT", "123"),
-    ({"list": [1, 2, 3]}, "LIST", "[1, 2, 3]"),
-)
-
-dotenv_files_output: tuple[tuple[str, str], ...] = (
-    ("AWS_ACCESS_KEY_ID_EXAMPLE", "AKIAIOSMULTI2EXAMPLE"),
-    ("AWS_SECRET_ACCESS_KEY_EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPMULTI2EXAMPLE"),
-    ("CSV_VARIABLE", "multi,2,example"),
-    ("MULTI_0_VARIABLE", "multi_0_value"),
-    ("MULTI_1_VARIABLE", "multi_1_value"),
-    ("MULTI_2_VARIABLE", "multi_2_value"),
-)
-
 
 def variable_is_set(
     dotenv: fastenv.dotenv.DotEnv,
@@ -139,40 +55,33 @@ def response_is_correct(
 class TestDotEnvClass:
     """Test `class DotEnv` and its methods."""
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_instantiate_dotenv_class_with_arg(
-        self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
-        mocker: MockerFixture,
+        self, dotenv_arg: tuple[str, str, str], mocker: MockerFixture
     ) -> None:
         """Instantiate `class DotEnv` with a `"key=value"` string argument and
         assert that it is set in both `os.environ` and the `DotEnv` instance.
         """
+        input_arg, output_key, output_value = dotenv_arg
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(input_arg)
         assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == 1
 
-    @pytest.mark.parametrize("input_arg", dotenv_args_with_incorrect_types)
     def test_instantiate_dotenv_class_with_arg_incorrect_type(
-        self, input_arg: dict | int | list, mocker: MockerFixture
+        self, input_arg_incorrect_type: dict | int | list, mocker: MockerFixture
     ) -> None:
         """Assert that attempting to instantiate `class DotEnv`
         with any non-string arguments raises a `TypeError`.
         """
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         with pytest.raises(TypeError) as e:
-            fastenv.dotenv.DotEnv(input_arg)  # type: ignore[arg-type]
+            fastenv.dotenv.DotEnv(input_arg_incorrect_type)  # type: ignore[arg-type]
         assert "Arguments passed to DotEnv instances should be strings" in str(e.value)
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_instantiate_dotenv_class_with_args(
         self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
+        dotenv_args: tuple[tuple[str, str, str], ...],
+        input_args: tuple[str, ...],
         mocker: MockerFixture,
     ) -> None:
         """Instantiate `class DotEnv` with `"key=value"` string arguments and
@@ -180,50 +89,41 @@ class TestDotEnvClass:
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(*input_args)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
-        assert len(dotenv) == len(dotenv_args)
+        for input_arg, output_key, output_value in dotenv_args:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
+        assert len(dotenv) == len(dotenv_args) == len(input_args)
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_instantiate_dotenv_class_with_kwarg(
-        self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
-        mocker: MockerFixture,
-    ) -> None:
+        self, dotenv_kwarg: tuple[dict[str, str], str, str], mocker: MockerFixture
+    ) -> None:  # sourcery skip: class-extract-method
         """Instantiate `class DotEnv` with a `key=value` keyword argument ("kwarg")
         and assert that it is set in both `os.environ` and the `DotEnv` instance.
         """
+        input_kwarg, output_key, output_value = dotenv_kwarg
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        dotenv = fastenv.dotenv.DotEnv(**{output_key: output_value})
+        dotenv = fastenv.dotenv.DotEnv(**input_kwarg)
         assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == 1
 
-    @pytest.mark.parametrize(
-        "input_kwarg, output_key, output_value", dotenv_kwargs_with_incorrect_types
-    )
     def test_instantiate_dotenv_class_with_kwarg_incorrect_type(
         self,
-        input_kwarg: dict,
-        output_key: str,
-        output_value: str,
+        dotenv_kwarg_incorrect_type: tuple[dict, str, str],
         mocker: MockerFixture,
     ) -> None:
         """Assert that attempting to instantiate `class DotEnv` with a non-string kwarg
         converts the value to a string, sets the variable in both the `DotEnv` instance
         and `os.environ`, and returns a dict of the key and corresponding value set.
         """
+        input_kwarg, output_key, output_value = dotenv_kwarg_incorrect_type
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(**input_kwarg)
         assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == 1
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_instantiate_dotenv_class_with_kwargs(
         self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
+        dotenv_kwargs: tuple[tuple[dict[str, str], str, str], ...],
+        input_kwargs: dict[str, str],
         mocker: MockerFixture,
     ) -> None:
         """Instantiate `class DotEnv` with `key=value` keyword arguments ("kwargs")
@@ -231,15 +131,14 @@ class TestDotEnvClass:
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
-        assert len(dotenv) == len(dotenv_args)
+        for input_kwarg, output_key, output_value in dotenv_kwargs:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
+        assert len(dotenv) == len(dotenv_kwargs)
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_instantiate_dotenv_class_with_both_args_and_kwargs(
         self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
+        dotenv_kwargs: tuple[tuple[dict[str, str], str, str], ...],
+        input_kwargs: dict[str, str],
         mocker: MockerFixture,
     ) -> None:
         """Instantiate `class DotEnv` with a combination of args and kwargs,
@@ -248,20 +147,16 @@ class TestDotEnvClass:
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(
-            "AWS_ACCESS_KEY_ID_EXAMPLE=OVERRIDETHIS1EXAMPLE",
-            *input_args,
-            **input_kwargs,
+            "AWS_ACCESS_KEY_ID_EXAMPLE=OVERRIDETHIS1EXAMPLE", **input_kwargs
         )
-        assert variable_is_set(dotenv, environ, output_key, output_value)
-        assert len(dotenv) == len(dotenv_args)
+        for input_kwarg, output_key, output_value in dotenv_kwargs:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
+        assert len(dotenv) == len(dotenv_kwargs)
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_instantiate_dotenv_class_with_string(
         self,
+        dotenv_args: tuple[tuple[str, str, str], ...],
         env_str: str,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
         mocker: MockerFixture,
     ) -> None:
         """Instantiate `class DotEnv` with a multi-variable string argument and assert
@@ -269,23 +164,21 @@ class TestDotEnvClass:
         """
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(env_str)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
+        for input_arg, output_key, output_value in dotenv_args:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
 
     def test_get_single_variable_unset(self, mocker: MockerFixture) -> None:
         """Assert that attempting to get an unset variable returns `None` from a call,
         and raises a `KeyError` when square bracket syntax is used.
         """
-        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
-        assert dotenv("unset") is None
-        assert dotenv.get("unset") is None
-        assert dotenv.getenv("unset") is None
-        assert dotenv.getenv("unset", "not_set") == "not_set"
-        with pytest.raises(KeyError):
-            dotenv["unset"]
+        assert variable_is_unset(dotenv, environ, "unset")
 
-    def test_get_variables(self, mocker: MockerFixture) -> None:
+    def test_get_variables(
+        self, input_kwargs: dict[str, str], mocker: MockerFixture
+    ) -> None:
         """Assert that calling a `DotEnv` instance with variable keys
         returns a dict containing the keys and corresponding values.
         """
@@ -295,7 +188,9 @@ class TestDotEnvClass:
         for key, value in input_kwargs.items():
             assert dotenv.get(key) == value
 
-    def test_get_and_set_variables_in_single_call(self, mocker: MockerFixture) -> None:
+    def test_get_and_set_variables_in_single_call(
+        self, input_kwargs: dict[str, str], mocker: MockerFixture
+    ) -> None:
         """Assert that calling a `DotEnv` instance with a combination of variables
         to get and set returns a dict containing the keys and corresponding values.
         """
@@ -306,27 +201,22 @@ class TestDotEnvClass:
         for key, value in expected_result.items():
             assert dotenv.get(key) == value
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_set_variable_with_call(
-        self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
-        mocker: MockerFixture,
+        self, dotenv_arg: tuple[str, str, str], mocker: MockerFixture
     ) -> None:
         """Assert that setting a single variable with a call to a `DotEnv` instance
         sets the variable in both the `DotEnv` instance and `os.environ`, and that
         the call returns a dict of the key and corresponding value that were set.
         """
+        input_arg, output_key, output_value = dotenv_arg
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(input_arg)
         assert variable_is_set(dotenv, environ, output_key, output_value)
         assert response_is_correct(dotenv, response, output_key, output_value)
 
-    @pytest.mark.parametrize("input_arg", dotenv_args_with_incorrect_types)
     def test_set_variable_with_call_and_incorrect_type(
-        self, input_arg: dict | int | list, mocker: MockerFixture
+        self, input_arg_incorrect_type: dict | int | list, mocker: MockerFixture
     ) -> None:
         """Assert that attempting to call a `DotEnv` instance
         with any non-string arguments raises a `TypeError`.
@@ -334,32 +224,26 @@ class TestDotEnvClass:
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         with pytest.raises(TypeError) as e:
-            dotenv("KEY=value", input_arg)  # type: ignore[arg-type]
+            dotenv("KEY=value", input_arg_incorrect_type)  # type: ignore[arg-type]
         assert not len(dotenv)
         assert "Arguments passed to DotEnv instances should be strings" in str(e.value)
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_set_variable_with_square_brackets(
-        self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
-        mocker: MockerFixture,
+        self, dotenv_arg: tuple[str, str, str], mocker: MockerFixture
     ) -> None:
         """Assert that setting a single variable with square brackets
         sets the variable in both the `DotEnv` instance and `os.environ`.
         """
+        input_arg, output_key, output_value = dotenv_arg
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         dotenv[output_key] = output_value
         assert variable_is_set(dotenv, environ, output_key, output_value)
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_set_variables_with_call_and_args(
         self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
+        dotenv_args: tuple[tuple[str, str, str], ...],
+        input_args: tuple[str, ...],
         mocker: MockerFixture,
     ) -> None:
         """Assert that setting multiple variables with a call to a `DotEnv` instance
@@ -369,15 +253,15 @@ class TestDotEnvClass:
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(*input_args)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
-        assert response_is_correct(dotenv, response, output_key, output_value)
+        for input_arg, output_key, output_value in dotenv_args:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
+            assert response_is_correct(dotenv, response, output_key, output_value)
+        assert len(dotenv) == len(dotenv_args) == len(input_args)
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_set_variables_with_call_and_kwargs(
         self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
+        dotenv_kwargs: tuple[tuple[dict[str, str], str, str], ...],
+        input_kwargs: dict[str, str],
         mocker: MockerFixture,
     ) -> None:
         """Assert that setting multiple variables with a call to a `DotEnv` instance
@@ -387,15 +271,15 @@ class TestDotEnvClass:
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(**input_kwargs)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
-        assert response_is_correct(dotenv, response, output_key, output_value)
+        for input_kwarg, output_key, output_value in dotenv_kwargs:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
+            assert response_is_correct(dotenv, response, output_key, output_value)
+        assert len(dotenv) == len(dotenv_kwargs)
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_set_variables_with_call_and_both_args_and_kwargs(
         self,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
+        dotenv_kwargs: tuple[tuple[dict[str, str], str, str], ...],
+        input_kwargs: dict[str, str],
         mocker: MockerFixture,
     ) -> None:
         """Assert that setting multiple variables with a call to a `DotEnv` instance
@@ -405,40 +289,31 @@ class TestDotEnvClass:
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(
-            "AWS_ACCESS_KEY_ID_EXAMPLE=OVERRIDETHIS1EXAMPLE",
-            *input_args,
-            **input_kwargs,
+            "AWS_ACCESS_KEY_ID_EXAMPLE=OVERRIDETHIS1EXAMPLE", **input_kwargs
         )
-        assert variable_is_set(dotenv, environ, output_key, output_value)
-        assert response_is_correct(dotenv, response, output_key, output_value)
+        for input_kwarg, output_key, output_value in dotenv_kwargs:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
+            assert response_is_correct(dotenv, response, output_key, output_value)
+        assert len(dotenv) == len(dotenv_kwargs)
 
-    @pytest.mark.parametrize(
-        "input_kwarg, output_key, output_value", dotenv_kwargs_with_incorrect_types
-    )
     def test_set_variables_with_call_and_kwarg_incorrect_type(
-        self,
-        input_kwarg: dict,
-        output_key: str,
-        output_value: str,
-        mocker: MockerFixture,
+        self, dotenv_kwarg_incorrect_type: tuple[dict, str, str], mocker: MockerFixture
     ) -> None:
         """Assert that attempting to set a variable with a non-string kwarg converts
         the value to a string, sets the variable in both the `DotEnv` instance and
         `os.environ`, and returns a dict of the key and corresponding value set.
         """
+        input_kwarg, output_key, output_value = dotenv_kwarg_incorrect_type
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(**input_kwarg)
         assert variable_is_set(dotenv, environ, output_key, output_value)
         assert response_is_correct(dotenv, response, output_key, output_value)
 
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     def test_set_variables_with_call_and_string(
         self,
+        dotenv_args: tuple[tuple[str, str, str], ...],
         env_str: str,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
         mocker: MockerFixture,
     ) -> None:
         """Assert that setting multiple variables with a call to a `DotEnv` instance
@@ -448,23 +323,24 @@ class TestDotEnvClass:
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(env_str)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
-        assert response_is_correct(dotenv, response, output_key, output_value)
+        for input_arg, output_key, output_value in dotenv_args:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
+            assert response_is_correct(dotenv, response, output_key, output_value)
+        assert len(dotenv) == len(dotenv_args)
 
     @pytest.mark.parametrize("comment", ("#no_spaces", "  #  spaces", "# key=value"))
     def test_set_variables_with_call_and_string_comments(
         self, comment: str, mocker: MockerFixture
     ) -> None:
         """Assert that comments are ignored when calling a `DotEnv` instance."""
-        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         dotenv(comment)
-        assert dotenv(comment) is None
-        with pytest.raises(KeyError):
-            dotenv[comment]
-        assert len(dotenv) == 0
+        assert variable_is_unset(dotenv, environ, comment)
 
-    def test_delete_variable(self, mocker: MockerFixture) -> None:
+    def test_delete_variable(
+        self, input_kwargs: dict[str, str], mocker: MockerFixture
+    ) -> None:
         """Assert that deleting a variable from a `DotEnv` instance deletes the
         corresponding variable from both the `DotEnv` instance and `os.environ`.
         """
@@ -475,7 +351,9 @@ class TestDotEnvClass:
             assert variable_is_unset(dotenv, environ, key)
         assert len(dotenv) == 0
 
-    def test_delete_variables(self, mocker: MockerFixture) -> None:
+    def test_delete_variables(
+        self, input_kwargs: dict[str, str], mocker: MockerFixture
+    ) -> None:
         """Assert that deleting variables from a `DotEnv` instance deletes the
         corresponding variables from both the `DotEnv` instance and `os.environ`.
         """
@@ -500,7 +378,7 @@ class TestDotEnvClass:
         assert "EXAMPLE_KEY" in dotenv_delete_item.call_args.args
         assert "UNSET" not in dotenv_delete_item.call_args.args
 
-    def test_iter(self, mocker: MockerFixture) -> None:
+    def test_iter(self, input_kwargs: dict[str, str], mocker: MockerFixture) -> None:
         """Assert that calling the `__iter__` method on a
         `DotEnv` instance appropriately iterates over its keys.
         """
@@ -515,7 +393,7 @@ class TestDotEnvClass:
         with pytest.raises(StopIteration):
             next(dotenv_iterator)
 
-    def test_dict(self, mocker: MockerFixture) -> None:
+    def test_dict(self, input_kwargs: dict[str, str], mocker: MockerFixture) -> None:
         """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
@@ -611,13 +489,10 @@ class TestDotEnvMethods:
         )
 
     @pytest.mark.anyio
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     async def test_load_dotenv_file(
         self,
+        dotenv_args: tuple[tuple[str, str, str], ...],
         env_file: fastenv.dotenv.anyio.Path,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
         mocker: MockerFixture,
     ) -> None:
         """Assert that calling `load_dotenv` with a correct path to a dotenv file
@@ -626,7 +501,8 @@ class TestDotEnvMethods:
         environ = mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(env_file)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
+        for input_arg, output_key, output_value in dotenv_args:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == env_file
         logger.info.assert_called_once_with(
@@ -672,12 +548,10 @@ class TestDotEnvMethods:
         )
 
     @pytest.mark.anyio
-    @pytest.mark.parametrize("output_key, output_value", dotenv_files_output)
     async def test_load_dotenv_files_in_same_dir(
         self,
         env_files_in_same_dir: list[fastenv.dotenv.anyio.Path],
-        output_key: str,
-        output_value: str,
+        env_files_output: tuple[tuple[str, str], ...],
         mocker: MockerFixture,
     ) -> None:
         """Assert that calling `load_dotenv` with paths to multiple source files
@@ -688,7 +562,8 @@ class TestDotEnvMethods:
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(*env_files_in_same_dir)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
+        for output_key, output_value in env_files_output:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
         assert dotenv.source == env_files_in_same_dir
         for env_file in env_files_in_same_dir:
             assert isinstance(env_file, fastenv.dotenv.anyio.Path)
@@ -698,14 +573,11 @@ class TestDotEnvMethods:
         )
 
     @pytest.mark.anyio
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     async def test_load_dotenv_file_in_sub_dir(
         self,
+        dotenv_args: tuple[tuple[str, str, str], ...],
         env_file: fastenv.dotenv.anyio.Path,
         env_file_child_dir: fastenv.dotenv.anyio.Path,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
         mocker: MockerFixture,
     ) -> None:
         """Assert that calling `load_dotenv` with a source file in a
@@ -717,7 +589,8 @@ class TestDotEnvMethods:
         fastenv.dotenv.os.chdir(env_file_child_dir)
         dotenv = await fastenv.dotenv.load_dotenv(env_file.name, find_source=True)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
+        for input_arg, output_key, output_value in dotenv_args:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == env_file
         logger.info.assert_called_once_with(
@@ -725,13 +598,11 @@ class TestDotEnvMethods:
         )
 
     @pytest.mark.anyio
-    @pytest.mark.parametrize("output_key, output_value", dotenv_files_output)
     async def test_load_dotenv_files_in_sub_dirs(
         self,
         env_file_child_dir: fastenv.dotenv.anyio.Path,
         env_files_in_child_dirs: list[fastenv.dotenv.anyio.Path],
-        output_key: str,
-        output_value: str,
+        env_files_output: tuple[tuple[str, str], ...],
         mocker: MockerFixture,
     ) -> None:
         """Assert that calling `load_dotenv` with paths to multiple source files
@@ -745,7 +616,8 @@ class TestDotEnvMethods:
         fastenv.dotenv.os.chdir(env_file_child_dir)
         dotenv = await fastenv.dotenv.load_dotenv(*filenames, find_source=True)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
-        assert variable_is_set(dotenv, environ, output_key, output_value)
+        for output_key, output_value in env_files_output:
+            assert variable_is_set(dotenv, environ, output_key, output_value)
         assert dotenv.source == env_files_in_child_dirs
         logger.info.assert_called_once_with(
             f"fastenv loaded 6 variables from {env_files_in_child_dirs}"
@@ -802,23 +674,13 @@ class TestDotEnvMethods:
         assert str(e.value) in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
-    async def test_dotenv_values_with_dotenv_instance(
-        self, mocker: MockerFixture
+    @pytest.mark.parametrize("sort_dotenv", (False, True))
+    async def test_dotenv_values_with_dotenv_instance_and_sorting(
+        self, input_kwargs: dict[str, str], mocker: MockerFixture, sort_dotenv: bool
     ) -> None:
         """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
-        dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
-        result = await fastenv.dotenv.dotenv_values(dotenv)
-        assert result == dict(dotenv) == input_kwargs
-
-    @pytest.mark.anyio
-    @pytest.mark.parametrize("sort_dotenv", (False, True))
-    async def test_dotenv_values_with_dotenv_instance_sorted(
-        self, mocker: MockerFixture, sort_dotenv: bool
-    ) -> None:
-        """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
-        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv("zzz=123", **input_kwargs)
         result = await fastenv.dotenv.dotenv_values(dotenv, sort_dotenv=sort_dotenv)
         dotenv_keys = list(result.keys())
@@ -830,6 +692,7 @@ class TestDotEnvMethods:
     ) -> None:
         """Assert that calling `dotenv_values` with a path also calls `load_dotenv`."""
         mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         load_dotenv = mocker.patch.object(
             fastenv.dotenv,
             "load_dotenv",
@@ -840,13 +703,10 @@ class TestDotEnvMethods:
         assert result == {"KEY1": "value1"}
 
     @pytest.mark.anyio
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     async def test_dotenv_values_with_env_file_path(
         self,
+        dotenv_args: tuple[tuple[str, str, str], ...],
         env_file: fastenv.dotenv.anyio.Path,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
         mocker: MockerFixture,
     ) -> None:
         """Assert that calling `dotenv_values` with a path loads variables from
@@ -857,8 +717,9 @@ class TestDotEnvMethods:
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         result = await fastenv.dotenv.dotenv_values(env_file)
         assert isinstance(result, dict)
-        assert result[output_key] == output_value
-        assert environ[output_key] == output_value
+        for input_arg, output_key, output_value in dotenv_args:
+            assert result[output_key] == output_value
+            assert environ[output_key] == output_value
         assert len(result) == len(dotenv_args)
         logger.info.assert_called_once_with(
             f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
@@ -866,7 +727,7 @@ class TestDotEnvMethods:
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("sort_dotenv", (False, True))
-    async def test_dotenv_values_with_env_file_path_sorted(
+    async def test_dotenv_values_with_env_file_path_and_sorting(
         self,
         env_file_unsorted: fastenv.dotenv.anyio.Path,
         mocker: MockerFixture,
@@ -898,13 +759,11 @@ class TestDotEnvMethods:
         logger.info.assert_called_once_with(f"fastenv dumped to {destination}")
 
     @pytest.mark.anyio
-    @pytest.mark.parametrize("input_arg, output_key, output_value", dotenv_args)
     async def test_dump_dotenv_file(
         self,
+        dotenv_args: tuple[tuple[str, str, str], ...],
         env_file: fastenv.dotenv.anyio.Path,
-        input_arg: str,
-        output_key: str,
-        output_value: str,
+        input_args: tuple[str, ...],
         mocker: MockerFixture,
     ) -> None:
         """Dump a `DotEnv` instance to a file, load the file into a new `DotEnv`
@@ -916,11 +775,12 @@ class TestDotEnvMethods:
         destination = env_file.parent / ".env.dumped"
         dump = await fastenv.dotenv.dump_dotenv(dotenv_source, destination)
         result = await fastenv.dotenv.load_dotenv(dump)
-        assert variable_is_set(result, environ, output_key, output_value)
+        for input_arg, output_key, output_value in dotenv_args:
+            assert variable_is_set(result, environ, output_key, output_value)
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("sort_dotenv", (False, True))
-    async def test_dump_dotenv_file_sorted(
+    async def test_dump_dotenv_file_with_sorting(
         self,
         env_file: fastenv.dotenv.anyio.Path,
         env_str_unsorted: str,
