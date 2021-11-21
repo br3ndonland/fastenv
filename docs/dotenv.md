@@ -71,8 +71,8 @@ The example below demonstrates how this works. Note that this is written as a _s
     import fastenv
 
 
-    async def load_my_dotenv() -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv()
+    async def load_my_dotenv(filename: str = ".env") -> fastenv.DotEnv:
+        dotenv = await fastenv.load_dotenv(filename)
         print(dotenv.source)
         print(dict(dotenv))
         return dotenv
@@ -145,8 +145,8 @@ Now, we will update our `example.py` module to load both files. The order is imp
     import fastenv
 
 
-    async def load_my_dotenv() -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv()
+    async def load_my_dotenv(filename: str = ".env") -> fastenv.DotEnv:
+        dotenv = await fastenv.load_dotenv(filename)
         print(dotenv.source)
         print(dict(dotenv))
         return dotenv
@@ -206,8 +206,8 @@ Let's update the `example.py` script to not only load `.env`, but also dump it b
     import fastenv
 
 
-    async def load_my_dotenv() -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv()
+    async def load_my_dotenv(filename: str = ".env") -> fastenv.DotEnv:
+        dotenv = await fastenv.load_dotenv(filename)
         print(dotenv.source)
         print(dict(dotenv))
         return dotenv
