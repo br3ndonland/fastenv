@@ -89,7 +89,7 @@ class DotEnv(MutableMapping):
         }
 
     def _sort_dotenv(self) -> None:
-        self._data = {key: value for key, value in sorted(self._data.items())}
+        self._data = dict(sorted(self._data.items()))
 
     def getenv(self, key: str, default: str | None = None) -> str | None:
         """Get an environment variable from a `DotEnv` instance, or return `None` if it
