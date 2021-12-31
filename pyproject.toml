@@ -37,6 +37,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 anyio = "^3.3"
+aioaws = {version = "^0.12", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = {version = "21.12b0", allow-prereleases = true}
@@ -50,7 +51,8 @@ pytest-cov = "^3"
 pytest-mock = "^3.3"
 
 [tool.poetry.extras]
-all = []
+all = ["aioaws"]
+cloud = ["aioaws"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=fastenv -q"
