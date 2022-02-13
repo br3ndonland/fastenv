@@ -23,6 +23,40 @@ This project aims to:
 
 The source code is 100% type-annotated and unit-tested.
 
+## Quickstart
+
+Install fastenv into a virtual environment:
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install fastenv
+```
+
+Then start a REPL session and try it out:
+
+```py
+.venv ❯ python
+
+# instantiate a DotEnv with a variable
+>>> import fastenv
+>>> dotenv = fastenv.DotEnv("EXAMPLE_VARIABLE=example_value")
+# add a variable with dictionary syntax
+>>> dotenv["ANOTHER_VARIABLE"] = "another_value"
+# delete a variable
+>>> del dotenv["ANOTHER_VARIABLE"]
+# add a variable by calling the instance
+>>> dotenv("I_THINK_FASTENV_IS=awesome")
+{'I_THINK_FASTENV_IS': 'awesome'}
+# return a dict of the variables in the DotEnv instance
+>>> dict(dotenv)
+{'EXAMPLE_VARIABLE': 'example_value', 'I_THINK_FASTENV_IS': 'awesome'}
+# save the DotEnv instance to a file
+>>> import anyio
+>>> anyio.run(fastenv.dump_dotenv, dotenv)
+Path('/path/to/this/dir/.env')
+```
+
 ## Documentation
 
 Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed on [Vercel](https://vercel.com/), and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
