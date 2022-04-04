@@ -31,25 +31,25 @@ CloudParams = namedtuple(
 )
 
 _cloud_params_aws_session = CloudParams(
-    access_key_variable="AWS_SESSION_ACCESS_KEY",
-    secret_key_variable="AWS_SESSION_SECRET_KEY",
-    session_token_variable="AWS_SESSION_TOKEN",
-    bucket_host_variable="AWS_S3_BUCKET_DOMAIN",
-    bucket_region_variable="AWS_S3_REGION",
+    access_key_variable="AWS_IAM_ACCESS_KEY_SESSION",
+    secret_key_variable="AWS_IAM_SECRET_KEY_SESSION",
+    session_token_variable="AWS_IAM_SESSION_TOKEN",
+    bucket_host_variable="AWS_S3_BUCKET_HOST",
+    bucket_region_variable="AWS_S3_BUCKET_REGION",
 )
 _cloud_params_aws_static = CloudParams(
-    access_key_variable="AWS_FASTENV_ACCESS_KEY",
-    secret_key_variable="AWS_FASTENV_SECRET_KEY",
+    access_key_variable="AWS_IAM_ACCESS_KEY_FASTENV",
+    secret_key_variable="AWS_IAM_SECRET_KEY_FASTENV",
     session_token_variable="",
-    bucket_host_variable="AWS_S3_BUCKET_DOMAIN",
-    bucket_region_variable="AWS_S3_REGION",
+    bucket_host_variable="AWS_S3_BUCKET_HOST",
+    bucket_region_variable="AWS_S3_BUCKET_REGION",
 )
 _cloud_params_backblaze_static = CloudParams(
-    access_key_variable="BACKBLAZE_FASTENV_ACCESS_KEY",
-    secret_key_variable="BACKBLAZE_FASTENV_SECRET_KEY",
+    access_key_variable="BACKBLAZE_B2_ACCESS_KEY_FASTENV",
+    secret_key_variable="BACKBLAZE_B2_SECRET_KEY_FASTENV",
     session_token_variable="",
-    bucket_host_variable="BACKBLAZE_B2_BUCKET_DOMAIN",
-    bucket_region_variable="BACKBLAZE_B2_REGION",
+    bucket_host_variable="BACKBLAZE_B2_BUCKET_HOST",
+    bucket_region_variable="BACKBLAZE_B2_BUCKET_REGION",
 )
 
 
@@ -61,105 +61,217 @@ _cloud_params_backblaze_static = CloudParams(
     ),
     scope="session",
 )
-def cloud_config(request: pytest.FixtureRequest) -> fastenv.cloud.S3Config:
+def cloud_config(request: pytest.FixtureRequest) -> fastenv.cloud.CloudConfig:
     """Provide cloud configurations for testing.
 
     This fixture will retrieve cloud credentials from environment variables, then
-    use the credentials to return instances of `fastenv.cloud.S3Config` for testing.
+    use the credentials to return instances of `fastenv.cloud.CloudConfig` for testing.
 
     This is a parametrized fixture. When the fixture is used in a test, the test
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
     request_param = getattr(request, "param")
-    access_key = os.getenv(request_param.access_key_variable, "")
-    secret_key = os.getenv(request_param.secret_key_variable, "")
+    access_key = os.getenv(request_param.access_key_variable)
+    secret_key = os.getenv(request_param.secret_key_variable)
     session_token = (
         os.getenv(request_param.session_token_variable)
         if request_param.session_token_variable
-        else ""
+        else request_param.session_token_variable
     )
-    bucket_host = os.getenv(request_param.bucket_host_variable, "")
+    bucket_host = os.getenv(request_param.bucket_host_variable)
     bucket_region = os.getenv(request_param.bucket_region_variable, "us-east-2")
     if not access_key or not secret_key or session_token is None:
         pytest.skip("Required cloud credentials not present.")
-    return fastenv.cloud.S3Config(
-        aws_access_key=access_key,
-        aws_secret_key=secret_key,
-        aws_region=bucket_region,
-        aws_s3_bucket=bucket_host,
-        aws_session_token=str(session_token),
+    return fastenv.cloud.CloudConfig(
+        access_key=access_key,
+        secret_key=secret_key,
+        bucket_host=bucket_host,
+        bucket_region=bucket_region,
+        session_token=session_token,
     )
 
 
 @pytest.fixture(scope="session")
-def cloud_config_aws_static() -> fastenv.cloud.S3Config:
+def cloud_config_backblaze_static() -> fastenv.cloud.CloudConfig:
     """Provide a single cloud configuration instance for testing.
 
     Rather than parametrizing all the cloud configurations, this fixture sets up
-    a single instance of `aioaws.s3.S3Config` for testing a specific configuration.
-
-    This fixture also tests the effect of providing the bucket as a bucket name alone,
-    instead of as a domain. Bucket names can be used for AWS S3, but not Backblaze B2,
-    because of how `aioaws.core.AwsClient` determines the `host` attribute.
+    a single instance of `aioaws.s3.CloudConfig` for testing a specific configuration.
     """
-    access_key = os.getenv(_cloud_params_aws_static.access_key_variable, "")
-    secret_key = os.getenv(_cloud_params_aws_static.secret_key_variable, "")
+    access_key = os.getenv(_cloud_params_backblaze_static.access_key_variable)
+    secret_key = os.getenv(_cloud_params_backblaze_static.secret_key_variable)
     if not access_key or not secret_key:
         pytest.skip("Required cloud credentials not present.")
-    bucket_host = os.getenv(_cloud_params_aws_static.bucket_host_variable, "")
-    bucket_name = str(bucket_host).split(sep=".", maxsplit=1)[0]
-    bucket_region = os.getenv(
-        _cloud_params_aws_static.bucket_region_variable, "us-east-2"
-    )
-    return fastenv.cloud.S3Config(
-        aws_access_key=access_key,
-        aws_secret_key=secret_key,
-        aws_region=bucket_region,
-        aws_s3_bucket=bucket_name,
+    bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable)
+    bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable)
+    bucket_region = os.getenv(_cloud_params_backblaze_static.bucket_region_variable)
+    return fastenv.cloud.CloudConfig(
+        access_key=access_key,
+        secret_key=secret_key,
+        bucket_host=bucket_host,
+        bucket_region=bucket_region,
     )
 
 
 @pytest.fixture(scope="session")
-def cloud_config_backblaze_static() -> fastenv.cloud.S3Config:
+def cloud_config_incorrect() -> fastenv.cloud.CloudConfig:
     """Provide a single cloud configuration instance for testing.
 
     Rather than parametrizing all the cloud configurations, this fixture sets up
-    a single instance of `aioaws.s3.S3Config` for testing a specific configuration.
-    """
-    access_key = os.getenv(_cloud_params_backblaze_static.access_key_variable, "")
-    secret_key = os.getenv(_cloud_params_backblaze_static.secret_key_variable, "")
-    if not access_key or not secret_key:
-        pytest.skip("Required cloud credentials not present.")
-    bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable, "")
-    bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable, "")
-    bucket_region = os.getenv(_cloud_params_backblaze_static.bucket_region_variable, "")
-    return fastenv.cloud.S3Config(
-        aws_access_key=access_key,
-        aws_secret_key=secret_key,
-        aws_region=bucket_region,
-        aws_s3_bucket=bucket_host,
-    )
-
-
-@pytest.fixture(scope="session")
-def cloud_config_incorrect() -> fastenv.cloud.S3Config:
-    """Provide a single cloud configuration instance for testing.
-
-    Rather than parametrizing all the cloud configurations, this fixture sets up
-    a single instance of `aioaws.s3.S3Config` for testing a specific configuration.
+    a single instance of `aioaws.s3.CloudConfig` for testing a specific configuration.
 
     This particular configuration is provided for testing authorization errors.
     """
-    bucket_host = os.getenv("AWS_S3_BUCKET_DOMAIN")
-    bucket_name = str(bucket_host).split(sep=".", maxsplit=1)[0]
+    bucket_host = os.getenv("AWS_S3_BUCKET_HOST")
     bucket_region = os.getenv("AWS_S3_REGION", "us-east-2")
-    return fastenv.cloud.S3Config(
-        aws_access_key="AKIAIOSFODNN7EXAMPLE",
-        aws_secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
-        aws_region=bucket_region,
-        aws_s3_bucket=bucket_name,
+    return fastenv.cloud.CloudConfig(
+        access_key="AKIAIOSFODNN7EXAMPLE",
+        secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
+        bucket_host=bucket_host,
+        bucket_region=bucket_region,
     )
+
+
+@pytest.fixture(params=(False, True))
+def cloud_config_for_presigned_url_example(
+    request: pytest.FixtureRequest,
+) -> fastenv.cloud.CloudConfig:
+    """Provide a single cloud configuration instance with data from the AWS docs.
+
+    https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
+
+    The virtual-hosted-style URL in this example lacks a region. The docs mix
+    path-style URLs (`s3.amazonaws.com/examplebucket`), virtual-hosted-style URLs
+    without regions (`examplebucket.s3.amazonaws.com`), and virtual-hosted-style
+    URLs with regions (`examplebucket.s3.us-east-1.amazonaws.com`).
+    """
+    use_session_token = getattr(request, "param")
+    if use_session_token is True:
+        # docs only provide the quoted session token
+        quoted_session_token = (
+            "IQoJb3JpZ2luX2VjEMv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMSJGME"
+            "QCIBSUbVdj9YGs2g0HkHsOHFdkwOozjARSKHL987NhhOC8AiBPepRU1obMvIbGU0T%2BWp"
+            "hFPgK%2Fqpxaf5Snvm5M57XFkCqlAgjz%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAAaDD"
+            "Q3MjM4NTU0NDY2MCIM83pULBe5%2F%2BNm1GZBKvkBVslSaJVgwSef7SsoZCJlfJ56weYl"
+            "3QCwEGr2F4BmCZZyFpmWEYzWnhNK1AnHMj5nkfKlKBx30XAT5PZGVrmq4Vkn9ewlXQy1Iu"
+            "3QJRi9Tdod8Ef9%2FyajTaUGh76%2BF5u5a4O115jwultOQiKomVwO318CO4l8lv%2F3Hh"
+            "MOkpdanMXn%2B4PY8lvM8RgnzSu90jOUpGXEOAo%2F6G8OqlMim3%2BZmaQmasn4VYRvES"
+            "Ed7O72QGZ3%2BvDnDVnss0lSYjlv8PP7IujnvhZRnj0WoeOyMe1lL0wTG%2Fa9usH5hE52"
+            "w%2FYUJccOn0OaZuyROuVsRV4Q70sbWQhUvYUt%2B0tUMKzm8vsFOp4BaNZFqobbjtb36Y"
+            "92v%2Bx5kY6i0s8QE886jJtUWMP5ldMziClGx3p0mN5dzsYlM3GyiJ%2FO1mWkPQDwg3mt"
+            "SpOA9oeeuAMPTA7qMqy9RNuTKBDSx9EW27wvPzBum3SJhEfxv48euadKgrIX3Z79ruQFSQ"
+            "Oc9LUrDjR%2B4SoWAJqK%2BGX8Q3vPSjsLxhqhEMWd6U4TXcM7ku3gxMbzqfT8NDg%3D"
+        )
+        session_token = fastenv.cloud.urllib.parse.unquote(quoted_session_token)
+    else:
+        session_token = None
+    try:
+        cloud_config = fastenv.cloud.CloudConfig(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            bucket_host="examplebucket.s3.amazonaws.com",
+            bucket_region="us-east-1",
+            session_token=session_token,
+        )
+    except AttributeError:
+        cloud_config = fastenv.cloud.CloudConfig(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            bucket_name="examplebucket",
+            bucket_region="us-east-1",
+            session_token=session_token,
+        )
+        cloud_config.bucket_host = "examplebucket.s3.amazonaws.com"
+    return cloud_config
+
+
+@pytest.fixture(params=(False, True))
+def cloud_config_for_presigned_post_example(
+    request: pytest.FixtureRequest,
+) -> fastenv.cloud.CloudConfig:
+    """Provide a single cloud configuration instance with data from the AWS docs.
+
+    https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-post-example.html
+
+    The virtual-hosted-style URL in this example lacks a region. The docs mix
+    path-style URLs (`s3.amazonaws.com/examplebucket`), virtual-hosted-style URLs
+    without regions (`examplebucket.s3.amazonaws.com`), and virtual-hosted-style
+    URLs with regions (`examplebucket.s3.us-east-1.amazonaws.com`).
+    """
+    use_session_token = getattr(request, "param")
+    if use_session_token is True:
+        # docs only provide the quoted session token
+        quoted_session_token = (
+            "IQoJb3JpZ2luX2VjEMv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMSJGME"
+            "QCIBSUbVdj9YGs2g0HkHsOHFdkwOozjARSKHL987NhhOC8AiBPepRU1obMvIbGU0T%2BWp"
+            "hFPgK%2Fqpxaf5Snvm5M57XFkCqlAgjz%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAAaDD"
+            "Q3MjM4NTU0NDY2MCIM83pULBe5%2F%2BNm1GZBKvkBVslSaJVgwSef7SsoZCJlfJ56weYl"
+            "3QCwEGr2F4BmCZZyFpmWEYzWnhNK1AnHMj5nkfKlKBx30XAT5PZGVrmq4Vkn9ewlXQy1Iu"
+            "3QJRi9Tdod8Ef9%2FyajTaUGh76%2BF5u5a4O115jwultOQiKomVwO318CO4l8lv%2F3Hh"
+            "MOkpdanMXn%2B4PY8lvM8RgnzSu90jOUpGXEOAo%2F6G8OqlMim3%2BZmaQmasn4VYRvES"
+            "Ed7O72QGZ3%2BvDnDVnss0lSYjlv8PP7IujnvhZRnj0WoeOyMe1lL0wTG%2Fa9usH5hE52"
+            "w%2FYUJccOn0OaZuyROuVsRV4Q70sbWQhUvYUt%2B0tUMKzm8vsFOp4BaNZFqobbjtb36Y"
+            "92v%2Bx5kY6i0s8QE886jJtUWMP5ldMziClGx3p0mN5dzsYlM3GyiJ%2FO1mWkPQDwg3mt"
+            "SpOA9oeeuAMPTA7qMqy9RNuTKBDSx9EW27wvPzBum3SJhEfxv48euadKgrIX3Z79ruQFSQ"
+            "Oc9LUrDjR%2B4SoWAJqK%2BGX8Q3vPSjsLxhqhEMWd6U4TXcM7ku3gxMbzqfT8NDg%3D"
+        )
+        session_token = fastenv.cloud.urllib.parse.unquote(quoted_session_token)
+    else:
+        session_token = None
+    try:
+        cloud_config = fastenv.cloud.CloudConfig(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            bucket_host="sigv4examplebucket.s3.amazonaws.com",
+            bucket_name="sigv4examplebucket",
+            bucket_region="us-east-1",
+            session_token=session_token,
+        )
+    except AttributeError:
+        cloud_config = fastenv.cloud.CloudConfig(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            bucket_name="sigv4examplebucket",
+            bucket_region="us-east-1",
+            session_token=session_token,
+        )
+        cloud_config.bucket_host = "sigv4examplebucket.s3.amazonaws.com"
+    return cloud_config
+
+
+@pytest.fixture(scope="function")
+def cloud_client_upload_policy_from_presigned_post_example() -> dict[
+    fastenv.cloud.Literal["expiration", "conditions"], str | dict[str, str] | list
+]:
+    """Provide the presigned POST upload policy from the example in the AWS docs.
+
+    https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-post-example.html
+    """
+    return {
+        "expiration": "2015-12-30T12:00:00.000Z",
+        "conditions": [
+            {"bucket": "sigv4examplebucket"},
+            ["starts-with", "$key", "user/user1/"],
+            {"acl": "public-read"},
+            {
+                "success_action_redirect": (
+                    "http://sigv4examplebucket.s3.amazonaws.com/successful_upload.html"
+                )
+            },
+            ["starts-with", "$Content-Type", "image/"],
+            {"x-amz-meta-uuid": "14365123651274"},
+            {"x-amz-server-side-encryption": "AES256"},
+            ["starts-with", "$x-amz-meta-tag", ""],
+            {
+                "x-amz-credential": (
+                    "AKIAIOSFODNN7EXAMPLE/20151229/us-east-1/s3/aws4_request"
+                )
+            },
+            {"x-amz-algorithm": "AWS4-HMAC-SHA256"},
+            {"x-amz-date": "20151229T000000Z"},
+        ],
+    }
 
 
 @pytest.fixture(scope="session")
@@ -178,14 +290,14 @@ def cloud_client_upload_prefix() -> str:
 
 @pytest.fixture(scope="session")
 def cloud_client_backblaze_b2_upload_url_response(
-    cloud_config_backblaze_static: fastenv.cloud.S3Config,
+    cloud_config_backblaze_static: fastenv.cloud.CloudConfig,
 ) -> fastenv.cloud.httpx.Response:
     """Provide a mock `httpx.Response` from a call to Backblaze `b2_get_upload_url`.
 
     https://www.backblaze.com/b2/docs/b2_get_upload_url.html
     """
     authorization_token = (
-        f"4_{cloud_config_backblaze_static.aws_access_key}"
+        f"4_{cloud_config_backblaze_static.access_key}"
         "_01a10000_fd9b00_upld_a_27_character_alphanumeric="
     )
     bucket_id = "123456789012123456789012"

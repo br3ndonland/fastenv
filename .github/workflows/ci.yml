@@ -68,27 +68,34 @@ jobs:
       - name: Run pre-commit hooks
         run: poetry run pre-commit run --all-files
       - name: Run unit tests
-        run: poetry run pytest -vv --ignore tests/test_cloud.py --cov-report=xml:coverage-unit.xml
+        run: |
+          poetry run pytest \
+            --deselect tests/test_cloud.py::TestCloudClientIntegration \
+            --cov-report=xml:coverage-unit.xml
         timeout-minutes: 5
       - uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-region: ${{ secrets.AWS_S3_REGION }}
-          role-to-assume: ${{ secrets.AWS_SESSION_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_S3_BUCKET_REGION }}
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
           role-duration-seconds: 1200
       - name: Run integration tests
-        run: poetry run pytest -vv tests/test_cloud.py --cov-report=xml:coverage-integration.xml
+        run: |
+          poetry run pytest \
+            tests/test_cloud.py::TestCloudClientIntegration \
+            --cov-report=xml:coverage-integration.xml \
+            --durations=0
         timeout-minutes: 5
         env:
-          AWS_FASTENV_ACCESS_KEY: ${{ secrets.AWS_FASTENV_ACCESS_KEY }}
-          AWS_FASTENV_SECRET_KEY: ${{ secrets.AWS_FASTENV_SECRET_KEY }}
-          AWS_S3_BUCKET_DOMAIN: ${{ secrets.AWS_S3_BUCKET_DOMAIN }}
-          # TODO: https://github.com/samuelcolvin/aioaws/pull/23
-          # AWS_SESSION_ACCESS_KEY: ${{ env.AWS_ACCESS_KEY_ID }}
-          # AWS_SESSION_SECRET_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          # AWS_SESSION_TOKEN: ${{ env.AWS_SESSION_TOKEN }}
-          BACKBLAZE_FASTENV_ACCESS_KEY: ${{ secrets.BACKBLAZE_FASTENV_ACCESS_KEY }}
-          BACKBLAZE_FASTENV_SECRET_KEY: ${{ secrets.BACKBLAZE_FASTENV_SECRET_KEY }}
-          BACKBLAZE_B2_BUCKET_DOMAIN: ${{ secrets.BACKBLAZE_B2_BUCKET_DOMAIN }}
+          AWS_IAM_ACCESS_KEY_FASTENV: ${{ secrets.AWS_IAM_ACCESS_KEY_FASTENV }}
+          AWS_IAM_ACCESS_KEY_SESSION: ${{ env.AWS_ACCESS_KEY_ID }}
+          AWS_IAM_SECRET_KEY_FASTENV: ${{ secrets.AWS_IAM_SECRET_KEY_FASTENV }}
+          AWS_IAM_SECRET_KEY_SESSION: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          AWS_IAM_SESSION_TOKEN: ${{ env.AWS_SESSION_TOKEN }}
+          AWS_S3_BUCKET_HOST: ${{ secrets.AWS_S3_BUCKET_HOST }}
+          BACKBLAZE_B2_ACCESS_KEY_FASTENV: ${{ secrets.BACKBLAZE_B2_ACCESS_KEY_FASTENV }}
+          BACKBLAZE_B2_BUCKET_HOST: ${{ secrets.BACKBLAZE_B2_BUCKET_HOST }}
+          BACKBLAZE_B2_BUCKET_REGION: ${{ secrets.BACKBLAZE_B2_BUCKET_REGION }}
+          BACKBLAZE_B2_SECRET_KEY_FASTENV: ${{ secrets.BACKBLAZE_B2_SECRET_KEY_FASTENV }}
       - name: Upload unit test coverage report to Codecov
         uses: codecov/codecov-action@v2
         if: env.CODECOV_UPLOAD == 'true' && matrix.python-version == '3.10'

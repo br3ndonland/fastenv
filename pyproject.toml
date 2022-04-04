@@ -37,11 +37,12 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 anyio = "^3.3"
-httpx = {version = "^0.22", optional = true}
+httpx = {version = ">=0.20,<0.23", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = "^22"
 flake8 = "^4"
+freezegun = "^1"
 isort = "^5.8"
 mkdocs-material = "^8"
 mypy = ">0.900,<1"
@@ -53,6 +54,7 @@ pytest-mock = "^3.3"
 [tool.poetry.extras]
 all = ["httpx"]
 cloud = ["httpx"]
+httpx = ["httpx"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=fastenv -q"
