@@ -484,7 +484,7 @@ class ObjectStorageClient:
         but returns a two-tuple instead of a dict.
         https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
         """
-        key = key if not (key := str(bucket_path)).startswith("/") else key.lstrip("/")
+        key = key.lstrip("/") if (key := str(bucket_path)).startswith("/") else key
         url = httpx.URL(scheme="https", host=self._config.bucket_host, path="/")
         form_data = self._set_presigned_post_form_data(
             key,
@@ -710,7 +710,7 @@ class ObjectStorageClient:
                 str(key).casefold(): value
                 for key, value in additional_form_data.items()
             }
-            form_data_to_return = {**form_data_from_policy, **additional_form_data}
+            form_data_to_return = form_data_from_policy | additional_form_data
         else:
             form_data_to_return = form_data_from_policy
         for form_data_key in form_data_to_return:
@@ -728,18 +728,17 @@ class ObjectStorageClient:
                 f"in form data: {{'key': {form_data_key_item}}}."
             )
         else:
-            form_data_key_items = [
+            if form_data_key_items := [
                 str(policy_condition[2]) + "${filename}"
                 for policy_condition in policy["conditions"]
                 if isinstance(policy_condition, list)
                 and policy_condition[0] == "starts-with"
                 and policy_condition[1] == "$key"
                 and str(policy_condition[2]).endswith("/")
-            ]
-            if not form_data_key_items:
-                raise KeyError("Missing required form data key: key")
-            else:
+            ]:
                 form_data_to_return["key"] = str(form_data_key_items[0])
+            else:
+                raise KeyError("Missing required form data key: key")
         return form_data_to_return
 
     async def authorize_backblaze_b2_account(self) -> httpx.Response:
