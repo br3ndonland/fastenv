@@ -70,7 +70,7 @@ jobs:
       - name: Run unit tests
         run: |
           poetry run pytest \
-            --deselect tests/test_cloud.py::TestCloudClientIntegration \
+            --deselect tests/cloud/test_object_storage.py::TestObjectStorageClientIntegration \
             --cov-report=xml:coverage-unit.xml
         timeout-minutes: 5
       - uses: aws-actions/configure-aws-credentials@v1
@@ -81,7 +81,7 @@ jobs:
       - name: Run integration tests
         run: |
           poetry run pytest \
-            tests/test_cloud.py::TestCloudClientIntegration \
+            tests/cloud/test_object_storage.py::TestObjectStorageClientIntegration \
             --cov-report=xml:coverage-integration.xml \
             --durations=0
         timeout-minutes: 5

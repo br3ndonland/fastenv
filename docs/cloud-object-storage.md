@@ -149,7 +149,7 @@ AWS calls these credentials "[access keys](https://docs.aws.amazon.com/IAM/lates
     -   [AWS API calls with temporary credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html) must include the session token.
     -   The AWS runtime will typically rotate the temporary security credentials before they expire.
 
-    fastenv supports session tokens. The `session_token` argument can be passed to `fastenv.CloudConfig` or `fastenv.CloudClient`. If the session token is not provided as an argument, fastenv will check for the environment variable `AWS_SESSION_TOKEN`.
+    fastenv supports session tokens. The `session_token` argument can be passed to `fastenv.ObjectStorageConfig` or `fastenv.ObjectStorageClient`. If the session token is not provided as an argument, fastenv will check for the environment variable `AWS_SESSION_TOKEN`.
 
     It is important to keep session token expiration in mind. fastenv will not automatically rotate tokens. Developers are responsible for updating client attributes or instantiating new clients when temporary credentials expire. This is particularly important to keep in mind when generating S3 presigned URLs. As explained in the [docs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html), "If you created a presigned URL using a temporary token, then the URL expires when the token expires, even if the URL was created with a later expiration time."
 
@@ -172,8 +172,8 @@ Backblaze calls these credentials "[application keys](https://www.backblaze.com/
 
 Now that we have a bucket, let's upload the _.env_ file to the bucket. It's a three step process:
 
-1. **Create a configuration instance**. To instantiate `fastenv.CloudConfig`, provide a bucket and a region. Buckets can be specified with the `bucket_host` argument in "[virtual-hosted-style](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html)," like `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3 or `<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2. For AWS S3 only, the bucket can be also provided with the `bucket_name` argument as just `<BUCKET_NAME>`. If credentials are not provided as arguments, `fastenv.CloudConfig` will auto-detect configuration from the default AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`, and the region from either `AWS_S3_REGION`, `AWS_REGION`, or `AWS_DEFAULT_REGION`, in that order. [Boto3 detects credentials](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html) from several other locations, including credential files and instance metadata endpoints. These other locations are not currently supported.
-2. **Create a client instance**. `fastenv.CloudClient` instances have two attributes: an instance of `fastenv.CloudConfig`, and an instance of [`httpx.AsyncClient`](https://www.python-httpx.org/advanced/). They can be automatically instantiated if not provided as arguments. We've instantiated the `fastenv.CloudConfig` instance separately in step 1 to see how it works, but we'll let `fastenv.CloudClient` instantiate its `httpx.AsyncClient` automatically. As a shortcut, you could skip step 1 and just provide the configuration arguments to `fastenv.CloudClient`, like `fastenv.CloudClient(bucket_host="<BUCKET_NAME>.s3.<REGION>.backblazeb2.com", bucket_region="<REGION>")`.
+1. **Create a configuration instance**. To instantiate `fastenv.ObjectStorageConfig`, provide a bucket and a region. Buckets can be specified with the `bucket_host` argument in "[virtual-hosted-style](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html)," like `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3 or `<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2. For AWS S3 only, the bucket can be also provided with the `bucket_name` argument as just `<BUCKET_NAME>`. If credentials are not provided as arguments, `fastenv.ObjectStorageConfig` will auto-detect configuration from the default AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`, and the region from either `AWS_S3_REGION`, `AWS_REGION`, or `AWS_DEFAULT_REGION`, in that order. [Boto3 detects credentials](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html) from several other locations, including credential files and instance metadata endpoints. These other locations are not currently supported.
+2. **Create a client instance**. `fastenv.ObjectStorageClient` instances have two attributes: an instance of `fastenv.ObjectStorageConfig`, and an instance of [`httpx.AsyncClient`](https://www.python-httpx.org/advanced/). They can be automatically instantiated if not provided as arguments. We've instantiated the `fastenv.ObjectStorageConfig` instance separately in step 1 to see how it works, but we'll let `fastenv.ObjectStorageClient` instantiate its `httpx.AsyncClient` automatically. As a shortcut, you could skip step 1 and just provide the configuration arguments to `fastenv.ObjectStorageClient`, like `fastenv.ObjectStorageClient(bucket_host="<BUCKET_NAME>.s3.<REGION>.backblazeb2.com", bucket_region="<REGION>")`.
 3. **Use the client's upload method to upload the file**. To upload, we need to specify a source, and a destination path. The destination path is like a file path. AWS uses the term "[key](https://docs.aws.amazon.com/general/latest/gr/glos-chap.html#K)" for these bucket paths because buckets don't have actual directories. The "file path" inside the bucket is just a virtual path, not a concrete file path.
 
 Here's an example of how the code might look. Save the code snippet below as _example.py_.
@@ -196,12 +196,12 @@ Here's an example of how the code might look. Save the code snippet below as _ex
         bucket_path: str = "uploads/fastenv-docs/.env",
         source: anyio.Path | str = ".env",
     ) -> httpx.Response | None:
-        cloud_config = fastenv.CloudConfig(  # (1)
+        config = fastenv.ObjectStorageConfig(  # (1)
             bucket_host=bucket_host,
             bucket_region=bucket_region,
         )
-        cloud_client = fastenv.CloudClient(config=cloud_config)  # (2)
-        return await cloud_client.upload(bucket_path, source)  # (3)
+        client = fastenv.ObjectStorageClient(config=config)  # (2)
+        return await client.upload(bucket_path, source)  # (3)
 
 
     if __name__ == "__main__":
@@ -245,12 +245,12 @@ We now have a bucket with a _.env_ file in it. Let's download the file. Steps ar
         bucket_path: str = "uploads/fastenv-docs/.env",
         source: anyio.Path | str = ".env",
     ) -> httpx.Response | None:
-        cloud_config = fastenv.CloudConfig(  # (1)
+        config = fastenv.ObjectStorageConfig(  # (1)
             bucket_host=bucket_host,
             bucket_region=bucket_region,
         )
-        cloud_client = fastenv.CloudClient(config=cloud_config)  # (2)
-        return await cloud_client.upload(bucket_path, source)  # (3)
+        client = fastenv.ObjectStorageClient(config=config)  # (2)
+        return await client.upload(bucket_path, source)  # (3)
 
 
     async def download_my_dotenv(
@@ -259,12 +259,12 @@ We now have a bucket with a _.env_ file in it. Let's download the file. Steps ar
         bucket_path: str = "uploads/fastenv-docs/.env",
         destination: anyio.Path | str = ".env.download",
     ) -> anyio.Path:
-        cloud_config = fastenv.CloudConfig(
+        config = fastenv.ObjectStorageConfig(
             bucket_host=bucket_host,
             bucket_region=bucket_region,
         )
-        cloud_client = fastenv.CloudClient(config=cloud_config)
-        return await cloud_client.download(bucket_path, destination)
+        client = fastenv.ObjectStorageClient(config=config)
+        return await client.download(bucket_path, destination)
 
 
     if __name__ == "__main__":
@@ -307,13 +307,13 @@ Here's an example of how this could be implemented.
         bucket_path_to_common_env: str = ".env.common",
         bucket_path_to_custom_env: str = ".env.custom",
     ) -> fastenv.DotEnv:
-        cloud_config = fastenv.CloudConfig(
+        config = fastenv.ObjectStorageConfig(
             bucket_host=bucket_host,
             bucket_region=bucket_region,
         )
-        cloud_client = fastenv.CloudClient(config=cloud_config)
-        env_common = await cloud_client.download(bucket_path_to_common_env)
-        env_custom = await cloud_client.download(bucket_path_to_custom_env)
+        client = fastenv.ObjectStorageClient(config=config)
+        env_common = await client.download(bucket_path_to_common_env)
+        env_custom = await client.download(bucket_path_to_custom_env)
         return fastenv.DotEnv(env_common, env_custom)
 
 

@@ -17,7 +17,7 @@ from fastenv.utilities import logger
 
 
 @dataclasses.dataclass
-class CloudConfig:
+class ObjectStorageConfig:
     """Configure S3-compatible object storage.
     ---
 
@@ -109,15 +109,15 @@ class CloudConfig:
         )
 
 
-class CloudClient:
+class ObjectStorageClient:
     """Instantiate a client to connect to S3-compatible object storage.
     ---
 
     AWS S3 and Backblaze B2 are directly supported and tested.
 
-    This class requires both an HTTPX client and a `CloudConfig` instance.
+    This class requires both an HTTPX client and an `ObjectStorageConfig` instance.
     They will be automatically instantiated if not provided as arguments.
-    Any additional arguments will be used to instantiate `CloudConfig`.
+    Any additional arguments will be used to instantiate `ObjectStorageConfig`.
 
     Buckets can be specified in "virtual-hosted-style", like
     `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3 or
@@ -132,11 +132,11 @@ class CloudClient:
     def __init__(
         self,
         client: httpx.AsyncClient = None,
-        config: CloudConfig = None,
+        config: ObjectStorageConfig = None,
         **config_options: str,
     ) -> None:
         self._client = client or httpx.AsyncClient()
-        self._config = config or CloudConfig(**config_options)
+        self._config = config or ObjectStorageConfig(**config_options)
 
     async def download(
         self,
@@ -383,7 +383,7 @@ class CloudClient:
         `source`: local file path or content to upload. Content will be converted
         to bytes prior to upload, if it is not provided as bytes directly. To use
         a `DotEnv` instance as a source, call `str()` on it, like
-        `cloud_client.upload(source=str(dotenv))`.
+        `object_storage_client.upload(source=str(dotenv))`.
 
         `content_type`: content type to specify for the uploaded object.
         See Backblaze for a list of supported content types.

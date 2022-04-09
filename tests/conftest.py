@@ -8,7 +8,7 @@ from collections import namedtuple
 import anyio
 import pytest
 
-import fastenv.cloud
+import fastenv.cloud.object_storage
 
 
 @pytest.fixture(scope="session")
@@ -61,11 +61,14 @@ _cloud_params_backblaze_static = CloudParams(
     ),
     scope="session",
 )
-def cloud_config(request: pytest.FixtureRequest) -> fastenv.cloud.CloudConfig:
+def object_storage_config(
+    request: pytest.FixtureRequest,
+) -> fastenv.cloud.object_storage.ObjectStorageConfig:
     """Provide cloud configurations for testing.
 
     This fixture will retrieve cloud credentials from environment variables, then
-    use the credentials to return instances of `fastenv.cloud.CloudConfig` for testing.
+    use the credentials to return `fastenv.cloud.object_storage.ObjectStorageConfig`
+    instances for testing.
 
     This is a parametrized fixture. When the fixture is used in a test, the test
     will be automatically parametrized, running once for each fixture parameter.
@@ -83,7 +86,7 @@ def cloud_config(request: pytest.FixtureRequest) -> fastenv.cloud.CloudConfig:
     bucket_region = os.getenv(request_param.bucket_region_variable, "us-east-2")
     if not access_key or not secret_key or session_token is None:
         pytest.skip("Required cloud credentials not present.")
-    return fastenv.cloud.CloudConfig(
+    return fastenv.cloud.object_storage.ObjectStorageConfig(
         access_key=access_key,
         secret_key=secret_key,
         bucket_host=bucket_host,
@@ -93,11 +96,13 @@ def cloud_config(request: pytest.FixtureRequest) -> fastenv.cloud.CloudConfig:
 
 
 @pytest.fixture(scope="session")
-def cloud_config_backblaze_static() -> fastenv.cloud.CloudConfig:
+def object_storage_config_backblaze_static() -> (
+    fastenv.cloud.object_storage.ObjectStorageConfig
+):
     """Provide a single cloud configuration instance for testing.
 
     Rather than parametrizing all the cloud configurations, this fixture sets up
-    a single instance of `aioaws.s3.CloudConfig` for testing a specific configuration.
+    a single `fastenv.cloud.object_storage.ObjectStorageConfig` instance for testing.
     """
     access_key = os.getenv(_cloud_params_backblaze_static.access_key_variable)
     secret_key = os.getenv(_cloud_params_backblaze_static.secret_key_variable)
@@ -106,7 +111,7 @@ def cloud_config_backblaze_static() -> fastenv.cloud.CloudConfig:
     bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable)
     bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable)
     bucket_region = os.getenv(_cloud_params_backblaze_static.bucket_region_variable)
-    return fastenv.cloud.CloudConfig(
+    return fastenv.cloud.object_storage.ObjectStorageConfig(
         access_key=access_key,
         secret_key=secret_key,
         bucket_host=bucket_host,
@@ -115,17 +120,19 @@ def cloud_config_backblaze_static() -> fastenv.cloud.CloudConfig:
 
 
 @pytest.fixture(scope="session")
-def cloud_config_incorrect() -> fastenv.cloud.CloudConfig:
+def object_storage_config_incorrect() -> (
+    fastenv.cloud.object_storage.ObjectStorageConfig
+):
     """Provide a single cloud configuration instance for testing.
 
     Rather than parametrizing all the cloud configurations, this fixture sets up
-    a single instance of `aioaws.s3.CloudConfig` for testing a specific configuration.
+    a single `fastenv.cloud.object_storage.ObjectStorageConfig` instance for testing.
 
     This particular configuration is provided for testing authorization errors.
     """
     bucket_host = os.getenv("AWS_S3_BUCKET_HOST")
     bucket_region = os.getenv("AWS_S3_REGION", "us-east-2")
-    return fastenv.cloud.CloudConfig(
+    return fastenv.cloud.object_storage.ObjectStorageConfig(
         access_key="AKIAIOSFODNN7EXAMPLE",
         secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
         bucket_host=bucket_host,
@@ -134,9 +141,9 @@ def cloud_config_incorrect() -> fastenv.cloud.CloudConfig:
 
 
 @pytest.fixture(params=(False, True))
-def cloud_config_for_presigned_url_example(
+def object_storage_config_for_presigned_url_example(
     request: pytest.FixtureRequest,
-) -> fastenv.cloud.CloudConfig:
+) -> fastenv.cloud.object_storage.ObjectStorageConfig:
     """Provide a single cloud configuration instance with data from the AWS docs.
 
     https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
@@ -163,11 +170,13 @@ def cloud_config_for_presigned_url_example(
             "SpOA9oeeuAMPTA7qMqy9RNuTKBDSx9EW27wvPzBum3SJhEfxv48euadKgrIX3Z79ruQFSQ"
             "Oc9LUrDjR%2B4SoWAJqK%2BGX8Q3vPSjsLxhqhEMWd6U4TXcM7ku3gxMbzqfT8NDg%3D"
         )
-        session_token = fastenv.cloud.urllib.parse.unquote(quoted_session_token)
+        session_token = fastenv.cloud.object_storage.urllib.parse.unquote(
+            quoted_session_token
+        )
     else:
         session_token = None
     try:
-        cloud_config = fastenv.cloud.CloudConfig(
+        object_storage_config = fastenv.cloud.object_storage.ObjectStorageConfig(
             access_key="AKIAIOSFODNN7EXAMPLE",
             secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_host="examplebucket.s3.amazonaws.com",
@@ -175,21 +184,21 @@ def cloud_config_for_presigned_url_example(
             session_token=session_token,
         )
     except AttributeError:
-        cloud_config = fastenv.cloud.CloudConfig(
+        object_storage_config = fastenv.cloud.object_storage.ObjectStorageConfig(
             access_key="AKIAIOSFODNN7EXAMPLE",
             secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_name="examplebucket",
             bucket_region="us-east-1",
             session_token=session_token,
         )
-        cloud_config.bucket_host = "examplebucket.s3.amazonaws.com"
-    return cloud_config
+        object_storage_config.bucket_host = "examplebucket.s3.amazonaws.com"
+    return object_storage_config
 
 
 @pytest.fixture(params=(False, True))
-def cloud_config_for_presigned_post_example(
+def object_storage_config_for_presigned_post_example(
     request: pytest.FixtureRequest,
-) -> fastenv.cloud.CloudConfig:
+) -> fastenv.cloud.object_storage.ObjectStorageConfig:
     """Provide a single cloud configuration instance with data from the AWS docs.
 
     https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-post-example.html
@@ -216,11 +225,13 @@ def cloud_config_for_presigned_post_example(
             "SpOA9oeeuAMPTA7qMqy9RNuTKBDSx9EW27wvPzBum3SJhEfxv48euadKgrIX3Z79ruQFSQ"
             "Oc9LUrDjR%2B4SoWAJqK%2BGX8Q3vPSjsLxhqhEMWd6U4TXcM7ku3gxMbzqfT8NDg%3D"
         )
-        session_token = fastenv.cloud.urllib.parse.unquote(quoted_session_token)
+        session_token = fastenv.cloud.object_storage.urllib.parse.unquote(
+            quoted_session_token
+        )
     else:
         session_token = None
     try:
-        cloud_config = fastenv.cloud.CloudConfig(
+        object_storage_config = fastenv.cloud.object_storage.ObjectStorageConfig(
             access_key="AKIAIOSFODNN7EXAMPLE",
             secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_host="sigv4examplebucket.s3.amazonaws.com",
@@ -229,20 +240,21 @@ def cloud_config_for_presigned_post_example(
             session_token=session_token,
         )
     except AttributeError:
-        cloud_config = fastenv.cloud.CloudConfig(
+        object_storage_config = fastenv.cloud.object_storage.ObjectStorageConfig(
             access_key="AKIAIOSFODNN7EXAMPLE",
             secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_name="sigv4examplebucket",
             bucket_region="us-east-1",
             session_token=session_token,
         )
-        cloud_config.bucket_host = "sigv4examplebucket.s3.amazonaws.com"
-    return cloud_config
+        object_storage_config.bucket_host = "sigv4examplebucket.s3.amazonaws.com"
+    return object_storage_config
 
 
 @pytest.fixture(scope="function")
-def cloud_client_upload_policy_from_presigned_post_example() -> dict[
-    fastenv.cloud.Literal["expiration", "conditions"], str | dict[str, str] | list
+def object_storage_client_upload_policy_from_presigned_post_example() -> dict[
+    fastenv.cloud.object_storage.Literal["expiration", "conditions"],
+    str | dict[str, str] | list,
 ]:
     """Provide the presigned POST upload policy from the example in the AWS docs.
 
@@ -275,7 +287,7 @@ def cloud_client_upload_policy_from_presigned_post_example() -> dict[
 
 
 @pytest.fixture(scope="session")
-def cloud_client_upload_prefix() -> str:
+def object_storage_client_upload_prefix() -> str:
     """Provide a bucket prefix for uploading to cloud object storage.
 
     The prefix includes the test session time as a formatted string. The string
@@ -289,15 +301,17 @@ def cloud_client_upload_prefix() -> str:
 
 
 @pytest.fixture(scope="session")
-def cloud_client_backblaze_b2_upload_url_response(
-    cloud_config_backblaze_static: fastenv.cloud.CloudConfig,
-) -> fastenv.cloud.httpx.Response:
+def object_storage_client_backblaze_b2_upload_url_response(
+    object_storage_config_backblaze_static: (
+        fastenv.cloud.object_storage.ObjectStorageConfig
+    ),
+) -> fastenv.cloud.object_storage.httpx.Response:
     """Provide a mock `httpx.Response` from a call to Backblaze `b2_get_upload_url`.
 
     https://www.backblaze.com/b2/docs/b2_get_upload_url.html
     """
     authorization_token = (
-        f"4_{cloud_config_backblaze_static.access_key}"
+        f"4_{object_storage_config_backblaze_static.access_key}"
         "_01a10000_fd9b00_upld_a_27_character_alphanumeric="
     )
     bucket_id = "123456789012123456789012"
@@ -312,7 +326,9 @@ def cloud_client_backblaze_b2_upload_url_response(
         f'\n  "uploadUrl": "{upload_url}"'
         "\n}\n"
     )
-    return fastenv.cloud.httpx.Response(200, text=upload_url_response_text)
+    return fastenv.cloud.object_storage.httpx.Response(
+        200, text=upload_url_response_text
+    )
 
 
 _dotenv_args: tuple[tuple[str, str, str], ...] = (
