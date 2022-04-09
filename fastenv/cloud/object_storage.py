@@ -710,7 +710,7 @@ class ObjectStorageClient:
                 str(key).casefold(): value
                 for key, value in additional_form_data.items()
             }
-            form_data_to_return = form_data_from_policy | additional_form_data
+            form_data_to_return = {**form_data_from_policy, **additional_form_data}
         else:
             form_data_to_return = form_data_from_policy
         for form_data_key in form_data_to_return:
