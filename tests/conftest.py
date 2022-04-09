@@ -682,4 +682,4 @@ def env_file_object_expected_output(
     The test .env files in object storage have the same values from the `env_file`
     fixture, with additional variables specific to the cloud objects.
     """
-    return {**input_kwargs, **env_file_object_additional_input}
+    return input_kwargs | env_file_object_additional_input
