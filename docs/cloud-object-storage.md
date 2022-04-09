@@ -245,12 +245,12 @@ We now have a bucket with a _.env_ file in it. Let's download the file. Steps ar
         bucket_path: str = "uploads/fastenv-docs/.env",
         source: anyio.Path | str = ".env",
     ) -> httpx.Response | None:
-        config = fastenv.ObjectStorageConfig(  # (1)
+        config = fastenv.ObjectStorageConfig(
             bucket_host=bucket_host,
             bucket_region=bucket_region,
         )
-        client = fastenv.ObjectStorageClient(config=config)  # (2)
-        return await client.upload(bucket_path, source)  # (3)
+        client = fastenv.ObjectStorageClient(config=config)
+        return await client.upload(bucket_path, source)
 
 
     async def download_my_dotenv(
