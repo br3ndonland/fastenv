@@ -73,7 +73,8 @@ class ObjectStorageConfig:
             )
         elif bucket_host and not bucket_name:
             if (
-                "amazonaws" in bucket_host or "backblazeb2" in bucket_host
+                bucket_host.endswith(".amazonaws.com")
+                or bucket_host.endswith(".backblazeb2.com")
             ) and bucket_name is None:
                 self.bucket_name = bucket_host.split(".s3.")[0]
             else:
@@ -398,7 +399,7 @@ class ObjectStorageClient:
         """
         try:
             content, message = await self._encode_source(source)
-            if "backblazeb2.com" in self._config.bucket_host:
+            if self._config.bucket_host.endswith(".backblazeb2.com"):
                 response = await self.upload_to_backblaze_b2(
                     bucket_path,
                     content,
