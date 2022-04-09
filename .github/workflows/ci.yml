@@ -11,6 +11,8 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
@@ -66,13 +68,48 @@ jobs:
       - name: Run pre-commit hooks
         run: poetry run pre-commit run --all-files
       - name: Run unit tests
-        run: poetry run pytest --cov-report=xml
-      - name: Upload test coverage report to Codecov
+        run: |
+          poetry run pytest \
+            --deselect tests/cloud/test_object_storage.py::TestObjectStorageClientIntegration \
+            --cov-report=xml:coverage-unit.xml
+        timeout-minutes: 5
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ secrets.AWS_S3_BUCKET_REGION }}
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          role-duration-seconds: 1200
+      - name: Run integration tests
+        run: |
+          poetry run pytest \
+            tests/cloud/test_object_storage.py::TestObjectStorageClientIntegration \
+            --cov-report=xml:coverage-integration.xml \
+            --durations=0
+        timeout-minutes: 5
+        env:
+          AWS_IAM_ACCESS_KEY_FASTENV: ${{ secrets.AWS_IAM_ACCESS_KEY_FASTENV }}
+          AWS_IAM_ACCESS_KEY_SESSION: ${{ env.AWS_ACCESS_KEY_ID }}
+          AWS_IAM_SECRET_KEY_FASTENV: ${{ secrets.AWS_IAM_SECRET_KEY_FASTENV }}
+          AWS_IAM_SECRET_KEY_SESSION: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          AWS_IAM_SESSION_TOKEN: ${{ env.AWS_SESSION_TOKEN }}
+          AWS_S3_BUCKET_HOST: ${{ secrets.AWS_S3_BUCKET_HOST }}
+          BACKBLAZE_B2_ACCESS_KEY_FASTENV: ${{ secrets.BACKBLAZE_B2_ACCESS_KEY_FASTENV }}
+          BACKBLAZE_B2_BUCKET_HOST: ${{ secrets.BACKBLAZE_B2_BUCKET_HOST }}
+          BACKBLAZE_B2_BUCKET_REGION: ${{ secrets.BACKBLAZE_B2_BUCKET_REGION }}
+          BACKBLAZE_B2_SECRET_KEY_FASTENV: ${{ secrets.BACKBLAZE_B2_SECRET_KEY_FASTENV }}
+      - name: Upload unit test coverage report to Codecov
         uses: codecov/codecov-action@v2
         if: env.CODECOV_UPLOAD == 'true' && matrix.python-version == '3.10'
         with:
           fail_ci_if_error: true
+          files: coverage-unit.xml
           flags: unit
+      - name: Upload integration test coverage report to Codecov
+        uses: codecov/codecov-action@v2
+        if: env.CODECOV_UPLOAD == 'true' && matrix.python-version == '3.10'
+        with:
+          fail_ci_if_error: true
+          files: coverage-integration.xml
+          flags: integration
       - name: Build Python package with latest stable Python version and publish to PyPI
         if: >
           env.PYPI_PUBLISH == 'true' &&

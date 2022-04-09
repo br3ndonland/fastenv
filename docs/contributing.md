@@ -112,9 +112,157 @@ poetry export -f requirements.txt > requirements.txt --dev  # export deps
 -   Test coverage results are reported when invoking `pytest` from the command-line. To see interactive HTML coverage reports, invoke pytest with `pytest --cov-report=html`.
 -   Test coverage reports are generated within GitHub Actions workflows by [pytest-cov](https://github.com/pytest-dev/pytest-cov) with [coverage.py](https://github.com/nedbat/coveragepy), and uploaded to [Codecov](https://docs.codecov.io/docs) using [codecov/codecov-action](https://github.com/marketplace/actions/codecov). Codecov is then integrated into pull requests with the [Codecov GitHub app](https://github.com/marketplace/codecov).
 
+Integration tests will be skipped if cloud credentials are not present. Running integration tests locally will take some additional setup.
+
+#### Make buckets on each supported cloud platform
+
+-   [AWS S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html)
+-   [Backblaze B2](https://help.backblaze.com/hc/en-us/articles/1260803542610-Creating-a-B2-Bucket-using-the-Web-UI)
+
+#### Upload objects to each bucket
+
+Upload an object to each bucket named `.env.testing`.
+
+The file should have this content:
+
+```sh
+# .env
+AWS_ACCESS_KEY_ID_EXAMPLE=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY_EXAMPLE=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE
+CSV_VARIABLE=comma,separated,value
+EMPTY_VARIABLE=''
+# comment
+INLINE_COMMENT=no_comment  # inline comment
+JSON_EXAMPLE='{"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}'
+PASSWORD='64w2Q$!&,,[EXAMPLE'
+QUOTES_AND_WHITESPACE='text and spaces'
+URI_TO_DIRECTORY='~/dev'
+URI_TO_S3_BUCKET=s3://mybucket/.env
+URI_TO_SQLITE_DB=sqlite:////path/to/db.sqlite
+URL_EXAMPLE=https://start.duckduckgo.com/
+OBJECT_STORAGE_VARIABLE='DUDE!!! This variable came from object storage!'
+```
+
+#### Generate credentials for each supported cloud platform
+
+There are three sets of credentials needed:
+
+1. AWS temporary credentials
+2. AWS static credentials
+3. Backblaze static credentials
+
+The [object storage docs](cloud-object-storage.md) have general info on generating the static credentials.
+
+For AWS static credentials, [create a non-admin user](https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started_create-delegated-user.html). The user will need an [IAM policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_managed-policies.html) like the following. This project doesn't do any listing or deleting at this time, so those parts can be omitted if you're going for least privilege.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": ["s3:ListBucket"],
+            "Resource": ["arn:aws:s3:::<AWS_S3_BUCKET_NAME>"]
+        },
+        {
+            "Effect": "Allow",
+            "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+            "Resource": ["arn:aws:s3:::<AWS_S3_BUCKET_NAME>/*"]
+        }
+    ]
+}
+```
+
+After attaching the IAM policy to the non-admin user, [generate an access key](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) for the non-admin user, set up an [AWS CLI profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) named `fastenv`, and configure it with the access key for the non-admin user. AWS static credentials are now ready.
+
+AWS temporary credentials work a little differently. [Create an IAM role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user.html), with a [resource-based policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_identity-vs-resource.html) called a "role trust policy." The role trust policy would look like this (`<AWS_IAM_USERNAME>` is the IAM user that owns the static credentials, not your admin username):
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::<AWS_ACCOUNT_ID>:user/<AWS_IAM_USERNAME>"
+            },
+            "Action": ["sts:AssumeRole", "sts:TagSession"]
+        }
+    ]
+}
+```
+
+Attach the [identity-based policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_managed-policies.html) you created for the IAM user to the role as well.
+
+The end result is that the IAM user can assume the IAM role and obtain temporary credentials. The temporary credentials have the same IAM policy as the regular access key, so tests can be [parametrized](https://docs.pytest.org/en/latest/how-to/fixtures.html#parametrizing-fixtures) accordingly.
+
+#### Run all the tests
+
+Once you're finally done with all that, maybe go out for a walk or something.
+
+Then come back, and run these magic words:
+
+```sh
+# set the required input variables
+AWS_IAM_ROLE_NAME="paste-here"
+AWS_S3_BUCKET_HOST="paste-here"
+BACKBLAZE_B2_ACCESS_KEY_FASTENV="paste-here"
+# leading space to avoid storing secret key in shell history
+# set `HISTCONTROL=ignoreboth` for Bash or `setopt histignorespace` for Zsh
+ BACKBLAZE_B2_SECRET_KEY_FASTENV="paste-here"
+BACKBLAZE_B2_BUCKET_HOST="paste-here"
+BACKBLAZE_B2_BUCKET_REGION="paste-here"
+
+# get AWS account ID from STS (replace fx with jq or other JSON parser as needed)
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity | fx .Account)
+
+# assume the IAM role to get temporary credentials
+ASSUMED_ROLE=$(
+  aws sts assume-role \
+  --role-arn arn:aws:iam::$AWS_ACCOUNT_ID:role/$AWS_IAM_ROLE_NAME \
+  --role-session-name fastenv-testing-local-aws-cli \
+  --profile fastenv
+)
+
+# run all tests by providing the necessary input variables
+AWS_IAM_ACCESS_KEY_FASTENV=$(aws configure get fastenv.aws_access_key_id) \
+  AWS_IAM_ACCESS_KEY_SESSION=$(echo $ASSUMED_ROLE | fx .Credentials.AccessKeyId) \
+  AWS_IAM_SECRET_KEY_SESSION=$(echo $ASSUMED_ROLE | fx .Credentials.SecretAccessKey) \
+  AWS_IAM_SECRET_KEY_FASTENV=$(aws configure get fastenv.aws_secret_access_key) \
+  AWS_IAM_SESSION_TOKEN=$(echo $ASSUMED_ROLE | fx .Credentials.SessionToken) \
+  AWS_S3_BUCKET_HOST=$AWS_S3_BUCKET_HOST \
+  BACKBLAZE_B2_ACCESS_KEY_FASTENV=$BACKBLAZE_B2_ACCESS_KEY_FASTENV \
+  BACKBLAZE_B2_SECRET_KEY_FASTENV=$BACKBLAZE_B2_SECRET_KEY_FASTENV \
+  BACKBLAZE_B2_BUCKET_HOST=$BACKBLAZE_B2_BUCKET_HOST \
+  BACKBLAZE_B2_BUCKET_REGION=$BACKBLAZE_B2_BUCKET_REGION \
+  pytest --cov-report=html --durations=0 --durations-min=0.5
+```
+
 ## GitHub Actions workflows
 
 [GitHub Actions](https://github.com/features/actions) is a continuous integration/continuous deployment (CI/CD) service that runs on GitHub repos. It replaces other services like Travis CI. Actions are grouped into workflows and stored in _.github/workflows_. See [Getting the Gist of GitHub Actions](https://gist.github.com/br3ndonland/f9c753eb27381f97336aa21b8d932be6) for more info.
+
+### GitHub Actions and AWS
+
+#### Static credentials
+
+As explained in the section on [generating credentials for local testing](#generate-credentials-for-each-supported-cloud-platform), a non-admin [IAM user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html) must be created in order to allow GitHub Actions to access AWS when using [static credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). The IAM user for this repo was created following [IAM best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html). In AWS, there is a `GitHubActions` IAM group, with a `fastenv` IAM user (one user per repo). The `fastenv` user has an IAM policy attached specifying its permissions.
+
+On GitHub, the `fastenv` user access key is stored in [GitHub Secrets](https://docs.github.com/en/actions/reference/encrypted-secrets).
+
+The bucket host is stored in GitHub Secrets in the "[virtual-hosted-style](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html)" format (`<bucketname>.s3.<region>.amazonaws.com`).
+
+#### Temporary credentials
+
+In addition to the static access key, GitHub Actions also retrieves temporary security credentials from AWS using OpenID Connect (OIDC). See the GitHub [docs](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect) for further info.
+
+The OIDC infrastructure is provisioned with Terraform, using a similar approach to the example in [br3ndonland/terraform-examples](https://github.com/br3ndonland/terraform-examples).
+
+### GitHub Actions and Backblaze B2
+
+A [B2 application key](https://www.backblaze.com/b2/docs/application_keys.html) is stored in GitHub Secrets, along with the corresponding bucket host in "virtual-hosted-style" format (`<bucket-name>.s3.<region-name>.backblazeb2.com`).
+
+See the [Backblaze B2 S3-compatible API docs](https://www.backblaze.com/b2/docs/s3_compatible_api.html) for further info.
 
 ## Maintainers
 
@@ -124,11 +272,11 @@ poetry export -f requirements.txt > requirements.txt --dev  # export deps
 -   **Branch protection is enabled on `develop` and `main`.**
     -   `develop`:
         -   Require signed commits
-        -   Include adminstrators
+        -   Include administrators
         -   Allow force pushes
     -   `main`:
         -   Require signed commits
-        -   Include adminstrators
+        -   Include administrators
         -   Do not allow force pushes
         -   Require status checks to pass before merging (commits must have previously been pushed to `develop` and passed all checks)
 -   **To create a release:**

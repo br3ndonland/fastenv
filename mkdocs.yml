@@ -1,6 +1,7 @@
 edit_uri: ""
 markdown_extensions:
   - admonition
+  - pymdownx.details
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
@@ -14,6 +15,7 @@ nav:
   - "index.md"
   - "environment.md"
   - "dotenv.md"
+  - "cloud-object-storage.md"
   - "comparisons.md"
   - "contributing.md"
 repo_name: br3ndonland/fastenv
@@ -23,6 +25,7 @@ site_url: ""
 theme:
   favicon: assets/images/favicon.png
   features:
+    - content.code.annotate
     - header.autohide
     - navigation.instant
     - navigation.top
