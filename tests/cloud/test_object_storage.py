@@ -509,6 +509,22 @@ class TestObjectStorageClientUnit:
         assert presigned_url.params["X-Amz-SignedHeaders"] == "host"
         assert presigned_url.params["X-Amz-Signature"] == expected_x_amz_signature
 
+    @pytest.mark.parametrize("expires", (0, 604900))
+    def test_generate_presigned_url_expiration_time_error(self, expires: int) -> None:
+        """Assert that `ValueError`s are raised for unsupported expiration times."""
+        object_storage_config = fastenv.cloud.object_storage.ObjectStorageConfig(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
+            bucket_host="examplebucket.s3.us-east-1.amazonaws.com",
+            bucket_region="us-east-1",
+        )
+        object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
+            config=object_storage_config
+        )
+        with pytest.raises(ValueError) as e:
+            object_storage_client.generate_presigned_url("GET", ".env", expires=expires)
+        assert "Expiration time must be between one second and one week" in str(e.value)
+
     @pytest.mark.parametrize("key", ("user/user1/a.png", "user/user1/${filename}"))
     @pytest.mark.parametrize("content_length", (1111, None))
     @pytest.mark.parametrize("content_type", ("image/png", None))

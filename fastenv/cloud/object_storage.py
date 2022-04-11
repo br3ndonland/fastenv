@@ -201,6 +201,8 @@ class ObjectStorageClient:
         https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
         https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
         """
+        if expires < 1 or expires > 604800:
+            raise ValueError("Expiration time must be between one second and one week.")
         key = key if (key := str(bucket_path)).startswith("/") else f"/{key}"
         params = self._set_presigned_url_query_params(
             method, key, expires=expires, service=service
@@ -451,8 +453,8 @@ class ObjectStorageClient:
         AWS calls bucket paths "keys," but the argument name here is `bucket_path`
         to avoid confusion with other "keys" like AWS access keys.
 
-        `expires`: seconds until the URL expires. The default and maximum
-        expiration times are the same as the AWS CLI and Boto3.
+        `expires`: seconds until the presigned `POST` expires.
+        The default expiration time is the same as for Boto3.
 
         `service`: cloud service for which to generate the presigned URL.
 
