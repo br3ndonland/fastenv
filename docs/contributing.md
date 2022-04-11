@@ -110,7 +110,7 @@ poetry export -f requirements.txt > requirements.txt --dev  # export deps
     -   [pytest-mock](https://github.com/pytest-dev/pytest-mock)
 -   [pytest configuration](https://docs.pytest.org/en/latest/reference/customize.html) is in _[pyproject.toml](https://github.com/br3ndonland/fastenv/blob/HEAD/pyproject.toml)_.
 -   Test coverage results are reported when invoking `pytest` from the command-line. To see interactive HTML coverage reports, invoke pytest with `pytest --cov-report=html`.
--   Test coverage reports are generated within GitHub Actions workflows by [pytest-cov](https://github.com/pytest-dev/pytest-cov) with [coverage.py](https://github.com/nedbat/coveragepy), and uploaded to [Codecov](https://docs.codecov.io/docs) using [codecov/codecov-action](https://github.com/marketplace/actions/codecov). Codecov is then integrated into pull requests with the [Codecov GitHub app](https://github.com/marketplace/codecov).
+-   Test coverage reports are generated within GitHub Actions workflows by [pytest-cov](https://github.com/pytest-dev/pytest-cov) with [coverage.py](https://github.com/nedbat/coveragepy).
 
 Integration tests will be skipped if cloud credentials are not present. Running integration tests locally will take some additional setup.
 

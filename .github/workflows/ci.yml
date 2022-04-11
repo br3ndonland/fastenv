@@ -17,7 +17,6 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
     env:
-      CODECOV_UPLOAD: true
       PIPX_VERSION: "0.16.4"
       POETRY_VERSION: "1.1.11"
       PYPI_PUBLISH: true
@@ -96,20 +95,6 @@ jobs:
           BACKBLAZE_B2_BUCKET_HOST: ${{ secrets.BACKBLAZE_B2_BUCKET_HOST }}
           BACKBLAZE_B2_BUCKET_REGION: ${{ secrets.BACKBLAZE_B2_BUCKET_REGION }}
           BACKBLAZE_B2_SECRET_KEY_FASTENV: ${{ secrets.BACKBLAZE_B2_SECRET_KEY_FASTENV }}
-      - name: Upload unit test coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        if: env.CODECOV_UPLOAD == 'true' && matrix.python-version == '3.10'
-        with:
-          fail_ci_if_error: true
-          files: coverage-unit.xml
-          flags: unit
-      - name: Upload integration test coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        if: env.CODECOV_UPLOAD == 'true' && matrix.python-version == '3.10'
-        with:
-          fail_ci_if_error: true
-          files: coverage-integration.xml
-          flags: integration
       - name: Build Python package with latest stable Python version and publish to PyPI
         if: >
           env.PYPI_PUBLISH == 'true' &&
