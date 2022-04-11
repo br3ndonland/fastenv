@@ -84,7 +84,7 @@ def object_storage_config(
     )
     bucket_host = os.getenv(request_param.bucket_host_variable)
     bucket_region = os.getenv(request_param.bucket_region_variable, "us-east-2")
-    if not access_key or not secret_key or session_token is None:
+    if not access_key or not secret_key or session_token is None:  # pragma: no cover
         pytest.skip("Required cloud credentials not present.")
     return fastenv.cloud.object_storage.ObjectStorageConfig(
         access_key=access_key,
@@ -106,7 +106,7 @@ def object_storage_config_backblaze_static() -> (
     """
     access_key = os.getenv(_cloud_params_backblaze_static.access_key_variable)
     secret_key = os.getenv(_cloud_params_backblaze_static.secret_key_variable)
-    if not access_key or not secret_key:
+    if not access_key or not secret_key:  # pragma: no cover
         pytest.skip("Required cloud credentials not present.")
     bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable)
     bucket_host = os.getenv(_cloud_params_backblaze_static.bucket_host_variable)
@@ -298,37 +298,6 @@ def object_storage_client_upload_prefix() -> str:
     now_string = now.strftime("%Y-%m-%d-%H%M%S-%Z")
     hex_prefix = secrets.token_hex()[:10]
     return f"uploads/{now_string}-{hex_prefix}"
-
-
-@pytest.fixture(scope="session")
-def object_storage_client_backblaze_b2_upload_url_response(
-    object_storage_config_backblaze_static: (
-        fastenv.cloud.object_storage.ObjectStorageConfig
-    ),
-) -> fastenv.cloud.object_storage.httpx.Response:
-    """Provide a mock `httpx.Response` from a call to Backblaze `b2_get_upload_url`.
-
-    https://www.backblaze.com/b2/docs/b2_get_upload_url.html
-    """
-    authorization_token = (
-        f"4_{object_storage_config_backblaze_static.access_key}"
-        "_01a10000_fd9b00_upld_a_27_character_alphanumeric="
-    )
-    bucket_id = "123456789012123456789012"
-    upload_url = (
-        "https://pod-000-1111-01.backblaze.com/b2api/v2/"
-        f"b2_upload_file/{bucket_id}/c001_v0001111_t0030"
-    )
-    upload_url_response_text = (
-        "{"
-        f'\n  "authorizationToken": "{authorization_token}",'
-        f'\n  "bucketId": "{bucket_id}",'
-        f'\n  "uploadUrl": "{upload_url}"'
-        "\n}\n"
-    )
-    return fastenv.cloud.object_storage.httpx.Response(
-        200, text=upload_url_response_text
-    )
 
 
 _dotenv_args: tuple[tuple[str, str, str], ...] = (

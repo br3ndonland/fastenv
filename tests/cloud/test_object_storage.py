@@ -73,11 +73,8 @@ class TestObjectStorageConfig:
             assert config.access_key == self.example_access_key
             assert config.secret_key == self.example_secret_key
             assert not config.session_token
-        if config.bucket_name:
-            assert config.bucket_name == expected_bucket_name
-        else:
-            assert not config.bucket_name
         assert config.bucket_host == expected_bucket_host
+        assert config.bucket_name == expected_bucket_name
         assert config.bucket_region == self.example_bucket_region
         return True
 
@@ -686,7 +683,7 @@ class TestObjectStorageClientUnit:
 
     @pytest.mark.parametrize(
         "additional_form_data",
-        ({"x-amz-meta-tag": ""}, {"Content-Type": "image/png"}),
+        ({"x-amz-meta-tag": ""}, {"Content-Type": "image/png"}, None),
     )
     @freezegun.freeze_time("2015-12-29")
     def test_prepare_presigned_post_form_data(
