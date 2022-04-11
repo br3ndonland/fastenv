@@ -7,7 +7,6 @@ _Unified environment variable and settings management for FastAPI and beyond_
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://black.readthedocs.io/en/stable/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![ci](https://github.com/br3ndonland/fastenv/workflows/ci/badge.svg)](https://github.com/br3ndonland/fastenv/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/br3ndonland/fastenv/branch/main/graph/badge.svg?token=WDNHES5OYR)](https://codecov.io/gh/br3ndonland/fastenv)
 
 ## Description
 
