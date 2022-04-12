@@ -17,7 +17,6 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
     env:
-      CODECOV_UPLOAD: true
       PIPX_VERSION: "0.16.4"
       POETRY_VERSION: "1.1.11"
       PYPI_PUBLISH: true
@@ -67,23 +66,13 @@ jobs:
           esac
       - name: Run pre-commit hooks
         run: poetry run pre-commit run --all-files
-      - name: Run unit tests
-        run: |
-          poetry run pytest \
-            --deselect tests/cloud/test_object_storage.py::TestObjectStorageClientIntegration \
-            --cov-report=xml:coverage-unit.xml
-        timeout-minutes: 5
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ${{ secrets.AWS_S3_BUCKET_REGION }}
           role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
           role-duration-seconds: 1200
-      - name: Run integration tests
-        run: |
-          poetry run pytest \
-            tests/cloud/test_object_storage.py::TestObjectStorageClientIntegration \
-            --cov-report=xml:coverage-integration.xml \
-            --durations=0
+      - name: Run tests
+        run: poetry run coverage run -m pytest --durations=0 --durations-min=0.1
         timeout-minutes: 5
         env:
           AWS_IAM_ACCESS_KEY_FASTENV: ${{ secrets.AWS_IAM_ACCESS_KEY_FASTENV }}
@@ -96,20 +85,8 @@ jobs:
           BACKBLAZE_B2_BUCKET_HOST: ${{ secrets.BACKBLAZE_B2_BUCKET_HOST }}
           BACKBLAZE_B2_BUCKET_REGION: ${{ secrets.BACKBLAZE_B2_BUCKET_REGION }}
           BACKBLAZE_B2_SECRET_KEY_FASTENV: ${{ secrets.BACKBLAZE_B2_SECRET_KEY_FASTENV }}
-      - name: Upload unit test coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        if: env.CODECOV_UPLOAD == 'true' && matrix.python-version == '3.10'
-        with:
-          fail_ci_if_error: true
-          files: coverage-unit.xml
-          flags: unit
-      - name: Upload integration test coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        if: env.CODECOV_UPLOAD == 'true' && matrix.python-version == '3.10'
-        with:
-          fail_ci_if_error: true
-          files: coverage-integration.xml
-          flags: integration
+      - name: Enforce test coverage
+        run: poetry run coverage report
       - name: Build Python package with latest stable Python version and publish to PyPI
         if: >
           env.PYPI_PUBLISH == 'true' &&

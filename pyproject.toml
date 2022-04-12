@@ -1,3 +1,11 @@
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+
+[tool.coverage.run]
+command_line = "-m pytest"
+source = ["fastenv", "tests"]
+
 [tool.isort]
 profile = "black"
 src_paths = ["fastenv", "tests"]
@@ -41,6 +49,7 @@ httpx = {version = ">=0.20,<0.23", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = "^22"
+coverage = {version = "^6", extras = ["toml"]}
 flake8 = "^4"
 freezegun = "^1"
 isort = "^5.8"
@@ -48,7 +57,6 @@ mkdocs-material = "^8"
 mypy = ">0.900,<1"
 pre-commit = "^2.11"
 pytest = "^7"
-pytest-cov = "^3"
 pytest-mock = "^3.3"
 
 [tool.poetry.extras]
@@ -57,7 +65,7 @@ cloud = ["httpx"]
 httpx = ["httpx"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=fastenv -q"
+addopts = "-q"
 minversion = "6.0"
 testpaths = ["tests"]
 
