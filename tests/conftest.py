@@ -174,7 +174,7 @@ def object_storage_config_for_presigned_url_example(
             quoted_session_token
         )
     else:
-        session_token = None
+        session_token = ""
     try:
         object_storage_config = fastenv.cloud.object_storage.ObjectStorageConfig(
             access_key="AKIAIOSFODNN7EXAMPLE",
@@ -229,7 +229,7 @@ def object_storage_config_for_presigned_post_example(
             quoted_session_token
         )
     else:
-        session_token = None
+        session_token = ""
     try:
         object_storage_config = fastenv.cloud.object_storage.ObjectStorageConfig(
             access_key="AKIAIOSFODNN7EXAMPLE",

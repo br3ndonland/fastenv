@@ -337,7 +337,7 @@ class TestObjectStorageClientUnit:
             "X-Amz-Date": x_amz_date,
             "X-Amz-Expires": str(expires),
         }
-        if object_storage_config.session_token is not None:
+        if object_storage_config.session_token:
             params["X-Amz-Security-Token"] = object_storage_config.session_token
         params["X-Amz-SignedHeaders"] = "host"
         headers = {"host": object_storage_config.bucket_host}
@@ -356,7 +356,7 @@ class TestObjectStorageClientUnit:
             "host\n"
             "UNSIGNED-PAYLOAD"
         )
-        if object_storage_config.session_token is not None:
+        if object_storage_config.session_token:
             expected_session_token = fastenv.cloud.object_storage.urllib.parse.quote(
                 object_storage_config.session_token, safe=""
             )
@@ -486,9 +486,9 @@ class TestObjectStorageClientUnit:
             "AKIAIOSFODNN7EXAMPLE%2F20130524%2Fus-east-1%2Fs3%2Faws4_request"
         )
         expected_x_amz_signature = (
-            "aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404"
-            if object_storage_config.session_token is None
-            else "b44654051bcc7e09ba7d82c65821043f2e091d6a5503bd053ba6c0a01b3fc216"
+            "b44654051bcc7e09ba7d82c65821043f2e091d6a5503bd053ba6c0a01b3fc216"
+            if object_storage_config.session_token
+            else "aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404"
         )
         presigned_url = object_storage_client.generate_presigned_url(
             "GET", "test.txt", expires=86400
@@ -500,7 +500,7 @@ class TestObjectStorageClientUnit:
         assert presigned_url.params["X-Amz-Credential"] == expected_x_amz_credential
         assert presigned_url.params["X-Amz-Date"] == "20130524T000000Z"
         assert presigned_url.params["X-Amz-Expires"] == "86400"
-        if object_storage_config.session_token is not None:
+        if object_storage_config.session_token:
             presigned_url_token = presigned_url.params.get("X-Amz-Security-Token")
             assert presigned_url_token == object_storage_config.session_token
         assert presigned_url.params["X-Amz-SignedHeaders"] == "host"
