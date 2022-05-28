@@ -45,7 +45,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 anyio = "^3.3"
-httpx = {version = ">=0.20,<0.23", optional = true}
+httpx = {version = "^0.23", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = "^22"
