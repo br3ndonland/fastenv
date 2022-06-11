@@ -17,7 +17,7 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
     env:
-      PIPX_VERSION: "0.16.4"
+      PIPX_VERSION: "1.1.0"
       POETRY_VERSION: "1.1.11"
       PYPI_PUBLISH: true
     steps:
