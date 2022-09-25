@@ -75,6 +75,7 @@ class TestObjectStorageConfig:
         config: fastenv.cloud.object_storage.ObjectStorageConfig,
         expected_bucket_host: str = example_bucket_host,
         expected_bucket_name: str = example_bucket_name,
+        expected_bucket_region: str = example_bucket_region,
         should_have_session_token: bool = False,
     ) -> bool:
         """Assert that an `ObjectStorageConfig` instance has the expected attributes."""
@@ -88,7 +89,7 @@ class TestObjectStorageConfig:
             assert not config.session_token
         assert config.bucket_host == expected_bucket_host
         assert config.bucket_name == expected_bucket_name
-        assert config.bucket_region == self.example_bucket_region
+        assert config.bucket_region == expected_bucket_region
         return True
 
     @pytest.mark.parametrize("config_kwargs", example_config_kwargs_for_bucket)
@@ -219,8 +220,15 @@ class TestObjectStorageConfig:
     @pytest.mark.parametrize(
         "bucket_host,bucket_region",
         (
-            ("mybucket.s3.us-west-001.backblazeb2.com", "us-west-001"),
-            ("mybucket.nyc3.digitaloceanspaces.com", "nyc3"),
+            (f"{example_bucket_name}.s3.us-west-001.backblazeb2.com", "us-west-001"),
+            (
+                (
+                    f"{example_bucket_name}"
+                    ".ab12c3456d7e890fg1h234i5678j9012.r2.cloudflarestorage.com"
+                ),
+                None,
+            ),
+            (f"{example_bucket_name}.nyc3.digitaloceanspaces.com", "nyc3"),
         ),
     )
     @pytest.mark.parametrize("bucket_name", ("", None))
@@ -228,7 +236,7 @@ class TestObjectStorageConfig:
         self,
         bucket_host: str,
         bucket_name: str | None,
-        bucket_region: str,
+        bucket_region: str | None,
         mocker: MockerFixture,
     ) -> None:
         """Assert that, if a bucket name is not provided, `bucket_name`
@@ -329,6 +337,20 @@ class TestObjectStorageConfig:
         )
         assert self.config_is_correct(config, expected_bucket_host=expected_bucket_host)
         assert not config.bucket_host.endswith("/")
+
+    def test_config_if_bucket_region_auto(self, mocker: MockerFixture) -> None:
+        """Assert that `bucket_region` is set to "auto" for Cloudflare R2."""
+        mocker.patch.dict(os.environ, clear=True)
+        bucket_host = (
+            f"{self.example_bucket_name_with_dots}"
+            ".ab12c3456d7e890fg1h234i5678j9012.r2.cloudflarestorage.com"
+        )
+        config = fastenv.cloud.object_storage.ObjectStorageConfig(
+            access_key=self.example_access_key,
+            secret_key=self.example_secret_key,
+            bucket_host=bucket_host,
+        )
+        assert config.bucket_region == "auto"
 
 
 class TestObjectStorageClientUnit:
@@ -1062,6 +1084,11 @@ class TestObjectStorageClientIntegration:
         """Upload a file to cloud object storage, and assert that the
         expected logger message is provided after a successful upload.
         """
+        if (
+            object_storage_config.bucket_host.endswith(".cloudflarestorage.com")
+            and method == "POST"
+        ):
+            pytest.skip("Cloudflare R2 does not support uploads with POST")
         mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
@@ -1101,6 +1128,11 @@ class TestObjectStorageClientIntegration:
         """Upload a string to cloud object storage, and assert that the
         expected logger message is provided after a successful upload.
         """
+        if (
+            object_storage_config.bucket_host.endswith(".cloudflarestorage.com")
+            and method == "POST"
+        ):
+            pytest.skip("Cloudflare R2 does not support uploads with POST")
         mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
@@ -1140,6 +1172,11 @@ class TestObjectStorageClientIntegration:
         """Upload bytes to cloud object storage, and assert that the
         expected logger message is provided after a successful upload.
         """
+        if (
+            object_storage_config.bucket_host.endswith(".cloudflarestorage.com")
+            and method == "POST"
+        ):
+            pytest.skip("Cloudflare R2 does not support uploads with POST")
         mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True

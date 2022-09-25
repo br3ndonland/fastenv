@@ -170,6 +170,9 @@ BACKBLAZE_B2_ACCESS_KEY_FASTENV="paste-here"
  BACKBLAZE_B2_SECRET_KEY_FASTENV="paste-here"
 BACKBLAZE_B2_BUCKET_HOST="paste-here"
 BACKBLAZE_B2_BUCKET_REGION="paste-here"
+CLOUDFLARE_R2_ACCESS_KEY_FASTENV="paste-here"
+ CLOUDFLARE_R2_SECRET_KEY_FASTENV="paste-here"
+CLOUDFLARE_R2_BUCKET_HOST="paste-here"
 
 # get AWS account ID from STS (replace jq with other JSON parser as needed)
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity | jq -r .Account)
@@ -192,6 +195,9 @@ AWS_IAM_ACCESS_KEY_FASTENV=$(aws configure get fastenv.aws_access_key_id) \
   BACKBLAZE_B2_SECRET_KEY_FASTENV=$BACKBLAZE_B2_SECRET_KEY_FASTENV \
   BACKBLAZE_B2_BUCKET_HOST=$BACKBLAZE_B2_BUCKET_HOST \
   BACKBLAZE_B2_BUCKET_REGION=$BACKBLAZE_B2_BUCKET_REGION \
+  CLOUDFLARE_R2_ACCESS_KEY_FASTENV=$CLOUDFLARE_R2_ACCESS_KEY_FASTENV \
+  CLOUDFLARE_R2_SECRET_KEY_FASTENV=$CLOUDFLARE_R2_SECRET_KEY_FASTENV \
+  CLOUDFLARE_R2_BUCKET_HOST=$CLOUDFLARE_R2_BUCKET_HOST \
   hatch run coverage run && coverage report
 ```
 
@@ -247,6 +253,12 @@ The OIDC infrastructure is provisioned with Terraform, using a similar approach 
 A [B2 application key](https://www.backblaze.com/b2/docs/application_keys.html) is stored in GitHub Secrets, along with the corresponding bucket host in "virtual-hosted-style" format (`<bucket-name>.s3.<region-name>.backblazeb2.com`).
 
 See the [Backblaze B2 S3-compatible API docs](https://www.backblaze.com/b2/docs/s3_compatible_api.html) for further info.
+
+### GitHub Actions and Cloudflare R2
+
+A [Cloudflare S3 auth token](https://developers.cloudflare.com/r2/data-access/s3-api/tokens/) (access key) is stored in GitHub Secrets, along with the corresponding bucket host in "virtual-hosted-style" format (`https://<BUCKET>.<ACCOUNT_ID>.r2.cloudflarestorage.com`).
+
+See the [Cloudflare R2 docs](https://developers.cloudflare.com/r2/) for further info.
 
 ## Maintainers
 

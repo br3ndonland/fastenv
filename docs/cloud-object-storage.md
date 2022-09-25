@@ -2,7 +2,7 @@
 
 ## Overview
 
-Dotenv files are commonly kept in [cloud object storage](https://en.wikipedia.org/wiki/Cloud_storage), but environment variable management packages typically don't integrate with object storage clients. Additional logic is therefore required to download the files from object storage prior to loading environment variables. This project offers integration with S3-compatible object storage. [AWS S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html) and [Backblaze B2](https://www.backblaze.com/b2/docs/) are directly supported and tested.
+Dotenv files are commonly kept in [cloud object storage](https://en.wikipedia.org/wiki/Cloud_storage), but environment variable management packages typically don't integrate with object storage clients. Additional logic is therefore required to download the files from object storage prior to loading environment variables. This project offers integration with S3-compatible object storage. [AWS S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html), [Backblaze B2](https://www.backblaze.com/b2/docs/), and [Cloudflare R2](https://developers.cloudflare.com/r2/) are directly supported and tested.
 
 !!!note "Why not Boto3?"
 
@@ -333,6 +333,8 @@ Here's an example of how this could be implemented.
 ### AWS S3
 
 -   Pricing
+    -   \$23/TB/month for storage
+    -   \$90/TB/month outbound (also called download or egress), with further complex and expensive egress fees
     -   See the [Backblaze B2 pricing page](https://www.backblaze.com/b2/cloud-storage-pricing.html) for comparisons
     -   See [Backblaze Blog 2021-12-03: Why the world needs lower egress fees](https://www.backblaze.com/blog/why-the-world-needs-lower-egress-fees/) and [Cloudflare Blog 2021-07-23: AWS's egregious egress](https://blog.cloudflare.com/aws-egregious-egress/) for criticisms
 -   Identity and Access Management (IAM):
@@ -353,7 +355,7 @@ Here's an example of how this could be implemented.
 ### Backblaze B2
 
 -   [Pricing](https://www.backblaze.com/b2/cloud-storage-pricing.html):
-    -   Data storage fees are 1/3 the price of S3
+    -   \$6/TB/month for storage (about 1/4 the price of S3)
     -   Outbound (also called download or egress) data transfer fees are 1/4 the price of S3
     -   See [Backblaze Blog 2021-12-03: Why the world needs lower egress fees](https://www.backblaze.com/blog/why-the-world-needs-lower-egress-fees/)
 -   [S3-compatible API](https://www.backblaze.com/b2/docs/s3_compatible_api.html)\*
@@ -374,10 +376,30 @@ Here's an example of how this could be implemented.
 
 ### Cloudflare R2
 
-_Coming soon!_
-
--   [Cloudflare Blog 2021-07-23: AWS's egregious egress](https://blog.cloudflare.com/aws-egregious-egress/)
--   [Cloudflare Blog 2021-09-28: Announcing Cloudflare R2 Storage](https://blog.cloudflare.com/introducing-r2-object-storage/)
+-   [Pricing](https://developers.cloudflare.com/r2/platform/pricing/)
+    -   \$15/TB/month for storage (about half the price of AWS S3, but over double the price of Backblaze B2)
+-   [S3-compatible API](https://developers.cloudflare.com/r2/platform/s3-compatibility/api/)
+-   URIs
+    -   Regions are handled automatically. "When using the S3 API, the region for an R2 bucket is `auto`. For compatibility with tools that do not allow you to specify a region, an empty value and `us-east-1` will alias to the `auto` region."
+    -   Cloudflare R2 URLs are different from other S3-compatible object storage platforms. The Cloudflare account ID is included in bucket URIs, but the region is not.
+    -   Path style URL: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com/<bucketname>`
+    -   Virtual-hosted-style URL: `https://<BUCKET>.<ACCOUNT_ID>.r2.cloudflarestorage.com` (added [2022-05-16](https://developers.cloudflare.com/r2/platform/changelog/#2022-05-16), also see [cloudflare/cloudflare-docs#6405](https://github.com/cloudflare/cloudflare-docs/pull/6405)), though note that the docs on [using the AWS CLI with R2](https://developers.cloudflare.com/r2/examples/aws/aws-cli/) and and [using Boto3 with R2](https://developers.cloudflare.com/r2/examples/aws/boto3/) still show only path style URLs.
+    -   Presigned URLs are supported
+        -   Added [2022-06-17](https://developers.cloudflare.com/r2/platform/changelog/#2022-06-17)
+        -   There may be CORS limitations on uploads due to lack of ability to set the `Access-Control-Allow-Origin` header ([cloudflare/cloudflare-docs#4455](https://github.com/cloudflare/cloudflare-docs/issues/4455)).
+    -   [Presigned `POST` is not currently supported](https://developers.cloudflare.com/r2/api/s3/presigned-urls/#supported-http-methods).
+-   Identity and Access Management (IAM):
+    -   [Requires generation of a static access key](https://developers.cloudflare.com/r2/data-access/s3-api/tokens/). Does not appear to support temporary credentials from IAM roles (AWS session tokens). Does not appear to support OpenID Connect (OIDC).
+    -   Access keys can be set to either read-only or edit permissions.
+    -   Access keys can be scoped to specific Cloudflare products, Cloudflare accounts, and IP addresses.
+-   Lifecycle policies
+    -   Added [2023-03-16](https://developers.cloudflare.com/r2/reference/changelog/#2023-03-16) ([blog post](https://blog.cloudflare.com/introducing-object-lifecycle-management-for-cloudflare-r2/))
+    -   [Docs](https://developers.cloudflare.com/r2/buckets/object-lifecycles/)
+-   Docs
+    -   [Cloudflare R2 docs](https://developers.cloudflare.com/r2/)
+    -   [Cloudflare Blog 2021-07-23: AWS's egregious egress](https://blog.cloudflare.com/aws-egregious-egress/)
+    -   [Cloudflare Blog 2021-09-28: Announcing Cloudflare R2 Storage](https://blog.cloudflare.com/introducing-r2-object-storage/)
+    -   [Cloudflare Blog 2022-09-21: R2 is now Generally Available](https://blog.cloudflare.com/r2-ga/)
 
 ### DigitalOcean Spaces
 

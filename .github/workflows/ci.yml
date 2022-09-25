@@ -89,6 +89,9 @@ jobs:
           BACKBLAZE_B2_BUCKET_HOST: ${{ secrets.BACKBLAZE_B2_BUCKET_HOST }}
           BACKBLAZE_B2_BUCKET_REGION: ${{ secrets.BACKBLAZE_B2_BUCKET_REGION }}
           BACKBLAZE_B2_SECRET_KEY_FASTENV: ${{ secrets.BACKBLAZE_B2_SECRET_KEY_FASTENV }}
+          CLOUDFLARE_R2_ACCESS_KEY_FASTENV: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_FASTENV }}
+          CLOUDFLARE_R2_BUCKET_HOST: ${{ secrets.CLOUDFLARE_R2_BUCKET_HOST }}
+          CLOUDFLARE_R2_SECRET_KEY_FASTENV: ${{ secrets.CLOUDFLARE_R2_SECRET_KEY_FASTENV }}
       - name: Enforce test coverage
         run: hatch run ${{ env.HATCH_ENV }}:coverage report
       - name: Build Python package
