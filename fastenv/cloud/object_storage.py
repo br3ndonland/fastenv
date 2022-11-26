@@ -52,12 +52,12 @@ class ObjectStorageConfig:
 
     def __init__(
         self,
-        access_key: str = None,
-        secret_key: str = None,
-        bucket_host: str = None,
-        bucket_name: str = None,
-        bucket_region: str = None,
-        session_token: str = None,
+        access_key: str | None = None,
+        secret_key: str | None = None,
+        bucket_host: str | None = None,
+        bucket_name: str | None = None,
+        bucket_region: str | None = None,
+        session_token: str | None = None,
     ) -> None:
         access_key = access_key or os.getenv("AWS_ACCESS_KEY_ID")
         secret_key = secret_key or os.getenv("AWS_SECRET_ACCESS_KEY")
@@ -132,8 +132,8 @@ class ObjectStorageClient:
 
     def __init__(
         self,
-        client: httpx.AsyncClient = None,
-        config: ObjectStorageConfig = None,
+        client: httpx.AsyncClient | None = None,
+        config: ObjectStorageConfig | None = None,
         **config_options: str,
     ) -> None:
         self._client = client or httpx.AsyncClient()
