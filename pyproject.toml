@@ -43,14 +43,14 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8.1"
 anyio = "^3.3"
 httpx = {version = "^0.23", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = "^22"
 coverage = {version = "^6", extras = ["toml"]}
-flake8 = "^5"
+flake8 = "^6"
 freezegun = "^1"
 isort = "^5.8"
 mkdocs-material = "^8"
