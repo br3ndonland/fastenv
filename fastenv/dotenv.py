@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import os
 import shlex
-from typing import Iterator, MutableMapping
+from typing import TYPE_CHECKING, MutableMapping
 
 import anyio
 
 from fastenv.utilities import logger
 
+if TYPE_CHECKING:
+    from typing import Iterator
 
-class DotEnv(MutableMapping):
+
+class DotEnv(MutableMapping[str, str]):
     __slots__ = "_data", "source"
 
     def __init__(self, *args: str, **kwargs: str) -> None:
@@ -17,7 +20,7 @@ class DotEnv(MutableMapping):
         self.source: anyio.Path | list[anyio.Path] | None = None
         self.setenv(*args, **kwargs)
 
-    def __getitem__(self, key: str) -> str | None:
+    def __getitem__(self, key: str) -> str:
         return self._data[key]
 
     def __setitem__(self, key: str, value: str) -> None:

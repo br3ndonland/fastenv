@@ -36,8 +36,12 @@
 
 ### Static type checking
 
--   [Mypy](https://mypy.readthedocs.io/en/stable/) is used for type-checking.
--   To learn type annotation basics, see [this gist](https://gist.github.com/987bdc6263217895d4bf03d0a5ff114c) and the [Real Python type checking tutorial](https://realpython.com/python-type-checking/).
+-   To learn type annotation basics, see the [Python typing module docs](https://docs.python.org/3/library/typing.html), [Python type annotations how-to](https://docs.python.org/3/howto/annotations.html), the [Real Python type checking tutorial](https://realpython.com/python-type-checking/), and [this gist](https://gist.github.com/987bdc6263217895d4bf03d0a5ff114c).
+-   Type annotations are not used at runtime. The standard library `typing` module includes a `TYPE_CHECKING` constant that is `False` at runtime, but `True` when conducting static type checking prior to runtime. Type imports are included under `if TYPE_CHECKING:` conditions so that they are not imported at runtime. These conditions are ignored when calculating test coverage.
+-   Type annotations can be provided inline or in separate stub files. Much of the Python standard library is annotated with stubs. For example, the Python standard library [`logging.config` module uses type stubs](https://github.com/python/typeshed/blob/main/stdlib/logging/config.pyi). The typeshed types for the `logging.config` module are used solely for type-checking usage of the `logging.config` module itself. They cannot be imported and used to type annotate other modules.
+-   The standard library `typing` module includes a `NoReturn` type. This would seem useful for [unreachable code](https://typing.readthedocs.io/en/stable/source/unreachable.html), including functions that do not return a value, such as test functions. Unfortunately mypy reports an error when using `NoReturn`, "Implicit return in function which does not return (misc)." To avoid headaches from the opaque "misc" category of [mypy errors](https://mypy.readthedocs.io/en/stable/error_code_list.html), these functions are annotated as returning `None`.
+-   [Mypy](https://mypy.readthedocs.io/en/stable/) is used for type-checking. [Mypy configuration](https://mypy.readthedocs.io/en/stable/config_file.html) is included in _pyproject.toml_.
+-   Mypy strict mode is enabled. Strict includes `--no-explicit-reexport` (`implicit_reexport = false`), which means that objects imported into a module will not be re-exported for import into other modules. Imports can be made into explicit exports with the syntax `from module import x as x` (i.e., changing from `import logging` to `import logging as logging`), or by including imports in `__all__`. This explicit import syntax can be confusing. Another option is to apply mypy overrides to any modules that need to leverage implicit exports.
 
 ### Pre-commit
 

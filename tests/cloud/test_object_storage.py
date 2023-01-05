@@ -1,12 +1,25 @@
 from __future__ import annotations
 
+import datetime
+import os
+import urllib
+from typing import TYPE_CHECKING
+
+import anyio
 import freezegun
+import httpx
 import pytest
-from pytest_mock import MockerFixture
 
 import fastenv.cloud.object_storage
 import fastenv.dotenv
 from tests.test_dotenv import variable_is_set
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from pytest_mock import MockerFixture
+
+    from fastenv.types import UploadPolicy, UploadPolicyConditions
 
 
 class TestObjectStorageConfig:
@@ -89,7 +102,7 @@ class TestObjectStorageConfig:
         """Instantiate `class ObjectStorageConfig`, allowing the class to detect the
         default AWS environment variables, and assert that the correct values are set.
         """
-        environ = mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        environ = mocker.patch.dict(os.environ, clear=True)
         if should_have_session_token:
             environ["AWS_ACCESS_KEY_ID"] = self.example_access_key_for_session_token
             environ["AWS_SECRET_ACCESS_KEY"] = self.example_secret_key_for_session_token
@@ -121,7 +134,7 @@ class TestObjectStorageConfig:
         Setting `session_token` to an empty string (`session_token=""`) should prevent
         `class ObjectStorageConfig` from using the environment variable value.
         """
-        environ = mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        environ = mocker.patch.dict(os.environ, clear=True)
         if should_have_session_token:
             environ["AWS_ACCESS_KEY_ID"] = self.example_access_key_for_session_token
             environ["AWS_SECRET_ACCESS_KEY"] = self.example_secret_key_for_session_token
@@ -146,7 +159,7 @@ class TestObjectStorageConfig:
         """Instantiate `class ObjectStorageConfig` with keyword arguments
         and assert that the correct values are set.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         config = fastenv.cloud.object_storage.ObjectStorageConfig(
             access_key=self.example_access_key,
             secret_key=self.example_secret_key,
@@ -162,7 +175,7 @@ class TestObjectStorageConfig:
         """Instantiate `class ObjectStorageConfig` without all necessary attributes
         and assert that an `AttributeError` is raised.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         with pytest.raises(AttributeError) as e:
             fastenv.cloud.object_storage.ObjectStorageConfig(**config_kwargs)
         assert "not provided" in str(e.value)
@@ -190,7 +203,7 @@ class TestObjectStorageConfig:
         https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html
         https://aws.amazon.com/blogs/aws/amazon-s3-path-deprecation-plan-the-rest-of-the-story/
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         config = fastenv.cloud.object_storage.ObjectStorageConfig(
             access_key=self.example_access_key,
             secret_key=self.example_secret_key,
@@ -222,7 +235,7 @@ class TestObjectStorageConfig:
         is correctly parsed from `bucket_host` for supported object
         storage platforms, or is `None` for unsupported platforms.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         config = fastenv.cloud.object_storage.ObjectStorageConfig(
             access_key=self.example_access_key,
             secret_key=self.example_secret_key,
@@ -241,7 +254,7 @@ class TestObjectStorageConfig:
         """Assert that an exception is raised if `bucket_host` and `bucket_name`
         are both set, but `bucket_host` does not contain `bucket_name`.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         bucket_host = f"{self.example_bucket_name}.s3.us-west-001.backblazeb2.com"
         expected_exception_value = (
             f"Bucket host {bucket_host} does not include "
@@ -266,7 +279,7 @@ class TestObjectStorageConfig:
         Some bucket host values may omit the region name (such as AWS `us-east-1`),
         but in general the region should be present in a virtual-hosted-style URL.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         bucket_host = f"{self.example_bucket_name}.s3.us-west-001.backblazeb2.com"
         expected_exception_value = (
             f"Bucket host {bucket_host} does not include "
@@ -294,8 +307,7 @@ class TestObjectStorageClientUnit:
         """Attempt to instantiate `ObjectStorageClient` without providing a bucket,
         and assert that an `AttributeError` is raised.
         """
-        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         mocker.patch.object(fastenv.cloud.object_storage, "logger", autospec=True)
         with pytest.raises(AttributeError) as e:
             fastenv.cloud.object_storage.ObjectStorageClient()
@@ -322,9 +334,7 @@ class TestObjectStorageClientUnit:
             config=object_storage_config
         )
         expires = 86400
-        now = fastenv.cloud.object_storage.datetime.datetime.now(
-            tz=fastenv.cloud.object_storage.datetime.timezone.utc
-        )
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         x_amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
         credential_scope = (
@@ -357,7 +367,7 @@ class TestObjectStorageClientUnit:
             "UNSIGNED-PAYLOAD"
         )
         if object_storage_config.session_token:
-            expected_session_token = fastenv.cloud.object_storage.urllib.parse.quote(
+            expected_session_token = urllib.parse.quote(
                 object_storage_config.session_token, safe=""
             )
             expected_canonical_request = (
@@ -391,9 +401,7 @@ class TestObjectStorageClientUnit:
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             config=object_storage_config
         )
-        now = fastenv.cloud.object_storage.datetime.datetime.now(
-            tz=fastenv.cloud.object_storage.datetime.timezone.utc
-        )
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         x_amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
         credential_scope = (
@@ -441,9 +449,7 @@ class TestObjectStorageClientUnit:
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             config=object_storage_config
         )
-        now = fastenv.cloud.object_storage.datetime.datetime.now(
-            tz=fastenv.cloud.object_storage.datetime.timezone.utc
-        )
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         date_stamp = now.strftime("%Y%m%d")
         string_to_sign = (
             "AWS4-HMAC-SHA256\n"
@@ -482,7 +488,7 @@ class TestObjectStorageClientUnit:
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             config=object_storage_config
         )
-        expected_x_amz_credential = fastenv.cloud.object_storage.urllib.parse.unquote(
+        expected_x_amz_credential = urllib.parse.unquote(
             "AKIAIOSFODNN7EXAMPLE%2F20130524%2Fus-east-1%2Fs3%2Faws4_request"
         )
         expected_x_amz_signature = (
@@ -548,21 +554,17 @@ class TestObjectStorageClientUnit:
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             config=object_storage_config
         )
-        now = fastenv.cloud.object_storage.datetime.datetime.now(
-            tz=fastenv.cloud.object_storage.datetime.timezone.utc
-        )
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         x_amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
-        expiration_time = now + fastenv.cloud.object_storage.datetime.timedelta(
-            seconds=129600
-        )
+        expiration_time = now + datetime.timedelta(seconds=129600)
         expiration_time_isoformat = expiration_time.isoformat(timespec="milliseconds")
         expiration = expiration_time_isoformat.replace("+00:00", "Z")
         credential_scope = (
             f"{date_stamp}/{object_storage_config.bucket_region}/s3/aws4_request"
         )
         x_amz_credential = f"{object_storage_config.access_key}/{credential_scope}"
-        required_policy_conditions = [
+        required_policy_conditions: UploadPolicyConditions = [
             {"X-Amz-Algorithm": "AWS4-HMAC-SHA256"},
             {"X-Amz-Credential": x_amz_credential},
             {"X-Amz-Date": x_amz_date},
@@ -583,7 +585,7 @@ class TestObjectStorageClientUnit:
             expected_required_policy_conditions.append(
                 {"x-amz-security-token": object_storage_config.session_token}
             )
-        optional_policy_conditions: list = [
+        optional_policy_conditions: UploadPolicyConditions = [
             {"acl": "public-read"},
             {"bucket": "sigv4examplebucket"},
             ["starts-with", "$Content-Type", "image/"],
@@ -653,9 +655,7 @@ class TestObjectStorageClientUnit:
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             config=object_storage_config
         )
-        now = fastenv.cloud.object_storage.datetime.datetime.now(
-            tz=fastenv.cloud.object_storage.datetime.timezone.utc
-        )
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         date_stamp = now.strftime("%Y%m%d")
         base64_encoded_policy = (
             "eyAiZXhwaXJhdGlvbiI6ICIyMDE1LTEyLTMwVDEyOjAwOjAwLjAwMFoiLA0KICAiY29uZGl0"
@@ -691,10 +691,7 @@ class TestObjectStorageClientUnit:
         object_storage_config_for_presigned_post_example: (
             fastenv.cloud.object_storage.ObjectStorageConfig
         ),
-        object_storage_client_upload_policy_from_presigned_post_example: dict[
-            fastenv.cloud.object_storage.Literal["expiration", "conditions"],
-            str | dict[str, str] | list,
-        ],
+        object_storage_client_upload_policy_from_presigned_post_example: UploadPolicy,
         additional_form_data: dict[str, str] | None,
     ) -> None:
         """Assert that form data for presigned POSTs are assembled as expected.
@@ -749,10 +746,7 @@ class TestObjectStorageClientUnit:
         object_storage_config_for_presigned_post_example: (
             fastenv.cloud.object_storage.ObjectStorageConfig
         ),
-        object_storage_client_upload_policy_from_presigned_post_example: dict[
-            fastenv.cloud.object_storage.Literal["expiration", "conditions"],
-            str | dict[str, str] | list,
-        ],
+        object_storage_client_upload_policy_from_presigned_post_example: UploadPolicy,
     ) -> None:
         """Assert that a missing or incorrectly-typed "key" field
         in presigned POST form data raises a `KeyError`.
@@ -773,7 +767,7 @@ class TestObjectStorageClientUnit:
         with pytest.raises(KeyError) as e_missing:
             object_storage_client._prepare_presigned_post_form_data(policy)
         with pytest.raises(KeyError) as e_mistyped:
-            policy["conditions"].insert(0, {"key": True})
+            policy["conditions"].insert(0, {"key": True})  # type: ignore[dict-item]
             object_storage_client._prepare_presigned_post_form_data(policy)
         assert "Missing required form data key" in str(e_missing.value)
         assert "Incorrect data type" in str(e_mistyped.value)
@@ -784,10 +778,7 @@ class TestObjectStorageClientUnit:
         object_storage_config_for_presigned_post_example: (
             fastenv.cloud.object_storage.ObjectStorageConfig
         ),
-        object_storage_client_upload_policy_from_presigned_post_example: dict[
-            fastenv.cloud.object_storage.Literal["expiration", "conditions"],
-            str | dict[str, str] | list,
-        ],
+        object_storage_client_upload_policy_from_presigned_post_example: UploadPolicy,
     ) -> None:
         """Assert that attempting to add unsupported form data fields
         to a presigned POST raises a `KeyError`.
@@ -809,10 +800,7 @@ class TestObjectStorageClientUnit:
         object_storage_config_for_presigned_post_example: (
             fastenv.cloud.object_storage.ObjectStorageConfig
         ),
-        object_storage_client_upload_policy_from_presigned_post_example: dict[
-            fastenv.cloud.object_storage.Literal["expiration", "conditions"],
-            str | dict[str, str] | list,
-        ],
+        object_storage_client_upload_policy_from_presigned_post_example: UploadPolicy,
     ) -> None:
         """Assert that presigned POSTs match expected output provided by AWS.
 
@@ -883,23 +871,21 @@ class TestObjectStorageClientIntegration:
     async def test_download_to_file_with_object_storage_config(
         self,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
-        env_file: fastenv.cloud.object_storage.anyio.Path,
+        env_file: anyio.Path,
         env_file_object_expected_output: dict[str, str],
         mocker: MockerFixture,
     ) -> None:
         """Download a file from cloud object storage with an `ObjectStorageConfig`
         instance, load the file, and assert all expected variables are set.
         """
-        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
-        environ = mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        environ = mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
         )
-        transport = fastenv.cloud.object_storage.httpx.AsyncHTTPTransport(retries=5)
-        httpx_client = fastenv.cloud.object_storage.httpx.AsyncClient(
-            timeout=30, transport=transport
-        )
+        transport = httpx.AsyncHTTPTransport(retries=5)
+        httpx_client = httpx.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             client=httpx_client, config=object_storage_config
         )
@@ -924,15 +910,13 @@ class TestObjectStorageClientIntegration:
         """Download a file from cloud object storage with an `ObjectStorageConfig`
         instance, load the file, and assert all expected variables are set.
         """
-        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        environ = mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
+        environ = mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
         )
-        transport = fastenv.cloud.object_storage.httpx.AsyncHTTPTransport(retries=5)
-        httpx_client = fastenv.cloud.object_storage.httpx.AsyncClient(
-            timeout=30, transport=transport
-        )
+        transport = httpx.AsyncHTTPTransport(retries=5)
+        httpx_client = httpx.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             client=httpx_client, config=object_storage_config
         )
@@ -957,28 +941,24 @@ class TestObjectStorageClientIntegration:
         This test sometimes suffers from connection resets and timeouts.
         To prevent this test from being flaky, `httpx.ReadError` is allowed.
         """
-        mocker.patch.dict(fastenv.dotenv.os.environ, clear=True)
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
         )
-        transport = fastenv.cloud.object_storage.httpx.AsyncHTTPTransport(retries=5)
-        httpx_client = fastenv.cloud.object_storage.httpx.AsyncClient(
-            timeout=30, transport=transport
-        )
+        transport = httpx.AsyncHTTPTransport(retries=5)
+        httpx_client = httpx.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             client=httpx_client, config=object_storage_config
         )
-        expected_exceptions: tuple = (
-            fastenv.cloud.object_storage.httpx.HTTPStatusError,
-            fastenv.cloud.object_storage.httpx.ReadError,
-        )
+        expected_exceptions = (httpx.HTTPStatusError, httpx.ReadError)
         with pytest.raises(expected_exceptions) as e:
             await object_storage_client.download(
                 bucket_path=f"{self.key}-does-not-exist"
             )
-        if e.type is fastenv.cloud.object_storage.httpx.HTTPStatusError:
-            assert e.value.response.status_code == 404
+        if e.type is httpx.HTTPStatusError:
+            assert (
+                int(e.value.response.status_code) == 404  # type: ignore[attr-defined]
+            )
             assert str(object_storage_config.bucket_name) in str(e.value)
             assert "fastenv error" in logger.error.call_args.args[0]
             assert "HTTPStatusError" in logger.error.call_args.args[0]
@@ -989,21 +969,19 @@ class TestObjectStorageClientIntegration:
         self,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         object_storage_client_upload_prefix: str,
-        env_file: fastenv.cloud.object_storage.anyio.Path,
+        env_file: anyio.Path,
         mocker: MockerFixture,
-        server_side_encryption: fastenv.cloud.object_storage.Literal["AES256", None],
+        server_side_encryption: Literal["AES256", None],
     ) -> None:
         """Upload a file to cloud object storage, and assert that the
         expected logger message is provided after a successful upload.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
         )
-        transport = fastenv.cloud.object_storage.httpx.AsyncHTTPTransport(retries=5)
-        httpx_client = fastenv.cloud.object_storage.httpx.AsyncClient(
-            timeout=30, transport=transport
-        )
+        transport = httpx.AsyncHTTPTransport(retries=5)
+        httpx_client = httpx.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             client=httpx_client, config=object_storage_config
         )
@@ -1029,19 +1007,17 @@ class TestObjectStorageClientIntegration:
         object_storage_client_upload_prefix: str,
         env_str: str,
         mocker: MockerFixture,
-        server_side_encryption: fastenv.cloud.object_storage.Literal["AES256", None],
+        server_side_encryption: Literal["AES256", None],
     ) -> None:
         """Upload a string to cloud object storage, and assert that the
         expected logger message is provided after a successful upload.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
         )
-        transport = fastenv.cloud.object_storage.httpx.AsyncHTTPTransport(retries=5)
-        httpx_client = fastenv.cloud.object_storage.httpx.AsyncClient(
-            timeout=30, transport=transport
-        )
+        transport = httpx.AsyncHTTPTransport(retries=5)
+        httpx_client = httpx.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             client=httpx_client, config=object_storage_config
         )
@@ -1067,19 +1043,17 @@ class TestObjectStorageClientIntegration:
         object_storage_client_upload_prefix: str,
         env_bytes: bytes,
         mocker: MockerFixture,
-        server_side_encryption: fastenv.cloud.object_storage.Literal["AES256", None],
+        server_side_encryption: Literal["AES256", None],
     ) -> None:
         """Upload bytes to cloud object storage, and assert that the
         expected logger message is provided after a successful upload.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
         )
-        transport = fastenv.cloud.object_storage.httpx.AsyncHTTPTransport(retries=5)
-        httpx_client = fastenv.cloud.object_storage.httpx.AsyncClient(
-            timeout=30, transport=transport
-        )
+        transport = httpx.AsyncHTTPTransport(retries=5)
+        httpx_client = httpx.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             client=httpx_client, config=object_storage_config
         )
@@ -1111,14 +1085,12 @@ class TestObjectStorageClientIntegration:
         upload is successful, the response contains the expected metadata, and the
         expected logger message is provided.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
         )
-        transport = fastenv.cloud.object_storage.httpx.AsyncHTTPTransport(retries=5)
-        httpx_client = fastenv.cloud.object_storage.httpx.AsyncClient(
-            timeout=30, transport=transport
-        )
+        transport = httpx.AsyncHTTPTransport(retries=5)
+        httpx_client = httpx.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             client=httpx_client, config=object_storage_config_backblaze_static
         )
@@ -1158,25 +1130,23 @@ class TestObjectStorageClientIntegration:
         This test sometimes suffers from connection resets and timeouts.
         To prevent this test from being flaky, `httpx.ReadError` is allowed.
         """
-        mocker.patch.dict(fastenv.cloud.object_storage.os.environ, clear=True)
+        mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
         )
-        transport = fastenv.cloud.object_storage.httpx.AsyncHTTPTransport(retries=5)
-        httpx_client = fastenv.cloud.object_storage.httpx.AsyncClient(
-            timeout=30, transport=transport
-        )
+        transport = httpx.AsyncHTTPTransport(retries=5)
+        httpx_client = httpx.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             client=httpx_client, config=object_storage_config_incorrect
         )
-        expected_exceptions: tuple = (
-            fastenv.cloud.object_storage.httpx.HTTPStatusError,
-            fastenv.cloud.object_storage.httpx.ReadError,
-        )
+        expected_exceptions = (httpx.HTTPStatusError, httpx.ReadError)
         with pytest.raises(expected_exceptions) as e:
             await object_storage_client.upload(
                 bucket_path=".env.upload-error", source=env_bytes
             )
-        if e.type is fastenv.cloud.object_storage.httpx.HTTPStatusError:
-            assert e.value.response.status_code in {401, 403}
+        if e.type is httpx.HTTPStatusError:
+            assert int(e.value.response.status_code) in {  # type: ignore[attr-defined]
+                401,
+                403,
+            }
             assert "HTTPStatusError" in logger.error.call_args.args[0]

@@ -8,12 +8,17 @@ import hmac
 import json
 import os
 import urllib.parse
-from typing import Literal
+from typing import TYPE_CHECKING
 
 import anyio
 import httpx
 
 from fastenv.utilities import logger
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from fastenv.types import UploadPolicy, UploadPolicyConditions
 
 
 @dataclasses.dataclass
@@ -156,14 +161,15 @@ class ObjectStorageClient:
             download_url = self.generate_presigned_url("GET", bucket_path, expires=30)
             response = await self._client.get(download_url)
             response.raise_for_status()
+            response_text = str(response.text)
             message = f"fastenv loaded {bucket_path} from {self._config.bucket_host}"
             if destination:
                 destination_path = anyio.Path(destination)
-                await destination_path.write_text(response.text)
+                await destination_path.write_text(response_text)
                 logger.info(f"{message} and wrote the contents to {destination_path}")
                 return destination_path
             logger.info(message)
-            return response.text
+            return response_text
         except Exception as e:
             logger.error(f"fastenv error: {e.__class__.__qualname__} {e}")
             raise
@@ -439,7 +445,7 @@ class ObjectStorageClient:
         content_type: str = "text/plain",
         server_side_encryption: Literal["AES256", None] = None,
         specify_content_disposition: bool = True,
-        additional_policy_conditions: list | None = None,
+        additional_policy_conditions: UploadPolicyConditions | None = None,
         additional_form_data: dict[str, str] | None = None,
     ) -> tuple[httpx.URL, dict[str, str]]:
         """Generate the URL and form fields for a POST to S3-compatible object storage.
@@ -512,7 +518,7 @@ class ObjectStorageClient:
         content_type: str = "text/plain",
         server_side_encryption: Literal["AES256", None] = None,
         specify_content_disposition: bool = True,
-        additional_policy_conditions: list | None = None,
+        additional_policy_conditions: UploadPolicyConditions | None = None,
         additional_form_data: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """Set form data for a presigned POST.
@@ -557,7 +563,7 @@ class ObjectStorageClient:
         if self._config.session_token:
             required_form_data["X-Amz-Security-Token"] = self._config.session_token
         # 1. create POST policy
-        required_policy_conditions = [
+        required_policy_conditions: UploadPolicyConditions = [
             {key: value} for key, value in required_form_data.items()
         ]
         policy = self._create_presigned_post_policy(
@@ -582,15 +588,15 @@ class ObjectStorageClient:
     def _create_presigned_post_policy(
         self,
         expiration: str,
-        required_policy_conditions: list[dict[str, str]],
+        required_policy_conditions: UploadPolicyConditions,
         key: str,
         *,
         content_length: int | None,
         content_type: str | None,
         server_side_encryption: Literal["AES256", None],
         specify_content_disposition: bool,
-        additional_policy_conditions: list | None,
-    ) -> dict[Literal["expiration", "conditions"], str | dict[str, str] | list]:
+        additional_policy_conditions: UploadPolicyConditions | None = None,
+    ) -> UploadPolicy:
         """Create an upload policy for a presigned POST.
 
         Setting presigned POST form data is a four-step process
@@ -611,7 +617,7 @@ class ObjectStorageClient:
         For example, either `x-amz-signature` or `X-Amz-Signature` are valid keys.
         This function will normalize all policy condition keys to lowercase.
         """
-        policy_conditions: list = required_policy_conditions
+        policy_conditions = required_policy_conditions
         if self._config.bucket_name:
             policy_conditions.append({"bucket": self._config.bucket_name})
         if key and "${filename}" in key:
@@ -660,7 +666,7 @@ class ObjectStorageClient:
 
     @staticmethod
     def _prepare_presigned_post_form_data(
-        policy: dict[Literal["expiration", "conditions"], str | dict[str, str] | list],
+        policy: UploadPolicy,
         additional_form_data: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """Assemble form data for a presigned POST.

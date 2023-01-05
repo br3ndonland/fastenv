@@ -3,12 +3,19 @@ from __future__ import annotations
 import datetime
 import os
 import secrets
+import urllib
 from collections import namedtuple
+from typing import TYPE_CHECKING
 
 import anyio
 import pytest
 
 import fastenv.cloud.object_storage
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from fastenv.types import UploadPolicy
 
 
 @pytest.fixture(scope="session")
@@ -170,9 +177,7 @@ def object_storage_config_for_presigned_url_example(
             "SpOA9oeeuAMPTA7qMqy9RNuTKBDSx9EW27wvPzBum3SJhEfxv48euadKgrIX3Z79ruQFSQ"
             "Oc9LUrDjR%2B4SoWAJqK%2BGX8Q3vPSjsLxhqhEMWd6U4TXcM7ku3gxMbzqfT8NDg%3D"
         )
-        session_token = fastenv.cloud.object_storage.urllib.parse.unquote(
-            quoted_session_token
-        )
+        session_token = urllib.parse.unquote(quoted_session_token)
     else:
         session_token = ""
     try:
@@ -225,9 +230,7 @@ def object_storage_config_for_presigned_post_example(
             "SpOA9oeeuAMPTA7qMqy9RNuTKBDSx9EW27wvPzBum3SJhEfxv48euadKgrIX3Z79ruQFSQ"
             "Oc9LUrDjR%2B4SoWAJqK%2BGX8Q3vPSjsLxhqhEMWd6U4TXcM7ku3gxMbzqfT8NDg%3D"
         )
-        session_token = fastenv.cloud.object_storage.urllib.parse.unquote(
-            quoted_session_token
-        )
+        session_token = urllib.parse.unquote(quoted_session_token)
     else:
         session_token = ""
     try:
@@ -252,10 +255,7 @@ def object_storage_config_for_presigned_post_example(
 
 
 @pytest.fixture(scope="function")
-def object_storage_client_upload_policy_from_presigned_post_example() -> dict[
-    fastenv.cloud.object_storage.Literal["expiration", "conditions"],
-    str | dict[str, str] | list,
-]:
+def object_storage_client_upload_policy_from_presigned_post_example() -> UploadPolicy:
     """Provide the presigned POST upload policy from the example in the AWS docs.
 
     https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-post-example.html
@@ -397,7 +397,8 @@ def dotenv_arg(request: pytest.FixtureRequest) -> tuple[str, str, str]:
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    return getattr(request, "param")
+    request_param: tuple[str, str, str] = getattr(request, "param")
+    return request_param
 
 
 @pytest.fixture(scope="session")
@@ -424,7 +425,8 @@ def dotenv_kwarg(request: pytest.FixtureRequest) -> tuple[dict[str, str], str, s
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    return getattr(request, "param")
+    request_param: tuple[dict[str, str], str, str] = getattr(request, "param")
+    return request_param
 
 
 @pytest.fixture(
@@ -437,7 +439,7 @@ def dotenv_kwarg(request: pytest.FixtureRequest) -> tuple[dict[str, str], str, s
 )
 def dotenv_kwarg_incorrect_type(
     request: pytest.FixtureRequest,
-) -> tuple[dict, str, str]:
+) -> tuple[dict[str, Any], str, str]:
     """Provide example keyword arguments with incorrect types.
 
     `DotEnv` instances convert non-string keyword arguments ("kwargs") to strings.
@@ -456,7 +458,8 @@ def dotenv_kwarg_incorrect_type(
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    return getattr(request, "param")
+    request_param: tuple[dict[str, Any], str, str] = getattr(request, "param")
+    return request_param
 
 
 @pytest.fixture(scope="session")
@@ -473,7 +476,9 @@ def input_args() -> tuple[str, ...]:
 
 
 @pytest.fixture(params=({"key": "value"}, 123, [1, 2, 3]), scope="session")
-def input_arg_incorrect_type(request: pytest.FixtureRequest) -> dict | int | list:
+def input_arg_incorrect_type(
+    request: pytest.FixtureRequest,
+) -> dict[str, str] | int | list[int]:
     """Provide example positional arguments with incorrect types.
 
     Environment variable keys and values should be strings. If non-string positional
@@ -486,7 +491,8 @@ def input_arg_incorrect_type(request: pytest.FixtureRequest) -> dict | int | lis
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    return getattr(request, "param")
+    request_param: dict[str, str] | int | list[int] = getattr(request, "param")
+    return request_param
 
 
 @pytest.fixture(scope="session")
