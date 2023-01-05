@@ -3,6 +3,10 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.inlinehilite
+  - pymdownx.magiclink:
+      user: br3ndonland
+      repo: fastenv
+      repo_url_shorthand: true
   - pymdownx.snippets
   - pymdownx.superfences
   - pymdownx.tasklist:
@@ -17,6 +21,7 @@ nav:
   - "dotenv.md"
   - "cloud-object-storage.md"
   - "comparisons.md"
+  - "changelog.md"
   - "contributing.md"
 repo_name: br3ndonland/fastenv
 repo_url: https://github.com/br3ndonland/fastenv

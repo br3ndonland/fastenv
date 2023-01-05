@@ -4,8 +4,7 @@ on:
   pull_request:
   push:
     branches: [develop, main]
-    tags:
-      - "[0-9]+.[0-9]+.[0-9]+*"
+    tags: ["[0-9]+.[0-9]+.[0-9]+*"]
   workflow_dispatch:
 
 jobs:
@@ -103,3 +102,50 @@ jobs:
             echo "Versions do not match." && exit 1
           fi
           poetry publish --build -u __token__ -p ${{ secrets.PYPI_TOKEN }}
+  changelog:
+    if: github.ref_type == 'tag'
+    needs: [ci]
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: develop
+      - name: Generate changelog from Git tags
+        run: |
+          echo '# Changelog
+          ' >CHANGELOG.md
+
+          echo '# Changelog
+
+          [View on GitHub](https://github.com/br3ndonland/fastenv/blob/develop/CHANGELOG.md)
+          ' >docs/changelog.md
+
+          GIT_LOG_FORMAT='## %(subject) - %(taggerdate:short)
+
+          %(contents:body)
+          Tagger: %(taggername) %(taggeremail)
+
+          Date: %(taggerdate:iso)
+
+          ```text
+          %(contents:signature)```
+          '
+
+          git tag -l --sort=-taggerdate:iso --format="$GIT_LOG_FORMAT" >>CHANGELOG.md
+          git tag -l --sort=-taggerdate:iso --format="$GIT_LOG_FORMAT" >>docs/changelog.md
+      - name: Format changelog with Prettier
+        run: npx -s -y prettier@'^2' --write CHANGELOG.md docs/changelog.md
+      - name: Create pull request with updated changelog
+        uses: peter-evans/create-pull-request@v4
+        with:
+          add-paths: |
+            CHANGELOG.md
+            docs/changelog.md
+          author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+          branch: create-pull-request/${{ github.ref_name }}
+          commit-message: Update changelog for version ${{ github.ref_name }}
+          title: Update changelog for version ${{ github.ref_name }}

@@ -294,19 +294,4 @@ See the [Backblaze B2 S3-compatible API docs](https://www.backblaze.com/b2/docs/
             ```
         -   Omit the leading `v` (use `1.0.0` instead of `v1.0.0`)
         -   Example: `git tag -a -s 1.0.0`
-    -   Push the tag. GitHub Actions and Poetry will build the Python package and publish to PyPI.
--   **To create a changelog:**
-
-    ```sh
-    printf '# Changelog\n\n' >CHANGELOG.md
-
-    GIT_LOG_FORMAT='## %(subject) - %(taggerdate:short)
-
-    %(contents:body)
-    Tagger: %(taggername) %(taggeremail)
-    Date: %(taggerdate:iso)
-
-    %(contents:signature)'
-
-    git tag -l --sort=-taggerdate:iso --format="$GIT_LOG_FORMAT" >>CHANGELOG.md
-    ```
+    -   Push the tag. GitHub Actions will build and publish the Python package and update the changelog.
