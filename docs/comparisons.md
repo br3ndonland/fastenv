@@ -250,13 +250,13 @@ It is also important to note that the one-way preference will only be enforced w
 
 From [encode/starlette#432](https://github.com/encode/starlette/issues/432#issuecomment-471617467):
 
-> I guess we may actually end up pulling the configuration stuff out into a strictly seperate package (or indeed even just pointing at python-decouple - since it's the same style).
+> I guess we may actually end up pulling the configuration stuff out into a strictly separate package (or indeed even just pointing at python-decouple - since it's the same style).
 >
 > With 12-factor config you really should have a fairly small set of environment. (Eg. the database configuration should just be a single URL.)
 >
-> What we _will_ want to do though is provide really good examples of how to arrange things sensibly, so that eg. you have a project that has a `settings.py` that includes a whole bunch of project configuration, and which you can arrange into seperate bits, and demonstrate clearly how the _environment_ should be a small set of variables, but the project _settings_ may be more comprehensive.
+> What we _will_ want to do though is provide really good examples of how to arrange things sensibly, so that eg. you have a project that has a `settings.py` that includes a whole bunch of project configuration, and which you can arrange into separate bits, and demonstrate clearly how the _environment_ should be a small set of variables, but the project _settings_ may be more comprehensive.
 >
-> We could perfectly well also point to other configuration-manangement packages that're out there as alternatives.
+> We could perfectly well also point to other configuration-management packages that're out there as alternatives.
 
 ## Other
 
