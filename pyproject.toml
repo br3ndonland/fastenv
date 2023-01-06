@@ -1,5 +1,96 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[project]
+authors = [{email = "bws@bws.bio", name = "Brendon Smith"}]
+classifiers = [
+  "Environment :: Web Environment",
+  "Intended Audience :: Developers",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+  "Topic :: System :: Installation/Setup",
+  "Topic :: System :: Systems Administration",
+  "Topic :: Utilities",
+  "Typing :: Typed"
+]
+dependencies = [
+  "anyio>=3.3,<4",
+]
+description = "Unified environment variable and settings management for FastAPI and beyond."
+dynamic = ["version"]
+keywords = ["asgi", "dotenv", "environment variables", "fastapi", "settings"]
+name = "fastenv"
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.8.1,<4"
+
+[project.optional-dependencies]
+cloud = [
+  "httpx>=0.23,<24",
+]
+checks = [
+  "black>=22,<23",
+  "flake8>=6,<7",
+  "isort>=5,<6",
+  "mypy==0.991",
+  "pre-commit>=2,<3",
+]
+docs = [
+  "mkdocs-material>=8,<9",
+]
+httpx = [
+  "httpx>=0.23,<24",
+]
+tests = [
+  "coverage[toml]>=6,<7",
+  "freezegun>=1,<2",
+  "httpx>=0.23,<24",
+  "pytest>=7,<8",
+  "pytest-mock>=3,<4",
+]
+
+[project.urls]
+Documentation = "https://fastenv.bws.bio"
+Homepage = "https://github.com/br3ndonland/fastenv"
+Repository = "https://github.com/br3ndonland/fastenv"
+
+[tool.hatch.build.targets.sdist]
+include = ["/fastenv"]
+
+[tool.hatch.envs.ci]
+dev-mode = false
+features = [
+  "checks",
+  "tests",
+]
+path = ".venv"
+
+[tool.hatch.envs.default]
+dev-mode = true
+features = [
+  "checks",
+  "docs",
+  "tests",
+]
+path = ".venv"
+
+[tool.hatch.envs.docs]
+dev-mode = false
+features = [
+  "docs",
+]
+
+[tool.hatch.version]
+path = "fastenv/__init__.py"
+
 [tool.coverage.report]
-exclude_lines = ["if TYPE_CHECKING:","pragma: no cover"]
+exclude_lines = ["if TYPE_CHECKING:", "pragma: no cover"]
 fail_under = 100
 show_missing = true
 
@@ -16,57 +107,7 @@ files = ["**/*.py"]
 show_error_codes = true
 strict = true
 
-[tool.poetry]
-name = "fastenv"
-version = "0.2.5"
-description = "Unified environment variable and settings management for FastAPI and beyond."
-authors = ["Brendon Smith <bws@bws.bio>"]
-license = "MIT"
-homepage = "https://github.com/br3ndonland/fastenv"
-repository = "https://github.com/br3ndonland/fastenv"
-documentation = "https://fastenv.bws.bio"
-readme = "README.md"
-include = ["fastenv/py.typed"]
-keywords = ["asgi", "dotenv", "environment variables", "fastapi", "settings"]
-classifiers = [
-  "Environment :: Web Environment",
-  "Intended Audience :: Developers",
-  "Natural Language :: English",
-  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
-  "Topic :: Software Development :: Libraries :: Application Frameworks",
-  "Topic :: System :: Installation/Setup",
-  "Topic :: System :: Systems Administration",
-  "Topic :: Utilities",
-  "Typing :: Typed"
-]
-
-[tool.poetry.dependencies]
-python = "^3.8.1"
-anyio = "^3.3"
-httpx = {version = "^0.23", optional = true}
-
-[tool.poetry.dev-dependencies]
-black = "^22"
-coverage = {version = "^6", extras = ["toml"]}
-flake8 = "^6"
-freezegun = "^1"
-isort = "^5.8"
-mkdocs-material = "^8"
-mypy = ">0.900,<1"
-pre-commit = "^2.11"
-pytest = "^7"
-pytest-mock = "^3.3"
-
-[tool.poetry.extras]
-all = ["httpx"]
-cloud = ["httpx"]
-httpx = ["httpx"]
-
 [tool.pytest.ini_options]
 addopts = "-q"
 minversion = "6.0"
 testpaths = ["tests"]
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
