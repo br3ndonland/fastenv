@@ -14,7 +14,7 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     env:
       HATCH_ENV: "ci"
       HATCH_VERSION: "1.6.3"
@@ -64,7 +64,7 @@ jobs:
           *) echo "Incorrect Hatch virtualenv." && exit 1 ;;
           esac
       - name: Test that Git tag version and Python package version match
-        if: github.ref_type == 'tag' && matrix.python-version == '3.10'
+        if: github.ref_type == 'tag' && matrix.python-version == '3.11'
         run: |
           GIT_TAG_VERSION=$GITHUB_REF_NAME
           PACKAGE_VERSION=$(hatch version)
@@ -108,7 +108,7 @@ jobs:
       - name: Build Python package
         run: hatch build
       - name: Publish Python package to PyPI
-        if: github.ref_type == 'tag' && matrix.python-version == '3.10'
+        if: github.ref_type == 'tag' && matrix.python-version == '3.11'
         run: hatch publish -n -u __token__ -a ${{ secrets.PYPI_TOKEN }}
   changelog:
     if: github.ref_type == 'tag'
