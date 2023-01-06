@@ -2,6 +2,71 @@
 
 [View on GitHub](https://github.com/br3ndonland/fastenv/blob/develop/CHANGELOG.md)
 
+## 0.3.0-alpha.0 - 2023-01-05
+
+Changes:
+
+**Add Python 3.11 support** (#15)
+
+This release will add
+[Python 3.11](https://docs.python.org/3/whatsnew/3.11.html)
+support to fastenv.
+
+-   fastenv will now include a Python 3.11 classifier in its PyPI package
+-   fastenv will now build and publish its PyPI package using Python 3.11
+-   fastenv will now run tests with Python 3.11, in addition to 3.8-3.10
+
+**Migrate from Poetry 1.1 to Hatch** (#14)
+
+fastenv has been migrated to [Hatch](https://hatch.pypa.io/latest/).
+See br3ndonland/inboard#56 for more details and context around the
+motivations for this.
+
+The Python package version will now be available at `fastenv.__version__`.
+
+**Auto-generate changelog from Git tags** (c7aa765)
+
+A changelog will now be provided at
+[CHANGELOG.md](https://github.com/br3ndonland/fastenv/blob/develop/CHANGELOG.md)
+for viewing on GitHub, and
+[in the docs at the `/changelog` endpoint](https://fastenv.bws.bio/changelog).
+
+**Enable mypy strict mode** (7fbb89f)
+
+Mypy will run in strict mode on all Python code (source code and tests).
+In terms of user-facing improvements, this update will add a new module
+`fastenv.types` for cloud object storage upload policy types.
+
+The contributing.md will be updated with instructions for type checking.
+
+Commits:
+
+-   Bump version from 0.2.5 to 0.3.0-alpha.0 (f83b3e0)
+-   Add Python 3.11 support (#15) (0fcbc5f)
+-   Remove unused `.prettierrc` (6d2c8c3)
+-   Merge pull request #14 from br3ndonland/hatch (801e256)
+-   Update docs for Hatch (3e7e049)
+-   Update GitHub Actions workflows for Hatch (e5fb5d6)
+-   Update configuration files for Hatch (5d409be)
+-   Add spell check with CSpell (e2df8c0)
+-   Auto-generate changelog from Git tags (c7aa765)
+-   Enable mypy strict mode (7fbb89f)
+-   Update pre-commit dependencies (8324d2c)
+-   Update dependencies (2d0793c)
+
+Tagger: Brendon Smith <bws@bws.bio>
+
+Date: 2023-01-05 21:34:04 -0500
+
+```text
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
+kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQLxzSE0qq+dNRJKqfdL41qz5Cp4xHW7TNABnxD5bp+Vl0IW+p3XUW85dESWWOMIvo+
+0oLqAAWYluKl2fO5oa/w0=
+-----END SSH SIGNATURE-----
+```
+
 ## 0.2.5 - 2022-11-26
 
 Commits:
