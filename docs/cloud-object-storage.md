@@ -72,7 +72,7 @@ Dotenv files are commonly kept in [cloud object storage](https://en.wikipedia.or
 
 ### Set up a virtual environment
 
-To get started, let's set up a virtual environment and install fastenv from the command line. If you've been through the [environment variable docs](environment.md#getting-started), the only change here is installing the optional extras with `poetry add fastenv -E httpx` or `python -m pip install fastenv[httpx]`.
+To get started, let's set up a virtual environment and install fastenv from the command line. If you've been through the [environment variable docs](environment.md#getting-started), the only change here is installing the optional extras like `python -m pip install fastenv[httpx]`.
 
 !!!example "Setting up a virtual environment"
 
