@@ -26,21 +26,21 @@ dependencies = [
 description = "Unified environment variable and settings management for FastAPI and beyond."
 dynamic = ["version"]
 keywords = ["asgi", "dotenv", "environment variables", "fastapi", "settings"]
-name = "fastenv"
 license = "MIT"
+name = "fastenv"
 readme = "README.md"
 requires-python = ">=3.8.1,<4"
 
 [project.optional-dependencies]
-cloud = [
-  "httpx>=0.23,<24",
-]
 checks = [
   "black>=22,<23",
   "flake8>=6,<7",
   "isort>=5,<6",
   "mypy==0.991",
   "pre-commit>=2,<3",
+]
+cloud = [
+  "httpx>=0.23,<24",
 ]
 docs = [
   "mkdocs-material>=8,<9",
