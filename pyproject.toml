@@ -18,7 +18,7 @@ classifiers = [
   "Topic :: System :: Installation/Setup",
   "Topic :: System :: Systems Administration",
   "Topic :: Utilities",
-  "Typing :: Typed"
+  "Typing :: Typed",
 ]
 dependencies = [
   "anyio>=3.3,<4",
