@@ -40,18 +40,18 @@ checks = [
   "pre-commit>=2,<3",
 ]
 cloud = [
-  "httpx>=0.23,<24",
+  "httpx>=0.23,<0.24",
 ]
 docs = [
   "mkdocs-material>=8,<9",
 ]
 httpx = [
-  "httpx>=0.23,<24",
+  "httpx>=0.23,<0.24",
 ]
 tests = [
   "coverage[toml]>=6,<7",
   "freezegun>=1,<2",
-  "httpx>=0.23,<24",
+  "httpx>=0.23,<0.24",
   "pytest>=7,<8",
   "pytest-mock>=3,<4",
 ]
