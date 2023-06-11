@@ -52,7 +52,7 @@ jobs:
           *) echo "Hatch version incorrect." && exit 1 ;;
           esac
       - name: Install dependencies
-        run: hatch env create ci
+        run: hatch env create ${{ env.HATCH_ENV }}
       - name: Test virtualenv location
         run: |
           EXPECTED_VIRTUALENV_PATH=$GITHUB_WORKSPACE/.venv
@@ -83,14 +83,14 @@ jobs:
           incremental_files_only: false
           strict: true
       - name: Run pre-commit hooks
-        run: hatch run pre-commit run --all-files
+        run: hatch run ${{ env.HATCH_ENV }}:pre-commit run --all-files
       - uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: ${{ secrets.AWS_S3_BUCKET_REGION }}
           role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
           role-duration-seconds: 1200
       - name: Run tests
-        run: hatch run coverage run -m pytest --durations=0 --durations-min=0.1
+        run: hatch run ${{ env.HATCH_ENV }}:coverage run -m pytest --durations=0 --durations-min=0.1
         timeout-minutes: 5
         env:
           AWS_IAM_ACCESS_KEY_FASTENV: ${{ secrets.AWS_IAM_ACCESS_KEY_FASTENV }}
@@ -104,7 +104,7 @@ jobs:
           BACKBLAZE_B2_BUCKET_REGION: ${{ secrets.BACKBLAZE_B2_BUCKET_REGION }}
           BACKBLAZE_B2_SECRET_KEY_FASTENV: ${{ secrets.BACKBLAZE_B2_SECRET_KEY_FASTENV }}
       - name: Enforce test coverage
-        run: hatch run coverage report
+        run: hatch run ${{ env.HATCH_ENV }}:coverage report
       - name: Build Python package
         run: hatch build
       - name: Publish Python package to PyPI
