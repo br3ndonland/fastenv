@@ -49,7 +49,7 @@ httpx = [
   "httpx>=0.23,<0.24",
 ]
 tests = [
-  "coverage[toml]>=6,<7",
+  "coverage[toml]>=7,<8",
   "freezegun>=1,<2",
   "httpx>=0.23,<0.24",
   "pytest>=7,<8",
