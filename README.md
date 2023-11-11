@@ -35,26 +35,28 @@ python -m pip install fastenv
 
 Then start a REPL session and try it out:
 
-```py
+```sh
 .venv ❯ python
+```
 
+```py
 # instantiate a DotEnv with a variable
->>> import fastenv
->>> dotenv = fastenv.DotEnv("EXAMPLE_VARIABLE=example_value")
+import fastenv
+dotenv = fastenv.DotEnv("EXAMPLE_VARIABLE=example_value")
 # add a variable with dictionary syntax
->>> dotenv["ANOTHER_VARIABLE"] = "another_value"
+dotenv["ANOTHER_VARIABLE"] = "another_value"
 # delete a variable
->>> del dotenv["ANOTHER_VARIABLE"]
+del dotenv["ANOTHER_VARIABLE"]
 # add a variable by calling the instance
->>> dotenv("I_THINK_FASTENV_IS=awesome")
-{'I_THINK_FASTENV_IS': 'awesome'}
+dotenv("I_THINK_FASTENV_IS=awesome")
+# {'I_THINK_FASTENV_IS': 'awesome'}
 # return a dict of the variables in the DotEnv instance
->>> dict(dotenv)
-{'EXAMPLE_VARIABLE': 'example_value', 'I_THINK_FASTENV_IS': 'awesome'}
+dict(dotenv)
+# {'EXAMPLE_VARIABLE': 'example_value', 'I_THINK_FASTENV_IS': 'awesome'}
 # save the DotEnv instance to a file
->>> import anyio
->>> anyio.run(fastenv.dump_dotenv, dotenv)
-Path('/path/to/this/dir/.env')
+import anyio
+anyio.run(fastenv.dump_dotenv, dotenv)
+# Path('/path/to/this/dir/.env')
 ```
 
 ## Documentation

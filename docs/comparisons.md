@@ -190,15 +190,17 @@ Type-casting provides improvements over some aspects of the standard library. Fo
 <!-- prettier-ignore -->
 !!!example "Type-casting with `starlette.config`"
 
-    ```py
-    .venv ❯ python3
+    ```{ .sh .no-copy }
+    .venv ❯ python
+    ```
 
-    >>> bool("false")
-    True
-    >>> import starlette.config
-    >>> config = starlette.config.Config()
-    >>> config("BOOLEAN_SETTING", cast=bool, default="false")
-    False
+    ```py
+    bool("false")
+    # True
+    import starlette.config
+    config = starlette.config.Config()
+    config("BOOLEAN_SETTING", cast=bool, default="false")
+    # False
     ```
 
 ### One-way configuration preference
@@ -212,32 +214,34 @@ It is also important to note that the one-way preference will only be enforced w
 <!-- prettier-ignore -->
 !!!example "Environment variables with `starlette.config`"
 
-    ```py
-    .venv ❯ python3
+    ```{ .sh .no-copy }
+    .venv ❯ python
+    ```
 
-    >>> import os
-    >>> import starlette.config
-    >>> os.environ.get("FOO_VARIABLE")
-    >>> starlette.config.environ["FOO_VARIABLE"] = "bar"
-    >>> os.environ.get("FOO_VARIABLE")
-    'bar'
-    >>> config = starlette.config.Config()
-    >>> FOO_CONSTANT = config("FOO_VARIABLE", cast=str, default="baz")
-    >>> FOO_CONSTANT
-    'bar'
-    >>> starlette.config.environ["FOO_VARIABLE"] = "foo"
-    Traceback (most recent call last):
-    File ".venv/lib/python3.9/site-packages/starlette/config.py", line 26, in __setitem__
-        raise EnvironError(
-    starlette.config.EnvironError: Attempting to set environ['FOO_VARIABLE'],
-    but the value has already been read.
-    >>> os.environ["FOO_VARIABLE"] = "foo"
-    >>> os.environ["FOO_VARIABLE"]
-    'foo'
-    >>> starlette.config.environ["FOO_VARIABLE"]
-    'foo'
-    >>> FOO_CONSTANT
-    'bar'
+    ```py
+    import os
+    import starlette.config
+    os.environ.get("FOO_VARIABLE")
+    starlette.config.environ["FOO_VARIABLE"] = "bar"
+    os.environ.get("FOO_VARIABLE")
+    # 'bar'
+    config = starlette.config.Config()
+    FOO_CONSTANT = config("FOO_VARIABLE", cast=str, default="baz")
+    FOO_CONSTANT
+    # 'bar'
+    starlette.config.environ["FOO_VARIABLE"] = "foo"
+    # Traceback (most recent call last):
+    # File ".venv/lib/python3.9/site-packages/starlette/config.py", line 26, in __setitem__
+    #     raise EnvironError(
+    # starlette.config.EnvironError: Attempting to set environ['FOO_VARIABLE'],
+    # but the value has already been read.
+    os.environ["FOO_VARIABLE"] = "foo"
+    os.environ["FOO_VARIABLE"]
+    # 'foo'
+    starlette.config.environ["FOO_VARIABLE"]
+    # 'foo'
+    FOO_CONSTANT
+    # 'bar'
     ```
 
 ### File I/O

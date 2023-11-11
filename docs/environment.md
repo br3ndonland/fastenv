@@ -28,11 +28,13 @@ Next, we will [use the Python interpreter](https://docs.python.org/3/tutorial/in
 
 !!!example "Instantiating `fastenv.DotEnv`"
 
-    ```py
+    ```{ .sh .no-copy }
     .venv ❯ python
+    ```
 
-    >>> import fastenv
-    >>> dotenv = fastenv.DotEnv()
+    ```py
+    import fastenv
+    dotenv = fastenv.DotEnv()
     ```
 
 That's it! We are ready to start managing our environment variables with fastenv.
@@ -47,22 +49,24 @@ Here is an example REPL session demonstrating how to use the `os.environ`-style 
 
 !!!example "Using the `os.environ`-style API"
 
-    ```py
+    ```{ .sh .no-copy }
     .venv ❯ python
+    ```
 
-    >>> import os
-    >>> import fastenv
-    >>> dotenv = fastenv.DotEnv()
-    >>> dotenv["EXAMPLE_VARIABLE"] = "example_value"
-    >>> dotenv["EXAMPLE_VARIABLE"]
-    'example_value'
-    >>> os.environ["EXAMPLE_VARIABLE"]
-    'example_value'
-    >>> del dotenv["EXAMPLE_VARIABLE"]
-    >>> dotenv.getenv("EXAMPLE_VARIABLE", "variable_was_deleted")
-    'variable_was_deleted'
-    >>> os.getenv("EXAMPLE_VARIABLE", "variable_was_deleted")
-    'variable_was_deleted'
+    ```py
+    import os
+    import fastenv
+    dotenv = fastenv.DotEnv()
+    dotenv["EXAMPLE_VARIABLE"] = "example_value"
+    dotenv["EXAMPLE_VARIABLE"]
+    # 'example_value'
+    os.environ["EXAMPLE_VARIABLE"]
+    # 'example_value'
+    del dotenv["EXAMPLE_VARIABLE"]
+    dotenv.getenv("EXAMPLE_VARIABLE", "variable_was_deleted")
+    # 'variable_was_deleted'
+    os.getenv("EXAMPLE_VARIABLE", "variable_was_deleted")
+    # 'variable_was_deleted'
     ```
 
 ### Instantiating `class DotEnv`
@@ -71,13 +75,15 @@ Environment variables can be set when creating instances of `class DotEnv`. Posi
 
 !!!example "Instantiating `class DotEnv` with variables"
 
-    ```py
+    ```{ .sh .no-copy }
     .venv ❯ python
+    ```
 
-    >>> import fastenv
-    >>> dotenv = fastenv.DotEnv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
-    >>> dict(dotenv)
-    {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
+    ```py
+    import fastenv
+    dotenv = fastenv.DotEnv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
+    dict(dotenv)
+    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
     ```
 
 ### Calling `DotEnv` instances
@@ -92,18 +98,20 @@ Multiple positional arguments (and multi-variable strings) with keys only will r
 
 !!!example "Getting variables from a `DotEnv` instance"
 
-    ```py
+    ```{ .sh .no-copy }
     .venv ❯ python
+    ```
 
-    >>> import fastenv
-    >>> dotenv = fastenv.DotEnv("KEY1=value1")
-    >>> dotenv("KEY1")
-    'value1'
-    >>> dotenv("NOT_SET")
-    >>> dotenv.getenv("NOT_SET", "default_value")
-    'default_value'
-    >>> dotenv("KEY1", "NOT_SET NOT_SET_EITHER")
-    {'KEY1': 'value1', 'NOT_SET': None, 'NOT_SET_EITHER': None}
+    ```py
+    import fastenv
+    dotenv = fastenv.DotEnv("KEY1=value1")
+    dotenv("KEY1")
+    # 'value1'
+    dotenv("NOT_SET")
+    dotenv.getenv("NOT_SET", "default_value")
+    # 'default_value'
+    dotenv("KEY1", "NOT_SET NOT_SET_EITHER")
+    # {'KEY1': 'value1', 'NOT_SET': None, 'NOT_SET_EITHER': None}
     ```
 
 #### Setting variables
@@ -114,16 +122,18 @@ If no return value is needed, the `setenv` method can be used.
 
 !!!example "Setting variables in a `DotEnv` instance"
 
-    ```py
+    ```{ .sh .no-copy }
     .venv ❯ python
+    ```
 
-    >>> import fastenv
-    >>> dotenv = fastenv.DotEnv()
-    >>> dotenv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
-    {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
-    >>> dotenv.setenv(key5="value5")
-    >>> dict(dotenv)
-    {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4', 'KEY5': 'value5'}
+    ```py
+    import fastenv
+    dotenv = fastenv.DotEnv()
+    dotenv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
+    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
+    dotenv.setenv(key5="value5")
+    dict(dotenv)
+    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4', 'KEY5': 'value5'}
     ```
 
 #### Getting and setting in the same call
@@ -132,13 +142,15 @@ Complex combinations of getting and setting can be accomplished in the same call
 
 !!!example "Getting and setting in the same call to a `DotEnv` instance"
 
-    ```py
+    ```{ .sh .no-copy }
     .venv ❯ python
+    ```
 
-    >>> import fastenv
-    >>> dotenv = fastenv.DotEnv("KEY1=value1")
-    >>> dotenv("KEY1", "KEY2=value2 KEY3=value3", key4="value4")
-    {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
+    ```py
+    import fastenv
+    dotenv = fastenv.DotEnv("KEY1=value1")
+    dotenv("KEY1", "KEY2=value2 KEY3=value3", key4="value4")
+    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
     ```
 
 #### Deleting variables
@@ -149,17 +161,19 @@ Multiple variables can be deleted by calling the `delenv` method.
 
 !!!example "Deleting variables from a `DotEnv` instance"
 
-    ```py
+    ```{ .sh .no-copy }
     .venv ❯ python
+    ```
 
-    >>> import fastenv
-    >>> dotenv = fastenv.DotEnv()
-    >>> dotenv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
-    {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
-    >>> del dotenv["KEY4"]
-    >>> dotenv.delenv("KEY1", "KEY2", "KEY3")
-    >>> len(dotenv)
-    0
+    ```py
+    import fastenv
+    dotenv = fastenv.DotEnv()
+    dotenv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
+    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
+    del dotenv["KEY4"]
+    dotenv.delenv("KEY1", "KEY2", "KEY3")
+    len(dotenv)
+    # 0
     ```
 
 ## Tips
@@ -170,14 +184,14 @@ Multiple variables can be deleted by calling the `delenv` method.
 
     The example below demonstrates how to set a JSON object as an environment variable from the command line. See the guide to [understanding JSON schema](https://json-schema.org/understanding-json-schema/index.html) for many helpful examples of how JSON data types correspond to Python data types.
 
-    ```sh
-    ❯ JSON_EXAMPLE={"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}
-    zsh: parse error near `}`
+    ```{ .sh .no-copy }
+    JSON_EXAMPLE={"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}
+    # zsh: parse error near `}`
 
-    ❯ JSON_EXAMPLE='{"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}'
+    JSON_EXAMPLE='{"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}'
 
-    ❯ echo $JSON_EXAMPLE
-    {"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}
+    echo $JSON_EXAMPLE
+    # {"array": [1, 2, 3], "exponent": 2.99e8, "number": 123}
     ```
 
 !!!tip "Handling type errors"
@@ -188,11 +202,13 @@ Multiple variables can be deleted by calling the `delenv` method.
 
     For keyword arguments ("kwargs"), the situation is a little easier, because kwargs only set variables. Non-string kwarg values will be converted to strings.
 
-    ```py
+    ```{ .sh .no-copy }
     .venv ❯ python
+    ```
 
-    >>> import fastenv
-    >>> dotenv = fastenv.DotEnv(incorrect_type=[1, 2, 3])
-    >>> dict(dotenv)
-    {'INCORRECT_TYPE': '[1, 2, 3]'}
+    ```py
+    import fastenv
+    dotenv = fastenv.DotEnv(incorrect_type=[1, 2, 3])
+    dict(dotenv)
+    # {'INCORRECT_TYPE': '[1, 2, 3]'}
     ```
