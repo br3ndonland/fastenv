@@ -43,7 +43,7 @@ cloud = [
   "httpx>=0.23,<1",
 ]
 docs = [
-  "mkdocs-material>=8,<9",
+  "mkdocs-material>=9,<10",
 ]
 httpx = [
   "httpx>=0.23,<1",
