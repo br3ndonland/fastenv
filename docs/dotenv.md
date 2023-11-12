@@ -82,7 +82,7 @@ The example below demonstrates how this works. Note that this is written as a _s
         anyio.run(load_my_dotenv)
     ```
 
-    ```sh
+    ```{ .sh .no-copy }
     .venv ❯ python example.py
 
     # output formatted for clarity
@@ -164,7 +164,7 @@ Now, we will update our `example.py` module to load both files. The order is imp
         anyio.run(load_my_dotenvs, ".env", ".env.override")
     ```
 
-    ```sh
+    ```{ .sh .no-copy }
     .venv ❯ python example.py
 
     # output formatted for clarity
