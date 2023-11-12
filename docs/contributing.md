@@ -308,6 +308,8 @@ See the [Backblaze B2 S3-compatible API docs](https://www.backblaze.com/b2/docs/
 
 ## Maintainers
 
+### Merges
+
 -   **The default branch is `develop`.**
 -   **PRs should be merged into `develop`.** Head branches are deleted automatically after PRs are merged.
 -   **The only merges to `main` should be fast-forward merges from `develop`.**
@@ -321,6 +323,9 @@ See the [Backblaze B2 S3-compatible API docs](https://www.backblaze.com/b2/docs/
         -   Include administrators
         -   Do not allow force pushes
         -   Require status checks to pass before merging (commits must have previously been pushed to `develop` and passed all checks)
+
+### Releases
+
 -   **To create a release:**
     -   Bump the version number in `fastenv.__version__` with `hatch version` and commit the changes to `develop`.
         -   Follow [SemVer](https://semver.org/) guidelines when choosing a version number. Note that [PEP 440](https://peps.python.org/pep-0440/) Python version specifiers and SemVer version specifiers differ, particularly with regard to specifying prereleases. Use syntax compatible with both.
@@ -339,3 +344,14 @@ See the [Backblaze B2 S3-compatible API docs](https://www.backblaze.com/b2/docs/
         -   Example: `git tag -a -s 1.0.0`
     -   Push the tag. GitHub Actions will build and publish the Python package and update the changelog.
     -   Squash and merge the changelog PR, removing any [`Co-authored-by` trailers](https://docs.github.com/en/pull-requests/committing-changes-to-your-project/creating-and-editing-commits/creating-a-commit-with-multiple-authors) before merging.
+
+### Deployments
+
+Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed on [Vercel](https://vercel.com/), and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
+
+[Vercel build configuration](https://vercel.com/docs/build-step):
+
+-   Build command: `python3 -m pip install 'mkdocs-material>=9,<10' && mkdocs build --site-dir public`. **The version of `mkdocs-material` installed on Vercel is independent of the version listed in _pyproject.toml_. If the version of `mkdocs-material` is updated in _pyproject.toml_, it must also be updated in the Vercel build configuration.**
+-   Output directory: `public` (default)
+
+[Vercel site configuration](https://vercel.com/docs/configuration) is specified in _vercel.json_.
