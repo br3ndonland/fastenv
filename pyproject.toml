@@ -63,6 +63,9 @@ Repository = "https://github.com/br3ndonland/fastenv"
 [tool.hatch.build.targets.sdist]
 include = ["/fastenv"]
 
+[tool.hatch.build.targets.wheel]
+packages = ["fastenv"]
+
 [tool.hatch.envs.ci]
 dev-mode = false
 features = [
