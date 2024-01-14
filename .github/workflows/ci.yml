@@ -70,7 +70,7 @@ jobs:
           fi
       - name: Run Hatch script for code quality checks
         run: hatch run ${{ env.HATCH_ENV }}:check
-      - uses: aws-actions/configure-aws-credentials@v2
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ secrets.AWS_S3_BUCKET_REGION }}
           role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
