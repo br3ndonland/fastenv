@@ -243,7 +243,7 @@ class TestObjectStorageConfig:
             bucket_name=bucket_name,
             bucket_region=bucket_region,
         )
-        if "digitaloceanspaces.com" in bucket_host:
+        if bucket_host.endswith(".digitaloceanspaces.com"):
             assert config.bucket_name is None
         else:
             assert config.bucket_name == self.example_bucket_name
