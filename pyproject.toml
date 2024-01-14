@@ -33,10 +33,8 @@ requires-python = ">=3.8.1,<4"
 
 [project.optional-dependencies]
 checks = [
-  "black>=23,<24",
-  "flake8>=6,<7",
-  "isort>=5,<6",
   "mypy==1.8.0",
+  "ruff>=0.1,<0.2",
 ]
 cloud = [
   "httpx>=0.23,<1",
@@ -85,16 +83,15 @@ path = ".venv"
 
 [tool.hatch.envs.default.scripts]
 check = [
-  "black --check --diff .",
-  "isort --check --diff .",
-  "flake8 --extend-exclude=.venv,bin,build,cache,dist,lib --max-line-length=88",
+  "ruff check",
+  "ruff format --check",
   "mypy",
   "npx -s -y prettier@'^2' . --check",
   "npx -s -y cspell --dot --gitignore *.md **/*.md",
 ]
 format = [
-  "black .",
-  "isort .",
+  "ruff check --fix",
+  "ruff format",
   "npx -s -y prettier@'^2' . --write",
 ]
 
@@ -116,10 +113,6 @@ show_missing = true
 command_line = "-m pytest"
 source = ["fastenv", "tests"]
 
-[tool.isort]
-profile = "black"
-src_paths = ["fastenv", "tests"]
-
 [tool.mypy]
 files = ["**/*.py"]
 show_error_codes = true
@@ -129,3 +122,13 @@ strict = true
 addopts = "-q"
 minversion = "6.0"
 testpaths = ["tests"]
+
+[tool.ruff]
+extend-select = ["I"]
+src = ["fastenv", "tests"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["fastenv", "tests"]
