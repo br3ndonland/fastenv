@@ -77,10 +77,18 @@ class ObjectStorageConfig:
                 "`<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2."
             )
         elif bucket_host and not bucket_name:
-            if (
-                bucket_host.endswith(".amazonaws.com")
-                or bucket_host.endswith(".backblazeb2.com")
-            ) and bucket_name is None:
+            scheme = (
+                "http://"
+                if bucket_host.startswith("http://")
+                else "https://"
+                if bucket_host.startswith("https://")
+                else None
+            )
+            if scheme:
+                bucket_host = bucket_host.split(scheme, maxsplit=1)[1]
+            if bucket_host.endswith(".amazonaws.com") or bucket_host.endswith(
+                ".backblazeb2.com"
+            ):
                 self.bucket_name = bucket_host.split(".s3.")[0]
             else:
                 self.bucket_name = None

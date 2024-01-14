@@ -243,10 +243,10 @@ class TestObjectStorageConfig:
             bucket_name=bucket_name,
             bucket_region=bucket_region,
         )
-        if "backblazeb2" in bucket_host and bucket_name is None:
-            assert config.bucket_name == "mybucket"
-        else:
+        if "digitaloceanspaces.com" in bucket_host:
             assert config.bucket_name is None
+        else:
+            assert config.bucket_name == self.example_bucket_name
 
     def test_config_if_bucket_name_not_in_bucket_host(
         self, mocker: MockerFixture
@@ -294,6 +294,25 @@ class TestObjectStorageConfig:
                 bucket_region=self.example_bucket_region,
             )
         assert str(e.value) == expected_exception_value
+
+    @pytest.mark.parametrize("scheme", ("http", "https"))
+    def test_config_if_scheme_in_bucket_host(
+        self, scheme: str, mocker: MockerFixture
+    ) -> None:
+        """Assert that bucket host scheme ("http" or "https") is removed if present.
+        Scheme is added automatically when generating instances of `httpx.URL()`.
+        """
+        mocker.patch.dict(os.environ, clear=True)
+        bucket_host = f"{scheme}://{self.example_bucket_host}"
+        expected_bucket_host = self.example_bucket_host
+        config = fastenv.cloud.object_storage.ObjectStorageConfig(
+            access_key=self.example_access_key,
+            secret_key=self.example_secret_key,
+            bucket_host=bucket_host,
+            bucket_region=self.example_bucket_region,
+        )
+        assert self.config_is_correct(config, expected_bucket_host=expected_bucket_host)
+        assert scheme not in config.bucket_host
 
 
 class TestObjectStorageClientUnit:
