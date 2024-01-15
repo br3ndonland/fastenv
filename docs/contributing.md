@@ -133,7 +133,7 @@ For AWS static credentials, [create a non-admin user](https://docs.aws.amazon.co
 
 After attaching the IAM policy to the non-admin user, [generate an access key](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) for the non-admin user, set up an [AWS CLI profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) named `fastenv`, and configure it with the access key for the non-admin user. AWS static credentials are now ready.
 
-AWS temporary credentials work a little differently. [Create an IAM role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user.html), with a [resource-based policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_identity-vs-resource.html) called a "role trust policy." The role trust policy would look like this (`<AWS_IAM_USERNAME>` is the IAM user that owns the static credentials, not your admin username):
+AWS temporary credentials work a little differently. [Create an IAM role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user.html), with a [resource-based policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_identity-vs-resource.html) called a "role trust policy." The role trust policy would look like this:
 
 ```json
 {
@@ -142,7 +142,7 @@ AWS temporary credentials work a little differently. [Create an IAM role](https:
         {
             "Effect": "Allow",
             "Principal": {
-                "AWS": "arn:aws:iam::<AWS_ACCOUNT_ID>:user/<AWS_IAM_USERNAME>"
+                "AWS": "arn:aws:iam::<AWS_ACCOUNT_ID>:root"
             },
             "Action": ["sts:AssumeRole", "sts:TagSession"]
         }
@@ -171,29 +171,28 @@ BACKBLAZE_B2_ACCESS_KEY_FASTENV="paste-here"
 BACKBLAZE_B2_BUCKET_HOST="paste-here"
 BACKBLAZE_B2_BUCKET_REGION="paste-here"
 
-# get AWS account ID from STS (replace fx with jq or other JSON parser as needed)
-AWS_ACCOUNT_ID=$(aws sts get-caller-identity | fx .Account)
+# get AWS account ID from STS (replace jq with other JSON parser as needed)
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity | jq -r .Account)
 
 # assume the IAM role to get temporary credentials
 ASSUMED_ROLE=$(
   aws sts assume-role \
   --role-arn arn:aws:iam::$AWS_ACCOUNT_ID:role/$AWS_IAM_ROLE_NAME \
-  --role-session-name fastenv-testing-local-aws-cli \
-  --profile fastenv
+  --role-session-name fastenv-testing-local-aws-cli
 )
 
 # run all tests by providing the necessary input variables
 AWS_IAM_ACCESS_KEY_FASTENV=$(aws configure get fastenv.aws_access_key_id) \
-  AWS_IAM_ACCESS_KEY_SESSION=$(echo $ASSUMED_ROLE | fx .Credentials.AccessKeyId) \
-  AWS_IAM_SECRET_KEY_SESSION=$(echo $ASSUMED_ROLE | fx .Credentials.SecretAccessKey) \
   AWS_IAM_SECRET_KEY_FASTENV=$(aws configure get fastenv.aws_secret_access_key) \
-  AWS_IAM_SESSION_TOKEN=$(echo $ASSUMED_ROLE | fx .Credentials.SessionToken) \
+  AWS_IAM_ACCESS_KEY_SESSION=$(echo $ASSUMED_ROLE | jq -r .Credentials.AccessKeyId) \
+  AWS_IAM_SECRET_KEY_SESSION=$(echo $ASSUMED_ROLE | jq -r .Credentials.SecretAccessKey) \
+  AWS_IAM_SESSION_TOKEN=$(echo $ASSUMED_ROLE | jq -r .Credentials.SessionToken) \
   AWS_S3_BUCKET_HOST=$AWS_S3_BUCKET_HOST \
   BACKBLAZE_B2_ACCESS_KEY_FASTENV=$BACKBLAZE_B2_ACCESS_KEY_FASTENV \
   BACKBLAZE_B2_SECRET_KEY_FASTENV=$BACKBLAZE_B2_SECRET_KEY_FASTENV \
   BACKBLAZE_B2_BUCKET_HOST=$BACKBLAZE_B2_BUCKET_HOST \
   BACKBLAZE_B2_BUCKET_REGION=$BACKBLAZE_B2_BUCKET_REGION \
-  pytest --cov-report=html --durations=0 --durations-min=0.5
+  hatch run coverage run && coverage report
 ```
 
 ## Code quality
