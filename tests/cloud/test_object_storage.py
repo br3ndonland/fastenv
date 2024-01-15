@@ -314,6 +314,22 @@ class TestObjectStorageConfig:
         assert self.config_is_correct(config, expected_bucket_host=expected_bucket_host)
         assert scheme not in config.bucket_host
 
+    def test_config_if_trailing_slash_in_bucket_host(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Assert that trailing slash ("/") is removed."""
+        mocker.patch.dict(os.environ, clear=True)
+        bucket_host = f"{self.example_bucket_host}/"
+        expected_bucket_host = self.example_bucket_host
+        config = fastenv.cloud.object_storage.ObjectStorageConfig(
+            access_key=self.example_access_key,
+            secret_key=self.example_secret_key,
+            bucket_host=bucket_host,
+            bucket_region=self.example_bucket_region,
+        )
+        assert self.config_is_correct(config, expected_bucket_host=expected_bucket_host)
+        assert not config.bucket_host.endswith("/")
+
 
 class TestObjectStorageClientUnit:
     """Test `class ObjectStorageClient` and its methods.

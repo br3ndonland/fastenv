@@ -77,6 +77,7 @@ class ObjectStorageConfig:
                 "`<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2."
             )
         elif bucket_host and not bucket_name:
+            bucket_host = bucket_host.rstrip("/")
             scheme = (
                 "http://"
                 if bucket_host.startswith("http://")
