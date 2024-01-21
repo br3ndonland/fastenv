@@ -189,9 +189,10 @@ class ObjectStorageClient:
         bucket_path: os.PathLike[str] | str,
         *,
         expires: int = 3600,
+        headers: httpx.Headers | dict[str, str] | None = None,
         service: str = "s3",
     ) -> httpx.URL:
-        """Generate a presigned URL for downloads from S3-compatible object storage.
+        """Generate a presigned URL for S3-compatible object storage.
 
         Requests to S3-compatible object storage can be authenticated either with
         request headers or query parameters. Presigned URLs use query parameters.
@@ -207,6 +208,11 @@ class ObjectStorageClient:
         `expires`: seconds until the URL expires. The default and maximum
         expiration times are the same as the AWS CLI and Boto3.
 
+        `headers`: HTTP request headers (not including the default HTTP `host` header)
+        that will be included with the request. These headers may include additional
+        `x-amz-*` headers, such as  `X-Amz-Server-Side-Encryption`, or other headers
+        such as `Content-Type` known to be accepted by the API operation.
+
         `service`: cloud service for which to generate the presigned URL.
 
         https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3/presign.html
@@ -220,7 +226,7 @@ class ObjectStorageClient:
             raise ValueError("Expiration time must be between one second and one week.")
         key = key if (key := str(bucket_path)).startswith("/") else f"/{key}"
         params = self._set_presigned_url_query_params(
-            method, key, expires=expires, service=service
+            method, key, expires=expires, headers=headers, service=service
         )
         return httpx.URL(
             scheme="https", host=self._config.bucket_host, path=key, params=params
@@ -232,6 +238,7 @@ class ObjectStorageClient:
         key: str,
         *,
         expires: int,
+        headers: httpx.Headers | dict[str, str] | None = None,
         service: str = "s3",
         payload_hash: str = "UNSIGNED-PAYLOAD",
     ) -> httpx.QueryParams:
@@ -271,13 +278,20 @@ class ObjectStorageClient:
         if self._config.session_token:
             params["X-Amz-Security-Token"] = self._config.session_token
         params["X-Amz-SignedHeaders"] = "host"
-        headers = {"host": self._config.bucket_host}
+        default_headers = {"host": self._config.bucket_host}
+        if headers:
+            signed_headers = httpx.Headers({**default_headers, **headers})
+        else:
+            signed_headers = httpx.Headers(default_headers)
+        params["X-Amz-SignedHeaders"] = (
+            ";".join(keys) if len(keys := sorted(signed_headers)) > 1 else "host"
+        )
         # 1. create canonical request
         canonical_request = self._create_canonical_request(
             method=method,
             key=key,
             params=params,
-            headers=headers,
+            headers=signed_headers,
             payload_hash=payload_hash,
         )
         # 2. create string to sign
@@ -297,20 +311,28 @@ class ObjectStorageClient:
     def _create_canonical_request(
         method: Literal["DELETE", "GET", "HEAD", "POST", "PUT"],
         key: str,
-        params: dict[str, str],
-        headers: dict[str, str],
+        params: httpx.QueryParams | dict[str, str],
+        headers: httpx.Headers | dict[str, str],
         payload_hash: str,
     ) -> str:
         """Create a canonical request for AWS Signature Version 4.
 
         https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
-        https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+        https://docs.aws.amazon.com/IAM/latest/UserGuide/create-signed-request.html
 
         There should be two line breaks after the `canonical_headers`.
+
+        `signed_headers` must be alphabetically-sorted, semicolon-separated, and
+        lowercased. Note that the `sorted` built-in function ("builtin") sorts strings
+        case-sensitively by default. To sort case-insensitively, strings should be
+        lowercased before the function call (done automatically by `httpx.Headers`) or
+        lowercased during the function call (`sorted(key=str.lower)`).
+        https://docs.python.org/3/howto/sorting.html
         """
         canonical_uri = urllib.parse.quote(key if key.startswith("/") else f"/{key}")
         canonical_query_params = httpx.QueryParams(params)
         canonical_query_string = str(canonical_query_params)
+        headers = httpx.Headers(headers)
         header_keys = sorted(headers)
         canonical_headers = "".join(f"{key}:{headers[key]}\n" for key in header_keys)
         signed_headers = ";".join(header_keys)
@@ -392,7 +414,9 @@ class ObjectStorageClient:
         source: os.PathLike[str] | str | bytes = ".env",
         *,
         content_type: str = "text/plain",
+        method: Literal["POST", "PUT"] = "PUT",
         server_side_encryption: Literal["AES256", None] = None,
+        specify_content_disposition: bool = True,
     ) -> httpx.Response | None:
         """Upload a file to cloud object storage.
 
@@ -407,16 +431,43 @@ class ObjectStorageClient:
         See Backblaze for a list of supported content types.
         https://www.backblaze.com/b2/docs/content-types.html
 
-        `server_side_encryption`: optional encryption algorithm to specify,
-        which the object storage platform will use to encrypt the file for storage.
+        `method`: HTTP method to use for upload. S3-compatible object storage accepts
+        uploads with HTTP PUT via the PutObject API and presigned URLs, or POST
+        with authentication information in form fields.
+
+        `server_side_encryption`: optional encryption algorithm to specify for
+        the object storage platform to use to encrypt the file for storage.
         This method supports AES256 encryption with managed keys,
         referred to as "SSE-B2" on Backblaze or "SSE-S3" on AWS S3.
-        https://www.backblaze.com/b2/docs/server_side_encryption.html
+        https://www.backblaze.com/docs/cloud-storage-server-side-encryption
         https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html
+
+        `specify_content_disposition`: the HTTP header `Content-Disposition` indicates
+        whether the content is expected to be displayed inline (in the browser) or
+        downloaded to a file (referred to as an "attachment"). Dotenv files are
+        typically downloaded instead of being displayed in the browser, so by default,
+        fastenv will add `Content-Disposition: attachment; filename="{filename}"`.
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
         """
         try:
             content, message = await self._encode_source(source)
-            if self._config.bucket_host.endswith(".backblazeb2.com"):
+            content_length = len(content)
+            if method == "PUT":
+                content_md5 = base64.b64encode(hashlib.md5(content).digest())
+                headers = httpx.Headers({b"Content-MD5": content_md5})
+                headers["Content-Length"] = str(content_length)
+                headers["Content-Type"] = content_type
+                if specify_content_disposition:
+                    filename = str(bucket_path).split(sep="/")[-1]
+                    content_disposition = f'attachment; filename="{filename}"'
+                    headers["Content-Disposition"] = content_disposition
+                if server_side_encryption:
+                    headers["X-Amz-Server-Side-Encryption"] = server_side_encryption
+                url = self.generate_presigned_url(
+                    method, bucket_path, expires=30, headers=headers
+                )
+                response = await self._client.put(url, content=content, headers=headers)
+            elif self._config.bucket_host.endswith(".backblazeb2.com"):
                 response = await self.upload_to_backblaze_b2(
                     bucket_path,
                     content,
@@ -426,7 +477,7 @@ class ObjectStorageClient:
             else:
                 url, data = self.generate_presigned_post(
                     bucket_path,
-                    content_length=len(content),
+                    content_length=content_length,
                     content_type=content_type,
                     expires=30,
                     server_side_encryption=server_side_encryption,
@@ -479,11 +530,11 @@ class ObjectStorageClient:
         See Backblaze for a list of supported content types.
         https://www.backblaze.com/b2/docs/content-types.html
 
-        `server_side_encryption`: optional encryption algorithm to specify,
-        which the object storage platform will use to encrypt the file for storage.
+        `server_side_encryption`: optional encryption algorithm to specify for
+        the object storage platform to use to encrypt the file for storage.
         This method supports AES256 encryption with managed keys,
         referred to as "SSE-B2" on Backblaze or "SSE-S3" on AWS S3.
-        https://www.backblaze.com/b2/docs/server_side_encryption.html
+        https://www.backblaze.com/docs/cloud-storage-server-side-encryption
         https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html
 
         `specify_content_disposition`: the HTTP header `Content-Disposition` indicates
@@ -776,7 +827,7 @@ class ObjectStorageClient:
         """Get an upload URL from Backblaze B2, using the authorization token
         and URL obtained from a call to `b2_authorize_account`.
 
-        https://www.backblaze.com/b2/docs/uploading.html
+        https://www.backblaze.com/apidocs/b2-upload-file
         https://www.backblaze.com/b2/docs/b2_get_upload_url.html
         """
         authorization_response_json = authorization_response.json()
@@ -801,8 +852,10 @@ class ObjectStorageClient:
         """Upload a file to Backblaze B2 object storage, using the authorization token
         and URL obtained from a call to `b2_get_upload_url`.
 
-        https://www.backblaze.com/b2/docs/uploading.html
-        https://www.backblaze.com/b2/docs/b2_upload_file.html
+        Backblaze B2 does not currently support single-part uploads with POST
+        to their S3 API. The B2 native API must be used.
+
+        https://www.backblaze.com/apidocs/b2-upload-file
         """
         authorization_response = await self.authorize_backblaze_b2_account()
         upload_url_response = await self.get_backblaze_b2_upload_url(

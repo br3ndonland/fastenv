@@ -28,7 +28,7 @@ Dotenv files are commonly kept in [cloud object storage](https://en.wikipedia.or
 
     Creating a signature is a [four-step process](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html):
 
-    1. _[Create a canonical request](https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html)_. "Canonical" just means that the string has a standard set of fields. These fields provide request metadata like the HTTP method and headers.
+    1. _[Create a canonical request](https://docs.aws.amazon.com/IAM/latest/UserGuide/create-signed-request.html)_. "Canonical" just means that the string has a standard set of fields. These fields provide request metadata like the HTTP method and headers.
     2. _[Create a string to sign](https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html)_. In this step, a SHA256 hash of the canonical request is calculated, and combined with some additional authentication information to produce a new string called the "string to sign." The Python standard library package [`hashlib`](https://docs.python.org/3/library/hashlib.html) makes this straightforward.
     3. _[Calculate a signature](https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html)_. To set up this step, a signing key is derived with successive rounds of HMAC hashing. The [concept behind HMAC](https://www.okta.com/identity-101/hmac/) ("Keyed-Hashing for Message Authentication" or "Hash-based Message Authentication Codes") is to generate hashes with mostly non-secret information, along with a small amount of secret information that both the sender and recipient have agreed upon ahead of time. The secret information here is the secret access key. The signature is then calculated with another round of HMAC, using the signing key and the string to sign. The Python standard library package [`hmac`](https://docs.python.org/3/library/hmac.html) does most of the hard work here.
     4. _[Add the signature to the HTTP request](https://docs.aws.amazon.com/general/latest/gr/sigv4-add-signature-to-request.html)_. The hex digest of the signature is included with the request.
@@ -39,15 +39,23 @@ Dotenv files are commonly kept in [cloud object storage](https://en.wikipedia.or
 
     #### Download
 
-    Downloads with `GET` can be authenticated by including AWS Signature Version 4 information either with [request headers](https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-auth-using-authorization-header.html) or [query parameters](https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html). fastenv uses query parameters to generate [presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html). The advantage to presigned URLs with query parameters is that URLs can be used on their own.
-
     The download method generates a presigned URL, uses it to download file contents, and either saves the contents to a file or returns the contents as a string.
+
+    Downloads with `GET` can be authenticated by including AWS Signature Version 4 information either with [request headers](https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-auth-using-authorization-header.html) or [query parameters](https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html). fastenv uses query parameters to generate [presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html). The advantage to presigned URLs with query parameters is that URLs can be used on their own.
 
     A related operation is [`head_object`](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.head_object), which can be used to check if an object exists. The request is the same as a `GET`, except the [`HEAD` HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/HEAD) is used. fastenv does not provide an implementation of `head_object` at this time, but it could be considered in the future.
 
     #### Upload
 
-    [Uploads with `POST`](https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-UsingHTTPPOST.html) work differently than downloads with `GET`. A typical back-end engineer might ask, "Can't I just `POST` binary data to an API endpoint with a bearer token or something?" To which AWS might respond, "No, not really. Here's how you do it instead: pretend like you're submitting a web form." "What?"
+    The upload method uploads source contents to an object storage bucket, selecting the appropriate upload strategy based on the cloud platform being used. Uploads can be done with either `POST` or `PUT`.
+
+    [Uploads with `PUT` can use presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html). Unlike downloads with `GET`, presigned `PUT` URL query parameters do not necessarily contain all the required information. Additional information may need to be supplied in request headers. In addition to supplying header keys and values with HTTP requests, header keys should be signed into the URL in the `X-Amz-SignedHeaders` query string parameter. These request headers can specify:
+
+    -   [Object encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html). Encryption information can be specified with headers including `X-Amz-Server-Side-Encryption`. Note that, although similar headers like `X-Amz-Algorithm` are included as query string parameters in presigned URLs, `X-Amz-Server-Side-Encryption` is not. If `X-Amz-Server-Side-Encryption` is included in query string parameters, it may be silently ignored by the object storage platform. [AWS S3 now automatically encrypts all objects](https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html) and [Cloudflare R2 does also](https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html), but [Backblaze B2 will only automatically encrypt objects if the bucket has default encryption enabled](https://www.backblaze.com/docs/cloud-storage-server-side-encryption).
+    -   [Object metadata](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingMetadata.html). Headers like `Content-Disposition`, `Content-Length`, and `Content-Type` can be supplied in request headers.
+    -   [Object integrity checks](https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html). The `Content-MD5` header, defined by [RFC 1864](https://www.rfc-editor.org/rfc/rfc1864), can supply a base64-encoded MD5 checksum. After the upload is completed, the object storage platform server will calculate a checksum for the object in the same manner. If the client and server checksums are the same, this means that all expected information was successfully sent to the server. If the checksums are different, this may mean that object information was lost in transit, and an error will be reported. Note that, although Backblaze B2 accepts and processes the `Content-MD5` header, it will report a SHA1 checksum to align with [uploads to the B2-native API](https://www.backblaze.com/docs/en/cloud-storage-file-information).
+
+    [Uploads with `POST`](https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-UsingHTTPPOST.html) work differently than `GET` or `PUT` operations. A typical back-end engineer might ask, "Can't I just `POST` binary data to an API endpoint with a bearer token or something?" To which AWS might respond, "No, not really. Here's how you do it instead: pretend like you're submitting a web form." "What?"
 
     Anyway, here's how it works:
 
@@ -56,11 +64,7 @@ Dotenv files are commonly kept in [cloud object storage](https://en.wikipedia.or
     3. _Calculate a signature_. This step is basically the same as for query string auth. A signing key is derived with HMAC, and then used with the string to sign for another round of HMAC to calculate the signature.
     4. _Add the signature to the HTTP request_. For `POST` uploads, the signature is provided with other required information as form data, rather than as URL query parameters. An advantage of this approach is that it can also be used for browser-based uploads, because the form data can be used to populate the fields of an HTML web form. There is some overlap between items in the `POST` policy and fields in the form data, but they are not exactly the same.
 
-    The S3 API does also support [uploads with HTTP `PUT` requests](https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html). fastenv does not use `PUT` requests at this time, but they could be considered in the future.
-
     Backblaze uploads with `POST` are different, though there are [good reasons](https://www.backblaze.com/blog/design-thinking-b2-apis-the-hidden-costs-of-s3-compatibility/) for that (helps keep costs low). fastenv includes an implementation of the Backblaze B2 `POST` upload process.
-
-    The upload method uploads source contents to an object storage bucket, selecting the appropriate upload strategy based on the cloud platform being used.
 
     #### List
 
