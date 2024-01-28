@@ -547,6 +547,55 @@ class TestObjectStorageClientUnit:
         assert presigned_url.params["X-Amz-SignedHeaders"] == "host"
         assert presigned_url.params["X-Amz-Signature"] == expected_x_amz_signature
 
+    @freezegun.freeze_time("2013-05-24")
+    def test_generate_presigned_url_for_put(self) -> None:
+        """Assert that presigned PUT URLs include the expected method and headers.
+
+        Uploads with `PUT` can use presigned URLs. Unlike downloads with `GET`, the
+        presigned URL query parameters do not necessarily contain all the required
+        information. Additional information may need to be supplied in request headers.
+        In addition to supplying header keys and values as HTTP request headers, header
+        keys are signed into URLs in the `X-Amz-SignedHeaders` query string parameter
+        (alphabetically-sorted, semicolon-separated, lowercased).
+
+        https://docs.aws.amazon.com/IAM/latest/UserGuide/create-signed-request.html
+        """
+        object_storage_config = fastenv.cloud.object_storage.ObjectStorageConfig(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            bucket_host="examplebucket.s3.us-east-1.amazonaws.com",
+            bucket_region="us-east-1",
+        )
+        object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
+            config=object_storage_config
+        )
+        filename = "test.txt"
+        content = b"Hello, World!"
+        content_disposition = f'attachment; filename="{filename}"'
+        content_length = str(len(content))
+        content_md5 = "ZajifYh5KDgxtmS9i38K1A=="
+        content_type = "text/plain"
+        headers = {
+            "X-Amz-Server-Side-Encryption": "AES256",
+            "Content-MD5": content_md5,
+            "Content-Disposition": content_disposition,
+            "Content-Length": content_length,
+            "Content-Type": content_type,
+        }
+        expected_x_amz_signedheaders = (
+            "content-disposition;"
+            "content-length;"
+            "content-md5;"
+            "content-type;"
+            "host;"
+            "x-amz-server-side-encryption"
+        )
+        presigned_url = object_storage_client.generate_presigned_url(
+            "PUT", filename, headers=headers
+        )
+        x_amz_signedheaders = presigned_url.params["X-Amz-SignedHeaders"]
+        assert x_amz_signedheaders == expected_x_amz_signedheaders
+
     @pytest.mark.parametrize("expires", (0, 604900))
     def test_generate_presigned_url_expiration_time_error(self, expires: int) -> None:
         """Assert that `ValueError`s are raised for unsupported expiration times."""
@@ -999,12 +1048,14 @@ class TestObjectStorageClientIntegration:
             assert "HTTPStatusError" in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
+    @pytest.mark.parametrize("method", ("POST", "PUT"))
     @pytest.mark.parametrize("server_side_encryption", (None, "AES256"))
     async def test_upload_from_file_with_object_storage_config(
         self,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         object_storage_client_upload_prefix: str,
         env_file: anyio.Path,
+        method: Literal["POST", "PUT"],
         mocker: MockerFixture,
         server_side_encryption: Literal["AES256", None],
     ) -> None:
@@ -1022,10 +1073,11 @@ class TestObjectStorageClientIntegration:
         )
         bucket_path = (
             f"{object_storage_client_upload_prefix}/.env.from-file."
-            f"{object_storage_config.access_key}"
+            f"{object_storage_config.access_key}.{method.lower()}"
         )
         await object_storage_client.upload(
             bucket_path=bucket_path,
+            method=method,
             source=env_file,
             server_side_encryption=server_side_encryption,
         )
@@ -1035,12 +1087,14 @@ class TestObjectStorageClientIntegration:
         )
 
     @pytest.mark.anyio
+    @pytest.mark.parametrize("method", ("POST", "PUT"))
     @pytest.mark.parametrize("server_side_encryption", (None, "AES256"))
     async def test_upload_from_string_with_object_storage_config(
         self,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         object_storage_client_upload_prefix: str,
         env_str: str,
+        method: Literal["POST", "PUT"],
         mocker: MockerFixture,
         server_side_encryption: Literal["AES256", None],
     ) -> None:
@@ -1058,10 +1112,11 @@ class TestObjectStorageClientIntegration:
         )
         bucket_path = (
             f"{object_storage_client_upload_prefix}/.env.from-string."
-            f"{object_storage_config.access_key}"
+            f"{object_storage_config.access_key}.{method.lower()}"
         )
         await object_storage_client.upload(
             bucket_path=bucket_path,
+            method=method,
             source=env_str,
             server_side_encryption=server_side_encryption,
         )
@@ -1071,12 +1126,14 @@ class TestObjectStorageClientIntegration:
         )
 
     @pytest.mark.anyio
+    @pytest.mark.parametrize("method", ("POST", "PUT"))
     @pytest.mark.parametrize("server_side_encryption", (None, "AES256"))
     async def test_upload_from_bytes_with_object_storage_config(
         self,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         object_storage_client_upload_prefix: str,
         env_bytes: bytes,
+        method: Literal["POST", "PUT"],
         mocker: MockerFixture,
         server_side_encryption: Literal["AES256", None],
     ) -> None:
@@ -1094,10 +1151,11 @@ class TestObjectStorageClientIntegration:
         )
         bucket_path = (
             f"{object_storage_client_upload_prefix}/.env.from-bytes."
-            f"{object_storage_config.access_key}"
+            f"{object_storage_config.access_key}.{method.lower()}"
         )
         await object_storage_client.upload(
             bucket_path=bucket_path,
+            method=method,
             source=env_bytes,
             server_side_encryption=server_side_encryption,
         )
@@ -1134,7 +1192,7 @@ class TestObjectStorageClientIntegration:
             f"{object_storage_config_backblaze_static.access_key}"
         )
         response = await object_storage_client.upload(
-            bucket_path, env_bytes, server_side_encryption="AES256"
+            bucket_path, env_bytes, method="POST", server_side_encryption="AES256"
         )
         assert response
         response_json = response.json()
