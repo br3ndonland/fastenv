@@ -333,8 +333,8 @@ Here's an example of how this could be implemented.
 ### AWS S3
 
 -   Pricing
-    -   \$23/TB/month for storage
-    -   \$90/TB/month outbound (also called download or egress), with further complex and expensive egress fees
+    -   $23/TB/month for storage
+    -   $90/TB/month outbound (also called download or egress), with further complex and expensive egress fees
     -   See the [Backblaze B2 pricing page](https://www.backblaze.com/b2/cloud-storage-pricing.html) for comparisons
     -   See [Backblaze Blog 2021-12-03: Why the world needs lower egress fees](https://www.backblaze.com/blog/why-the-world-needs-lower-egress-fees/) and [Cloudflare Blog 2021-07-23: AWS's egregious egress](https://blog.cloudflare.com/aws-egregious-egress/) for criticisms
 -   Identity and Access Management (IAM):
@@ -355,7 +355,7 @@ Here's an example of how this could be implemented.
 ### Backblaze B2
 
 -   [Pricing](https://www.backblaze.com/b2/cloud-storage-pricing.html):
-    -   \$6/TB/month for storage (about 1/4 the price of S3)
+    -   $6/TB/month for storage (about 1/4 the price of S3)
     -   Outbound (also called download or egress) data transfer fees are 1/4 the price of S3
     -   See [Backblaze Blog 2021-12-03: Why the world needs lower egress fees](https://www.backblaze.com/blog/why-the-world-needs-lower-egress-fees/)
 -   [S3-compatible API](https://www.backblaze.com/b2/docs/s3_compatible_api.html)\*
@@ -377,7 +377,7 @@ Here's an example of how this could be implemented.
 ### Cloudflare R2
 
 -   [Pricing](https://developers.cloudflare.com/r2/platform/pricing/)
-    -   \$15/TB/month for storage (about half the price of AWS S3, but over double the price of Backblaze B2)
+    -   $15/TB/month for storage (about half the price of AWS S3, but over double the price of Backblaze B2)
 -   [S3-compatible API](https://developers.cloudflare.com/r2/platform/s3-compatibility/api/)
 -   URIs
     -   Regions are handled automatically. "When using the S3 API, the region for an R2 bucket is `auto`. For compatibility with tools that do not allow you to specify a region, an empty value and `us-east-1` will alias to the `auto` region."
