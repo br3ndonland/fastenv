@@ -58,6 +58,13 @@ _cloud_params_backblaze_static = CloudParams(
     bucket_host_variable="BACKBLAZE_B2_BUCKET_HOST",
     bucket_region_variable="BACKBLAZE_B2_BUCKET_REGION",
 )
+_cloud_params_cloudflare_static = CloudParams(
+    access_key_variable="CLOUDFLARE_R2_ACCESS_KEY_FASTENV",
+    secret_key_variable="CLOUDFLARE_R2_SECRET_KEY_FASTENV",
+    session_token_variable="",
+    bucket_host_variable="CLOUDFLARE_R2_BUCKET_HOST",
+    bucket_region_variable="auto",
+)
 
 
 @pytest.fixture(
@@ -65,6 +72,7 @@ _cloud_params_backblaze_static = CloudParams(
         _cloud_params_aws_session,
         _cloud_params_aws_static,
         _cloud_params_backblaze_static,
+        _cloud_params_cloudflare_static,
     ),
     scope="session",
 )
@@ -90,7 +98,7 @@ def object_storage_config(
         else request_param.session_token_variable
     )
     bucket_host = os.getenv(request_param.bucket_host_variable)
-    bucket_region = os.getenv(request_param.bucket_region_variable, "us-east-2")
+    bucket_region = os.getenv(request_param.bucket_region_variable)
     if not access_key or not secret_key or session_token is None:  # pragma: no cover
         pytest.skip("Required cloud credentials not present.")
     return fastenv.cloud.object_storage.ObjectStorageConfig(

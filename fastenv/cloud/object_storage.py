@@ -26,11 +26,12 @@ class ObjectStorageConfig:
     """Configure S3-compatible object storage.
     ---
 
-    AWS S3 and Backblaze B2 are directly supported and tested.
+    AWS S3, Backblaze B2, and Cloudflare R2 are directly supported and tested.
 
     Buckets can be specified in "virtual-hosted-style", like
-    `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3 or
-    `<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2.
+    `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3,
+    `<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2, or
+    `<BUCKET_NAME>.<ACCOUNT_ID>.r2.cloudflarestorage.com` for Cloudflare R2.
     For AWS S3 only, the bucket can be also provided as just `<BUCKET_NAME>`.
 
     If credentials are not provided as arguments, this class will auto-detect
@@ -73,8 +74,10 @@ class ObjectStorageConfig:
         if not bucket_host and not bucket_name:
             raise AttributeError(
                 "Required bucket info not provided. Please provide a bucket, "
-                "like `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3 or "
-                "`<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2."
+                "like `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3, "
+                "`<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2, "
+                "or `<BUCKET_NAME>.<ACCOUNT_ID>.r2.cloudflarestorage.com` "
+                "for Cloudflare R2."
             )
         elif bucket_host and not bucket_name:
             bucket_host = bucket_host.rstrip("/")
@@ -90,11 +93,13 @@ class ObjectStorageConfig:
             if bucket_host.endswith(".amazonaws.com") or bucket_host.endswith(
                 ".backblazeb2.com"
             ):
-                self.bucket_name = bucket_host.split(".s3.")[0]
+                bucket_name = bucket_host.split(".s3.")[0]
+            elif bucket_host.endswith(".cloudflarestorage.com"):
+                bucket_name = bucket_host.rsplit(sep=".", maxsplit=4)[0]
+                bucket_region = "auto"
             else:
-                self.bucket_name = None
-        else:
-            self.bucket_name = bucket_name
+                bucket_name = None
+        self.bucket_name = bucket_name
         bucket_region = (
             bucket_region
             or os.getenv("AWS_S3_REGION")
@@ -112,7 +117,10 @@ class ObjectStorageConfig:
                 f"Bucket host {self.bucket_host} does not "
                 f"include bucket name {self.bucket_name}."
             )
-        if self.bucket_region not in self.bucket_host:
+        if (
+            not self.bucket_host.endswith(".cloudflarestorage.com")
+            and self.bucket_region not in self.bucket_host
+        ):
             raise AttributeError(
                 f"Bucket host {self.bucket_host} does not "
                 f"include bucket region {self.bucket_region}."
@@ -128,15 +136,16 @@ class ObjectStorageClient:
     """Instantiate a client to connect to S3-compatible object storage.
     ---
 
-    AWS S3 and Backblaze B2 are directly supported and tested.
+    AWS S3, Backblaze B2, and Cloudflare R2 are directly supported and tested.
 
     This class requires both an HTTPX client and an `ObjectStorageConfig` instance.
     They will be automatically instantiated if not provided as arguments.
     Any additional arguments will be used to instantiate `ObjectStorageConfig`.
 
     Buckets can be specified in "virtual-hosted-style", like
-    `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3 or
-    `<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2.
+    `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3,
+    `<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2, or
+    `<BUCKET_NAME>.<ACCOUNT_ID>.r2.cloudflarestorage.com` for Cloudflare R2.
     For AWS S3 only, the bucket can be also provided as just `<BUCKET_NAME>`.
 
     https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html
