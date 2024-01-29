@@ -2,6 +2,100 @@
 
 [View on GitHub](https://github.com/br3ndonland/fastenv/blob/develop/CHANGELOG.md)
 
+## 0.4.0 - 2024-01-29
+
+### Changes
+
+**Add support for Cloudflare R2 object storage** (#26, 6b06299)
+
+The fastenv object storage client supports AWS S3 and Backblaze B2.
+This release will add support for the
+[Cloudflare R2](https://developers.cloudflare.com/r2/)
+object storage platform. Cloudflare R2 buckets can be supplied as
+"virtual-hosted-style" URLs, like
+`<BUCKET>.<ACCOUNT_ID>.r2.cloudflarestorage.com`.
+
+**Add PUT uploads to object storage client** (#25, 6968353)
+
+Dotenv files are commonly kept in cloud object storage. fastenv provides
+an object storage client for downloading and uploading dotenv files.
+
+S3-compatible object storage allows uploads with either `POST` or `PUT`.
+This release will add an implementation of uploads with `PUT`, and `PUT`
+will now be the default because `PUT` uploads are more widely-supported
+and standardized. Backblaze B2 does not currently support single-part
+uploads with `POST` to their S3 API (the
+[B2 native API](https://www.backblaze.com/apidocs/b2-upload-file) must
+be used instead).
+[Cloudflare R2](https://developers.cloudflare.com/r2/api/s3/presigned-urls/)
+does not support uploads with `POST` at all.
+
+**Use Ruff for linting and formatting** (e635c33)
+
+[Ruff](https://docs.astral.sh/ruff/) is a Python linter and formatter
+that has gained popularity due to its high performance and numerous
+capabilities. Now that Ruff has released its
+[first minor version series](https://astral.sh/blog/ruff-v0.1.0) (0.1)
+and has a [versioning policy](https://docs.astral.sh/ruff/versioning/),
+it's a good time to consider adopting it.
+
+As of this release, the project's Python linting and formatting checks
+will be migrated from the previous tools (Black, Flake8, isort) to Ruff.
+
+### Commits
+
+-   Bump version from 0.3.0 to 0.4.0 (620af5e)
+-   Add support for Cloudflare R2 object storage (#26) (6b06299)
+-   Add PUT uploads to object storage client (#25) (6968353)
+-   Remove trailing slash from `bucket_host` (8492656)
+-   Update test info in CONTRIBUTING.md (69bdf05)
+-   Update to `peter-evans/create-pull-request@v5` (4ddb5b5)
+-   Update to `aws-actions/configure-aws-credentials@v4` (e59316e)
+-   Update to `actions/checkout@v4` (ebdea31)
+-   Update CodeQL workflow actions (03e80cc)
+-   Address CodeQL URL substring sanitization error (a822a86)
+-   Remove scheme from `bucket_host` (aaf3f1d)
+-   Remove curly quote (0f2c1bb)
+-   Use Ruff for linting and formatting (e635c33)
+-   Add wheel build target to avoid Hatch `ValueError` (a7fffb7)
+-   Update to `pipx==1.4.1` (a53eb2b)
+-   Update to `mypy==1.8.0` (16c6329)
+-   Update to `hatch==1.9.1` (2ab4bff)
+-   Update to `pipx==1.4.0` (31c9854)
+-   Update to `pipx==1.3.3` (f5ddd6d)
+-   Remove unneeded stale workflow (d86b4ba)
+-   Switch from pre-commit to Hatch scripts (0f60779)
+-   Finish configuring code block copy (34fbe9a)
+-   Add docs deployment info to contributing.md (70b358e)
+-   Remove Material for MkDocs version from README (380f364)
+-   Configure Material for MkDocs code block copy (5c8b6ea)
+-   Update to Material for MkDocs 9 (a1349d4)
+-   Relax upper bound on HTTPX (ab0e909)
+-   Update to `mypy==1.7.0` (27549f5)
+-   Prepend `$HATCH_ENV` in GitHub Actions workflow (c5cf02d)
+-   Update to `hatch==1.7.0` (d8ee4e6)
+-   Remove Sourcery configuration file (9f61678)
+-   Update Black in pre-commit (6fd48d6)
+-   Update to `mypy==1.3.0` (e1a0e09)
+-   Update to coverage 7 (8702743)
+-   Update to `pipx==1.2.0` (dcbe73b)
+-   Update to mypy 1.1.1 (f666fdb)
+-   Update to configure-aws-credentials@v2 (5d20126)
+-   Update changelog for version 0.3.0 (#23) (d13a924)
+
+Tagger: Brendon Smith <bws@bws.bio>
+
+Date: 2024-01-29 18:44:39 -0500
+
+```text
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
+kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQJ5iKQerDHiHWEGliUGY/CsOZ8MNoHxG3j4LPio1G+CeF29pNv/WLzWPRmaEbR3p8N
+ORKJgY1v1TfHUEHmpW2w4=
+-----END SSH SIGNATURE-----
+```
+
 ## 0.3.0 - 2023-02-26
 
 ### Changes
