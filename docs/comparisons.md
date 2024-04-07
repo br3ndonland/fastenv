@@ -247,7 +247,7 @@ It is also important to note that the one-way preference will only be enforced w
 ### File I/O
 
 -   Starlette `Config` accepts an `env_file` keyword argument, which should point to a _.env_ file on disk. It loads the file with the synchronous `open()` built-in function.
--   If no _.env_ file is found at the path provided by `Config(env_file)`, Starlette will fail silently, rather than raising a `FileNotFoundError`. This can lead to issues if applications depend on environment variables that Starlette fails to load.
+-   If no _.env_ file is found at the path provided by `Config(env_file)`, Starlette will raise a warning instead of a `FileNotFoundError` ([encode/starlette#2422](https://github.com/encode/starlette/pull/2422), [encode/starlette#2446](https://github.com/encode/starlette/discussions/2446), [encode/starlette#2485](https://github.com/encode/starlette/pull/2485)). This can lead to issues if applications depend on environment variables that Starlette fails to load.
 -   Starlette `Config` does not support multiple _.env_ files ([encode/starlette#432](https://github.com/encode/starlette/issues/432)).
 
 ### The future of `starlette.config`
