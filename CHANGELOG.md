@@ -1,5 +1,77 @@
 # Changelog
 
+## 0.4.1 - 2024-04-08
+
+### Changes
+
+**Publish to PyPI with OIDC trusted publisher** (6e532c6)
+
+This commit will update Python package publishing to the newest format
+recommended by PyPI. This project previously published packages with a
+project-scoped PyPI API token (token only valid for this project) stored
+in GitHub Secrets and the `hatch publish` command. The project will now
+publish packages using a
+[PyPI OIDC](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-pypi)
+(OpenID Connect) trusted publisher with the
+[pypa/gh-action-pypi-publish](https://github.com/pypa/gh-action-pypi-publish)
+action. This is the method that Hatch itself uses (pypa/hatch#891)
+(Hatch does not "dogfood" its own `hatch publish` feature).
+
+The advantage to OIDC is that authentication is performed with temporary
+API tokens (only valid for 15 minutes) instead of persistent tokens that
+must be manually generated on PyPI and pasted into GitHub Secrets. The
+disadvantage is that authentication is more complicated.
+
+To use PyPI OIDC, a trusted publisher was set up for the PyPI project
+as shown in the [PyPI docs](https://docs.pypi.org/trusted-publishers/).
+Next, a dedicated
+[GitHub Actions deployment environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment)
+was created for PyPI, with protection rules that only allow use of the
+environment with workflow runs triggered by Git tags. The environment
+protection rules combine with tag protection rules in existing
+[GitHub rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)
+to ensure PyPI packages can only be published when a maintainer pushes a
+Git tag.
+
+The GitHub Actions workflow will be updated to use the deployment
+environment. Deployment environments must be selected at the job level
+before the job begins, so a setup job will be added that selects the
+appropriate deployment environment and passes it to the PyPI job.
+Finally, after `hatch build` outputs the package build files to the
+`dist/` directory, pypa/gh-action-pypi-publish will be used to publish
+the package to PyPI. The pypa/gh-action-pypi-publish action publishes
+exact version tags like pypa/gh-action-pypi-publish@v1.8.14, and offers
+Git branches for major and minor version numbers like
+pypa/gh-action-pypi-publish@release/v1.8.
+
+### Commits
+
+- Bump version from 0.4.0 to 0.4.1 (d668549)
+- Publish to PyPI with OIDC trusted publisher (6e532c6)
+- Update to `peter-evans/create-pull-request@v6` (0918b9e)
+- Add support for AnyIO 4 (b33e84e)
+- Update to Ruff 0.3 (658fb4b)
+- Update to `mypy==1.9.0` (64adf48)
+- Update to `hatch==1.9.4` (6c60f7e)
+- Update to `pipx==1.5.0` (795e1d2)
+- Update comparisons docs for Starlette 0.37 (99e233f)
+- Disable CodeQL `setup-python-dependencies` (11d8d60)
+- Update to Node.js 20 actions (a6d2e06)
+- Update changelog for version 0.4.0 (#27) (649cc4c)
+
+Tagger: Brendon Smith <bws@bws.bio>
+
+Date: 2024-04-08 18:47:35 -0400
+
+```text
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
+kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQFcFuhsLNWl82ozsEevXNRMuBeJQ9VhpBZdSz5Luxu5iNO33VApk9/PFhHW8mxR1lR
+/ukfFvXg6jXOgunBq6Qwg=
+-----END SSH SIGNATURE-----
+```
+
 ## 0.4.0 - 2024-01-29
 
 ### Changes
