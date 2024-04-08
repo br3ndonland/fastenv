@@ -21,7 +21,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "anyio>=3.3,<4",
+  "anyio>=3.3,<5",
 ]
 description = "Unified environment variable and settings management for FastAPI and beyond."
 dynamic = ["version"]
