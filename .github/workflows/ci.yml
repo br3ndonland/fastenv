@@ -16,27 +16,34 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      environment: ${{ steps.set-env.outputs.environment }}
+      environment-name: ${{ steps.set-env.outputs.environment-name }}
+      environment-url: ${{ steps.set-env.outputs.environment-url }}
     steps:
       - uses: actions/checkout@v4
       - name: Set GitHub Actions deployment environment
         id: set-env
         run: |
           if ${{ github.event_name == 'workflow_dispatch' }}; then
-            environment=${{ inputs.environment }}
+            environment_name=${{ inputs.environment }}
           elif ${{ github.ref_type == 'tag' }}; then
-            environment="PyPI"
+            environment_name="PyPI"
           else
-            environment=""
+            environment_name=""
           fi
-          echo "environment=$environment" >>"$GITHUB_OUTPUT"
+          timestamp="$(date -Iseconds)"
+          url="https://api.github.com/repos/${{ github.repository }}/deployments"
+          environment_url="$url?timestamp=$timestamp"
+          echo "environment-name=$environment_name" >>"$GITHUB_OUTPUT"
+          echo "environment-url=$environment_url" >>"$GITHUB_OUTPUT"
       - name: Create annotation for deployment environment
-        if: steps.set-env.outputs.environment != ''
-        run: echo "::notice::Deployment environment ${{ steps.set-env.outputs.environment }}"
+        if: steps.set-env.outputs.environment-name != ''
+        run: echo "::notice::Deployment environment ${{ steps.set-env.outputs.environment-name }}"
   ci:
     runs-on: ubuntu-latest
     needs: [setup]
-    environment: ${{ needs.setup.outputs.environment }}
+    environment:
+      name: ${{ needs.setup.outputs.environment-name }}
+      url: ${{ needs.setup.outputs.environment-url }}&python=${{ matrix.python-version }}
     permissions:
       id-token: write
     strategy:
@@ -127,7 +134,7 @@ jobs:
         if: >
           github.ref_type == 'tag' &&
           matrix.python-version == '3.11' &&
-          needs.setup.outputs.environment == 'PyPI'
+          needs.setup.outputs.environment-name == 'PyPI'
         uses: pypa/gh-action-pypi-publish@release/v1.8
   changelog:
     if: github.ref_type == 'tag'
