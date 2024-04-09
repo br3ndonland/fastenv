@@ -2,6 +2,43 @@
 
 [View on GitHub](https://github.com/br3ndonland/fastenv/blob/develop/CHANGELOG.md)
 
+## 0.4.2 - 2024-04-09
+
+### Changes
+
+**Avoid auto-inactivating GitHub Actions deployments** (6d6f5c9)
+
+Version 0.4.1 and commit 6e532c6 configured Python package publication
+to use PyPI OIDC with GitHub Actions deployment environments.
+This commit provides a small update to deployment environment usage.
+Each use of a deployment environment creates a deployment that can be
+either active or inactive. GitHub Actions auto-inactivates deployments,
+and although this behavior is not configurable or documented, there are
+some possible workarounds/hacks suggested by a community discussion
+[comment](https://github.com/orgs/community/discussions/67982#discussioncomment-7086962).
+The workaround used here will be to provide each deployment with its own
+unique URL.
+
+### Commits
+
+-   Bump version from 0.4.1 to 0.4.2 (ff9d56f)
+-   Avoid auto-inactivating GitHub Actions deployments (6d6f5c9)
+-   Reset `peter-evans/create-pull-request@v6` author (845e8b2)
+-   Update changelog for version 0.4.1 (#29) (b60a73d)
+
+Tagger: Brendon Smith <bws@bws.bio>
+
+Date: 2024-04-09 05:27:45 -0400
+
+```text
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
+kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQMWcRBk51C/WrcmVgcm7jLrP82RsbXeLL84Q6AmgYlMQBOzdsMkdi4YI2khtoS7BvE
+Go3ymR0RVJiG5DOGZeXAE=
+-----END SSH SIGNATURE-----
+```
+
 ## 0.4.1 - 2024-04-08
 
 ### Changes
