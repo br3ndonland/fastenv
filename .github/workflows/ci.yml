@@ -172,6 +172,7 @@ jobs:
           add-paths: |
             CHANGELOG.md
             docs/changelog.md
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           branch: create-pull-request/${{ github.ref_name }}
           commit-message: Update changelog for version ${{ github.ref_name }}
           title: Update changelog for version ${{ github.ref_name }}
