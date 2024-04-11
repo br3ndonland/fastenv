@@ -1,5 +1,82 @@
 # Changelog
 
+## 0.5.0 - 2024-04-11
+
+### Changes
+
+**Document and test FastAPI integration** (#32, 7362541497bb975cb021552ebf2a0fe9a5cd0a99)
+
+One of the goals of this project as shown in the README is to unify
+settings management for FastAPI. It would be helpful to provide a simple
+example of how to integrate fastenv with a FastAPI app. The most common
+use case for fastenv would be to load environment variables and settings
+when the FastAPI app starts up. The recommended way to customize app
+startup and shutdown is with lifespan events.
+
+This release will add an example to the quickstart in the README that uses
+[lifespan events](https://fastapi.tiangolo.com/advanced/events/) with
+[lifespan state](https://www.starlette.io/lifespan/#lifespan-state).
+Lifespan state is the recommended way to share objects between the
+lifespan function and API endpoints.
+
+Currently, the lifespan function can only have one required argument for
+the FastAPI or Starlette app instance. This is because of the way
+Starlette runs the lifespan function, as seen in the source code
+[here](https://github.com/encode/starlette/blob/4e453ce91940cc7c995e6c728e3fdf341c039056/starlette/routing.py#L732).
+This is shown, but not explained, in the
+[FastAPI docs on lifespan events](https://fastapi.tiangolo.com/advanced/events/) -
+the code examples use objects from outside the lifespan function by
+instantiating them at the top-level of the module. Unfortunately this
+limits lifespan event customization. For example, an application might
+want a way to customize the dotenv file path or the object storage
+bucket from which the dotenv file needs to be downloaded. One way to
+customize the dotenv file path is to set an environment variable with
+the dotenv file path, then pass the environment variable value into
+`fastenv.load_dotenv()`. This is demonstrated in the new tests.
+
+The new tests will build on the example in the README by loading a
+dotenv file into a FastAPI app instance with `fastenv.load_dotenv()`.
+The resultant `DotEnv` instance will then be accessed within an API
+endpoint by reading the lifespan state on `request.state`. As explained
+in the [Starlette lifespan docs](https://www.starlette.io/lifespan/),
+the `TestClient` must be used as a context manager to trigger lifespan.
+
+Thanks to @clabnet for prompting this change in
+[br3ndonland/fastenv#28](https://github.com/br3ndonland/fastenv/discussions/28).
+
+**Add support for Python 3.12** (#31, 53464862ffcec4292cbee1407a32a471f43e9da8)
+
+This release will add
+[Python 3.12](https://docs.python.org/3/whatsnew/3.12.html)
+support to fastenv.
+
+- fastenv will now include a Python 3.12 classifier in its PyPI package
+- fastenv will now build and publish its PyPI package using Python 3.12
+- fastenv will now run tests with Python 3.12, in addition to 3.8-3.11
+
+### Commits
+
+- Bump version from 0.4.2 to 0.5.0 (26fd927)
+- Document and test FastAPI integration (#32) (7362541)
+- Update to pytest 8 (1e8b896)
+- Update path to contributing.md in PR template (d51c035)
+- Update contact info in code of conduct (41bc76c)
+- Add support for Python 3.12 (#31) (5346486)
+- Update changelog for version 0.4.2 (#30) (ed436f9)
+
+Tagger: Brendon Smith <bws@bws.bio>
+
+Date: 2024-04-11 16:36:09 -0400
+
+```text
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
+kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQPKWdrKJ0W0TLNMY/hIRlUxqKZ8zDQkP4cb2z73PtFQe9NuFnTcsfQPhITox4xUves
+1jKisa4IV780duz3vJrQA=
+-----END SSH SIGNATURE-----
+```
+
 ## 0.4.2 - 2024-04-09
 
 ### Changes
