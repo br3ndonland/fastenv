@@ -57,6 +57,41 @@ anyio.run(fastenv.dump_dotenv, dotenv)
 # Path('/path/to/this/dir/.env')
 ```
 
+Use fastenv in your FastAPI app:
+
+```py
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, TypedDict
+
+import fastenv
+from fastapi import FastAPI, Request
+
+
+class LifespanState(TypedDict):
+    settings: fastenv.DotEnv
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[LifespanState]:
+    """Configure app lifespan.
+
+    https://fastapi.tiangolo.com/advanced/events/
+    https://www.starlette.io/lifespan/
+    """
+    settings = await fastenv.load_dotenv(".env")
+    lifespan_state: LifespanState = {"settings": settings}
+    yield lifespan_state
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/settings")
+async def get_settings(request: Request) -> dict[str, str]:
+    settings = request.state.settings
+    return dict(settings)
+```
+
 ## Documentation
 
 Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed on [Vercel](https://vercel.com/), and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
