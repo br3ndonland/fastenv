@@ -43,7 +43,7 @@ jobs:
     needs: [setup]
     environment:
       name: ${{ needs.setup.outputs.environment-name }}
-      url: ${{ needs.setup.outputs.environment-url }}&python=${{ matrix.python-version }}
+      url: ${{ needs.setup.outputs.environment-url }}
     permissions:
       id-token: write
     strategy:
@@ -130,15 +130,37 @@ jobs:
         run: hatch run ${{ env.HATCH_ENV }}:coverage report
       - name: Build Python package
         run: hatch build
-      - name: Publish Python package to PyPI
+      - name: Upload Python package artifacts
         if: >
           github.ref_type == 'tag' &&
           matrix.python-version == '3.12' &&
           needs.setup.outputs.environment-name == 'PyPI'
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: fastenv-${{ github.ref_name }}
+          path: dist
+  pypi:
+    environment:
+      name: ${{ needs.setup.outputs.environment-name }}
+      url: ${{ needs.setup.outputs.environment-url }}
+    if: github.ref_type == 'tag' && needs.setup.outputs.environment-name == 'PyPI'
+    needs: [setup, ci]
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Python package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          name: fastenv-${{ github.ref_name }}
+          path: dist
+      - name: Publish Python package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.8
   changelog:
     if: github.ref_type == 'tag'
-    needs: [ci]
+    needs: [ci, pypi]
     permissions:
       contents: write
       pull-requests: write
