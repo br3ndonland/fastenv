@@ -23,6 +23,8 @@ This project aims to:
 
 The source code is 100% type-annotated and unit-tested.
 
+For additional background on the project, see [www.bws.bio/projects/fastenv](https://www.bws.bio/projects/fastenv).
+
 ## Quickstart
 
 Install fastenv into a virtual environment:
