@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.6.0 - 2024-10-05
+
+### Changes
+
+**Drop Python 3.8 support**
+(a8a4c59e40481479136411abe7645da3ddaf60b9,
+6ca4c1b33736a8648f0d49cf639d66af0fcbaded)
+
+Python 3.8 is at [end-of-life](https://devguide.python.org/versions/).
+This release will drop support for Python 3.8. This could be a breaking
+change for users still running 3.8, so those users should consider
+updating to 3.9 or above.
+
+### Commits
+
+- Bump version from 0.5.0 to 0.6.0 (a6aa08e)
+- Upgrade syntax after dropping Python 3.8 (6ca4c1b)
+- Drop Python 3.8 support (a8a4c59)
+- Update test dependencies for FastAPI 0.115 (9a164e2)
+- Update to Ruff 0.6 (d02e241)
+- Update to `mypy==1.11.2` (a601145)
+- Update to `pipx==1.7.1` (75b589d)
+- Update to FastAPI 0.112 (8bc5f5d)
+- Don't hard-code repo name in GitHub Actions jobs (6ac42e3)
+- Use dedicated GitHub Actions job for PyPI (d0e973c)
+- Update to `hatch==1.12.0` (a80ba80)
+- Update to `pipx==1.6.0` (025443a)
+- Update to `mypy==1.10.1` (6faaadf)
+- Update to Ruff 0.5 (816d464)
+- Update to Prettier 3 (fc811c5)
+- Update to FastAPI 0.111 (984db1f)
+- Add project background link to README (34e5b94)
+- Add suggested pronounciation to README (4dedbf9)
+- Update changelog for version 0.5.0 (#33) (6bb820c)
+
+Tagger: Brendon Smith <bws@bws.bio>
+
+Date: 2024-10-05 14:58:44 -0400
+
+```text
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
+kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQPPZQ0NDiNZzqt9et0v3OaudHfusChrIQaFQNVPBQj83va5Iy5H3Vyt0GQ0Er3A6Z4
+ScxrGs62HHdwz2Q4gxuAg=
+-----END SSH SIGNATURE-----
+```
+
 ## 0.5.0 - 2024-04-11
 
 ### Changes
