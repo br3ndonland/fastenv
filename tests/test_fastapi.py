@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, AsyncIterator, Dict, TypedDict
+from typing import TypedDict
 
 import pytest
 from anyio import Path
@@ -33,7 +34,7 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/settings")
-async def get_settings(request: Request) -> Dict[str, str]:
+async def get_settings(request: Request) -> dict[str, str]:
     settings = request.state.settings
     return dict(settings)
 

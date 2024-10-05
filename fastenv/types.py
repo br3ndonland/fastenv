@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, List, TypedDict, Union
+from typing import TYPE_CHECKING, TypedDict, Union
 
 if TYPE_CHECKING:
     import sys
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     else:
         from typing import TypeAlias
 
-UploadPolicyConditions: TypeAlias = List[Union[Dict[str, str], List[Union[str, int]]]]
+UploadPolicyConditions: TypeAlias = list[Union[dict[str, str], list[Union[str, int]]]]
 
 
 class UploadPolicy(TypedDict):

@@ -131,7 +131,7 @@ src = ["fastenv", "tests"]
 docstring-code-format = true
 
 [tool.ruff.lint]
-extend-select = ["I"]
+extend-select = ["I", "UP"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["fastenv", "tests"]

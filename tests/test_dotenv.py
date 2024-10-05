@@ -9,7 +9,8 @@ import pytest
 import fastenv.dotenv
 
 if TYPE_CHECKING:
-    from typing import Any, MutableMapping
+    from collections.abc import MutableMapping
+    from typing import Any
 
     from pytest_mock import MockerFixture
 

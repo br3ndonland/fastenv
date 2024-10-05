@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import os
 import shlex
-from typing import TYPE_CHECKING, MutableMapping
+from collections.abc import MutableMapping
+from typing import TYPE_CHECKING
 
 import anyio
 
 from fastenv.utilities import logger
 
 if TYPE_CHECKING:
-    from typing import Iterator
+    from collections.abc import Iterator
 
 
 class DotEnv(MutableMapping[str, str]):
@@ -82,7 +83,7 @@ class DotEnv(MutableMapping[str, str]):
         return tuple(
             (split_arg[0].strip(" \n\"'").upper(), split_arg[1].strip(" \n\"'"))
             for a in parsed_args
-            if len((split_arg := a.split(sep="=", maxsplit=1))) == 2
+            if len(split_arg := a.split(sep="=", maxsplit=1)) == 2
         )
 
     def _parse_kwargs(self, **kwargs: str) -> dict[str, str]:
