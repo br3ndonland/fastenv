@@ -332,19 +332,19 @@ Here's an example of how this could be implemented.
 
 ### AWS S3
 
--   Pricing
-    -   $23/TB/month for storage
-    -   $90/TB/month outbound (also called download or egress), with further complex and expensive egress fees
-    -   See the [Backblaze B2 pricing page](https://www.backblaze.com/b2/cloud-storage-pricing.html) for comparisons
-    -   See [Backblaze Blog 2021-12-03: Why the world needs lower egress fees](https://www.backblaze.com/blog/why-the-world-needs-lower-egress-fees/) and [Cloudflare Blog 2021-07-23: AWS's egregious egress](https://blog.cloudflare.com/aws-egregious-egress/) for criticisms
--   Identity and Access Management (IAM):
-    -   [AWS IAM in S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-access-control.html)
--   URIs:
-    -   Path style URL: `https://s3.<region>.amazonaws.com/<bucketname>/<keyname>`. _Deprecated (see the [AWS blog](https://aws.amazon.com/blogs/aws/amazon-s3-path-deprecation-plan-the-rest-of-the-story/))_.
-    -   [Virtual-hosted-style URL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html): `https://<bucketname>.s3.<region>.amazonaws.com/<keyname>`. _This is the recommended URL format_.
-    -   S3 URI: `s3://<bucketname>/<keyname>`. _This method is only used for certain AWS tools like the AWS CLI (see [docs](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3/index.html) and [source code](https://github.com/aws/aws-cli/blob/fa4b05b4bad8574441e4d969aa1ad58a30ff550d/awscli/customizations/s3/utils.py#L217-L250))_.
-    -   [Presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html)
--   [Bucket naming rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html):
+- Pricing
+    - $23/TB/month for storage
+    - $90/TB/month outbound (also called download or egress), with further complex and expensive egress fees
+    - See the [Backblaze B2 pricing page](https://www.backblaze.com/b2/cloud-storage-pricing.html) for comparisons
+    - See [Backblaze Blog 2021-12-03: Why the world needs lower egress fees](https://www.backblaze.com/blog/why-the-world-needs-lower-egress-fees/) and [Cloudflare Blog 2021-07-23: AWS's egregious egress](https://blog.cloudflare.com/aws-egregious-egress/) for criticisms
+- Identity and Access Management (IAM):
+    - [AWS IAM in S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-access-control.html)
+- URIs:
+    - Path style URL: `https://s3.<region>.amazonaws.com/<bucketname>/<keyname>`. _Deprecated (see the [AWS blog](https://aws.amazon.com/blogs/aws/amazon-s3-path-deprecation-plan-the-rest-of-the-story/))_.
+    - [Virtual-hosted-style URL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html): `https://<bucketname>.s3.<region>.amazonaws.com/<keyname>`. _This is the recommended URL format_.
+    - S3 URI: `s3://<bucketname>/<keyname>`. _This method is only used for certain AWS tools like the AWS CLI (see [docs](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3/index.html) and [source code](https://github.com/aws/aws-cli/blob/fa4b05b4bad8574441e4d969aa1ad58a30ff550d/awscli/customizations/s3/utils.py#L217-L250))_.
+    - [Presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html)
+- [Bucket naming rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html):
 
     > An Amazon S3 bucket name is globally unique, and the namespace is shared by all AWS accounts. This means that after a bucket is created, the name of that bucket cannot be used by another AWS account in any AWS Region until the bucket is deleted.
 
@@ -354,98 +354,98 @@ Here's an example of how this could be implemented.
 
 ### Backblaze B2
 
--   [Pricing](https://www.backblaze.com/b2/cloud-storage-pricing.html):
-    -   $6/TB/month for storage (about 1/4 the price of S3)
-    -   Outbound (also called download or egress) data transfer fees are 1/4 the price of S3
-    -   See [Backblaze Blog 2021-12-03: Why the world needs lower egress fees](https://www.backblaze.com/blog/why-the-world-needs-lower-egress-fees/)
--   [S3-compatible API](https://www.backblaze.com/b2/docs/s3_compatible_api.html)\*
-    -   Downloading and listing operations are S3-compatible
-    -   \*Uploads are different, though there are [good reasons](https://www.backblaze.com/blog/design-thinking-b2-apis-the-hidden-costs-of-s3-compatibility/) for that (helps Backblaze keep pricing low)
--   URIs:
-    -   Path style URL: `https://s3.<region>.backblazeb2.com/<bucketname>`
-    -   Virtual-hosted-style URL: `https://<bucketname>.s3.<region>.backblazeb2.com`
-    -   Presigned URLs are supported
--   Identity and Access Management (IAM):
-    -   Simpler than AWS, while also providing fine-grained access controls.
-    -   No configuration of IAM users or roles needed. Access controls are configured on the access keys themselves.
-    -   Account master access key is separate from bucket access keys
-    -   Access key permissions can be scoped to individual buckets, and even object names within buckets.
--   Docs
-    -   [Backblaze B2 docs: Application keys](https://www.backblaze.com/b2/docs/application_keys.html)
-    -   [Backblaze B2 docs: S3-compatible API](https://www.backblaze.com/b2/docs/s3_compatible_api.html)
+- [Pricing](https://www.backblaze.com/b2/cloud-storage-pricing.html):
+    - $6/TB/month for storage (about 1/4 the price of S3)
+    - Outbound (also called download or egress) data transfer fees are 1/4 the price of S3
+    - See [Backblaze Blog 2021-12-03: Why the world needs lower egress fees](https://www.backblaze.com/blog/why-the-world-needs-lower-egress-fees/)
+- [S3-compatible API](https://www.backblaze.com/b2/docs/s3_compatible_api.html)\*
+    - Downloading and listing operations are S3-compatible
+    - \*Uploads are different, though there are [good reasons](https://www.backblaze.com/blog/design-thinking-b2-apis-the-hidden-costs-of-s3-compatibility/) for that (helps Backblaze keep pricing low)
+- URIs:
+    - Path style URL: `https://s3.<region>.backblazeb2.com/<bucketname>`
+    - Virtual-hosted-style URL: `https://<bucketname>.s3.<region>.backblazeb2.com`
+    - Presigned URLs are supported
+- Identity and Access Management (IAM):
+    - Simpler than AWS, while also providing fine-grained access controls.
+    - No configuration of IAM users or roles needed. Access controls are configured on the access keys themselves.
+    - Account master access key is separate from bucket access keys
+    - Access key permissions can be scoped to individual buckets, and even object names within buckets.
+- Docs
+    - [Backblaze B2 docs: Application keys](https://www.backblaze.com/b2/docs/application_keys.html)
+    - [Backblaze B2 docs: S3-compatible API](https://www.backblaze.com/b2/docs/s3_compatible_api.html)
 
 ### Cloudflare R2
 
--   [Pricing](https://developers.cloudflare.com/r2/platform/pricing/)
-    -   $15/TB/month for storage (about half the price of AWS S3, but over double the price of Backblaze B2)
--   [S3-compatible API](https://developers.cloudflare.com/r2/platform/s3-compatibility/api/)
--   URIs
-    -   Regions are handled automatically. "When using the S3 API, the region for an R2 bucket is `auto`. For compatibility with tools that do not allow you to specify a region, an empty value and `us-east-1` will alias to the `auto` region."
-    -   Cloudflare R2 URLs are different from other S3-compatible object storage platforms. The Cloudflare account ID is included in bucket URIs, but the region is not.
-    -   Path style URL: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com/<bucketname>`
-    -   Virtual-hosted-style URL: `https://<BUCKET>.<ACCOUNT_ID>.r2.cloudflarestorage.com` (added [2022-05-16](https://developers.cloudflare.com/r2/platform/changelog/#2022-05-16), also see [cloudflare/cloudflare-docs#6405](https://github.com/cloudflare/cloudflare-docs/pull/6405)), though note that the docs on [using the AWS CLI with R2](https://developers.cloudflare.com/r2/examples/aws/aws-cli/) and and [using Boto3 with R2](https://developers.cloudflare.com/r2/examples/aws/boto3/) still show only path style URLs.
-    -   Presigned URLs are supported
-        -   Added [2022-06-17](https://developers.cloudflare.com/r2/platform/changelog/#2022-06-17)
-        -   There may be CORS limitations on uploads due to lack of ability to set the `Access-Control-Allow-Origin` header ([cloudflare/cloudflare-docs#4455](https://github.com/cloudflare/cloudflare-docs/issues/4455)).
-    -   [Presigned `POST` is not currently supported](https://developers.cloudflare.com/r2/api/s3/presigned-urls/#supported-http-methods).
--   Identity and Access Management (IAM):
-    -   [Requires generation of a static access key](https://developers.cloudflare.com/r2/data-access/s3-api/tokens/). Does not appear to support temporary credentials from IAM roles (AWS session tokens). Does not appear to support OpenID Connect (OIDC).
-    -   Access keys can be set to either read-only or edit permissions.
-    -   Access keys can be scoped to specific Cloudflare products, Cloudflare accounts, and IP addresses.
--   Lifecycle policies
-    -   Added [2023-03-16](https://developers.cloudflare.com/r2/reference/changelog/#2023-03-16) ([blog post](https://blog.cloudflare.com/introducing-object-lifecycle-management-for-cloudflare-r2/))
-    -   [Docs](https://developers.cloudflare.com/r2/buckets/object-lifecycles/)
--   Docs
-    -   [Cloudflare R2 docs](https://developers.cloudflare.com/r2/)
-    -   [Cloudflare Blog 2021-07-23: AWS's egregious egress](https://blog.cloudflare.com/aws-egregious-egress/)
-    -   [Cloudflare Blog 2021-09-28: Announcing Cloudflare R2 Storage](https://blog.cloudflare.com/introducing-r2-object-storage/)
-    -   [Cloudflare Blog 2022-09-21: R2 is now Generally Available](https://blog.cloudflare.com/r2-ga/)
+- [Pricing](https://developers.cloudflare.com/r2/platform/pricing/)
+    - $15/TB/month for storage (about half the price of AWS S3, but over double the price of Backblaze B2)
+- [S3-compatible API](https://developers.cloudflare.com/r2/platform/s3-compatibility/api/)
+- URIs
+    - Regions are handled automatically. "When using the S3 API, the region for an R2 bucket is `auto`. For compatibility with tools that do not allow you to specify a region, an empty value and `us-east-1` will alias to the `auto` region."
+    - Cloudflare R2 URLs are different from other S3-compatible object storage platforms. The Cloudflare account ID is included in bucket URIs, but the region is not.
+    - Path style URL: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com/<bucketname>`
+    - Virtual-hosted-style URL: `https://<BUCKET>.<ACCOUNT_ID>.r2.cloudflarestorage.com` (added [2022-05-16](https://developers.cloudflare.com/r2/platform/changelog/#2022-05-16), also see [cloudflare/cloudflare-docs#6405](https://github.com/cloudflare/cloudflare-docs/pull/6405)), though note that the docs on [using the AWS CLI with R2](https://developers.cloudflare.com/r2/examples/aws/aws-cli/) and and [using Boto3 with R2](https://developers.cloudflare.com/r2/examples/aws/boto3/) still show only path style URLs.
+    - Presigned URLs are supported
+        - Added [2022-06-17](https://developers.cloudflare.com/r2/platform/changelog/#2022-06-17)
+        - There may be CORS limitations on uploads due to lack of ability to set the `Access-Control-Allow-Origin` header ([cloudflare/cloudflare-docs#4455](https://github.com/cloudflare/cloudflare-docs/issues/4455)).
+    - [Presigned `POST` is not currently supported](https://developers.cloudflare.com/r2/api/s3/presigned-urls/#supported-http-methods).
+- Identity and Access Management (IAM):
+    - [Requires generation of a static access key](https://developers.cloudflare.com/r2/data-access/s3-api/tokens/). Does not appear to support temporary credentials from IAM roles (AWS session tokens). Does not appear to support OpenID Connect (OIDC).
+    - Access keys can be set to either read-only or edit permissions.
+    - Access keys can be scoped to specific Cloudflare products, Cloudflare accounts, and IP addresses.
+- Lifecycle policies
+    - Added [2023-03-16](https://developers.cloudflare.com/r2/reference/changelog/#2023-03-16) ([blog post](https://blog.cloudflare.com/introducing-object-lifecycle-management-for-cloudflare-r2/))
+    - [Docs](https://developers.cloudflare.com/r2/buckets/object-lifecycles/)
+- Docs
+    - [Cloudflare R2 docs](https://developers.cloudflare.com/r2/)
+    - [Cloudflare Blog 2021-07-23: AWS's egregious egress](https://blog.cloudflare.com/aws-egregious-egress/)
+    - [Cloudflare Blog 2021-09-28: Announcing Cloudflare R2 Storage](https://blog.cloudflare.com/introducing-r2-object-storage/)
+    - [Cloudflare Blog 2022-09-21: R2 is now Generally Available](https://blog.cloudflare.com/r2-ga/)
 
 ### DigitalOcean Spaces
 
--   Pricing: $5 monthly flat rate
-    -   Up to 250GB of data storage
-    -   No charge for inbound data transfer
-    -   Up to 1TB of outbound data transfer (also called download or egress)
--   [S3-compatible API](https://docs.digitalocean.com/reference/api/spaces-api/)
--   URIs:
-    -   Path style URL: `https://<region>.digitaloceanspaces.com/<bucketname>`
-    -   Virtual-hosted-style URL: `https://<bucketname>.<region>.digitaloceanspaces.com`
-    -   Presigned URLs are supported
--   Identity and Access Management (IAM):
-    -   Minimal (access keys automatically access all buckets/"spaces")
-    -   Access keys can be created without paying the monthly fee
--   Docs
-    -   [DigitalOcean docs: Spaces](https://docs.digitalocean.com/products/spaces/)
-    -   [DigitalOcean docs: Spaces - Using DigitalOcean Spaces with AWS S3 SDKs](https://docs.digitalocean.com/products/spaces/resources/s3-sdk-examples/)
-    -   [DigitalOcean docs: Spaces - How-Tos - Manage access to Spaces](https://docs.digitalocean.com/products/spaces/how-to/manage-access/)
+- Pricing: $5 monthly flat rate
+    - Up to 250GB of data storage
+    - No charge for inbound data transfer
+    - Up to 1TB of outbound data transfer (also called download or egress)
+- [S3-compatible API](https://docs.digitalocean.com/reference/api/spaces-api/)
+- URIs:
+    - Path style URL: `https://<region>.digitaloceanspaces.com/<bucketname>`
+    - Virtual-hosted-style URL: `https://<bucketname>.<region>.digitaloceanspaces.com`
+    - Presigned URLs are supported
+- Identity and Access Management (IAM):
+    - Minimal (access keys automatically access all buckets/"spaces")
+    - Access keys can be created without paying the monthly fee
+- Docs
+    - [DigitalOcean docs: Spaces](https://docs.digitalocean.com/products/spaces/)
+    - [DigitalOcean docs: Spaces - Using DigitalOcean Spaces with AWS S3 SDKs](https://docs.digitalocean.com/products/spaces/resources/s3-sdk-examples/)
+    - [DigitalOcean docs: Spaces - How-Tos - Manage access to Spaces](https://docs.digitalocean.com/products/spaces/how-to/manage-access/)
 
 ### Google Cloud Storage
 
--   [Pricing](https://cloud.google.com/storage/pricing) (see the [Backblaze B2 pricing page](https://www.backblaze.com/b2/cloud-storage-pricing.html) for comparisons)
--   [S3-compatible API? Mostly?](https://cloud.google.com/storage/docs/migrating)
--   URIs:
-    -   Path style URL: `https://storage.googleapis.com/storage/v1/b/<bucketname>/o/<objectname>`
-    -   Virtual-hosted-style URLs?
-    -   [Presigned URLs are supported](https://cloud.google.com/storage/docs/access-control/signed-urls)
--   [Identity and Access Management (IAM)](https://cloud.google.com/storage/docs/access-control/iam)
--   [Docs](https://cloud.google.com/storage/docs)
+- [Pricing](https://cloud.google.com/storage/pricing) (see the [Backblaze B2 pricing page](https://www.backblaze.com/b2/cloud-storage-pricing.html) for comparisons)
+- [S3-compatible API? Mostly?](https://cloud.google.com/storage/docs/migrating)
+- URIs:
+    - Path style URL: `https://storage.googleapis.com/storage/v1/b/<bucketname>/o/<objectname>`
+    - Virtual-hosted-style URLs?
+    - [Presigned URLs are supported](https://cloud.google.com/storage/docs/access-control/signed-urls)
+- [Identity and Access Management (IAM)](https://cloud.google.com/storage/docs/access-control/iam)
+- [Docs](https://cloud.google.com/storage/docs)
 
 ### Linode Object Storage
 
--   Pricing: $5 monthly flat rate (same as DigitalOcean Spaces)
-    -   250GB of data storage included in the flat rate
-    -   No charge for inbound data transfer
-    -   Up to 1TB of outbound data transfer (also called download or egress)
-    -   Up to 50 Million objects per cluster
--   S3-compatible API
--   URIs:
-    -   Path style URL: `https://<region>.linodeobjects.com/<bucketname>`
-    -   Virtual-hosted-style URL: `https://<bucketname>.<region>.linodeobjects.com`
-    -   Presigned URLs are supported
--   Identity and Access Management (IAM):
-    -   Minimal (access keys automatically access all buckets)
-    -   Access keys cannot be created without paying the monthly fee first
--   Docs
-    -   [Linode docs: Storage - Object Storage - Overview](https://www.linode.com/docs/products/storage/object-storage/)
-    -   [Linode docs: Storage - Object Storage - Guides - Using the AWS SDK for Python (boto3) with Object Storage](https://www.linode.com/docs/products/storage/object-storage/guides/aws-sdk-for-python/)
+- Pricing: $5 monthly flat rate (same as DigitalOcean Spaces)
+    - 250GB of data storage included in the flat rate
+    - No charge for inbound data transfer
+    - Up to 1TB of outbound data transfer (also called download or egress)
+    - Up to 50 Million objects per cluster
+- S3-compatible API
+- URIs:
+    - Path style URL: `https://<region>.linodeobjects.com/<bucketname>`
+    - Virtual-hosted-style URL: `https://<bucketname>.<region>.linodeobjects.com`
+    - Presigned URLs are supported
+- Identity and Access Management (IAM):
+    - Minimal (access keys automatically access all buckets)
+    - Access keys cannot be created without paying the monthly fee first
+- Docs
+    - [Linode docs: Storage - Object Storage - Overview](https://www.linode.com/docs/products/storage/object-storage/)
+    - [Linode docs: Storage - Object Storage - Guides - Using the AWS SDK for Python (boto3) with Object Storage](https://www.linode.com/docs/products/storage/object-storage/guides/aws-sdk-for-python/)

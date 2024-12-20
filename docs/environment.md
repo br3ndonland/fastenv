@@ -8,9 +8,9 @@ The implementation of `fastenv.DotEnv` is based on `os.environ`, and it inherits
 
 Practically speaking, "superset of `os.environ`" means:
 
--   **When an environment variable is set in an instance of `class DotEnv`, it is also set in `os.environ`**.
--   **When an environment variable is deleted from an instance of `class DotEnv`, it is also deleted from `os.environ`**.
--   **When an environment variable is set directly with `os.environ`, it is not automatically set in instances of `class DotEnv`.** `os.environ` contains variables specific to the local environment, such as `os.environ["HOME"]`, so these variables are not included in `class DotEnv` by default.
+- **When an environment variable is set in an instance of `class DotEnv`, it is also set in `os.environ`**.
+- **When an environment variable is deleted from an instance of `class DotEnv`, it is also deleted from `os.environ`**.
+- **When an environment variable is set directly with `os.environ`, it is not automatically set in instances of `class DotEnv`.** `os.environ` contains variables specific to the local environment, such as `os.environ["HOME"]`, so these variables are not included in `class DotEnv` by default.
 
 ## Getting started
 

@@ -18,10 +18,10 @@ See the [`os` module docs](https://docs.python.org/3/library/os.html) and the [d
 
 ## environs
 
--   [environs](https://github.com/sloria/environs) is a project with useful features for managing _.env_ files and application settings. Its API was inspired by [django-environ](https://github.com/joke2k/django-environ) and [envparse](https://github.com/rconradharris/envparse) (and the maintainers [considered](https://github.com/rconradharris/envparse/issues/12) merging environs and envparse into one project). The _README_ [compares](https://github.com/sloria/environs#why) environs to `os.environ`, and justifies the additional features that environs provides.
--   While it _separates_ config from code, as suggested by the [twelve-factor app](https://12factor.net/config) methodology, it also _combines_ environment variables and settings. Environment variables and their type-casted setting counterparts are combined into the same model.
--   Initially, the source code wasn't consistently type-annotated ([sloria/environs#186](https://github.com/sloria/environs/issues/186)), but based on its [PEP 561](https://www.python.org/dev/peps/pep-0561/) marker file, it appears to be type-annotated now.
--   Depends on python-dotenv ([sloria/environs#196](https://github.com/sloria/environs/issues/196)), so it inherits the limitations described in the [python-dotenv section](#python-dotenv).
+- [environs](https://github.com/sloria/environs) is a project with useful features for managing _.env_ files and application settings. Its API was inspired by [django-environ](https://github.com/joke2k/django-environ) and [envparse](https://github.com/rconradharris/envparse) (and the maintainers [considered](https://github.com/rconradharris/envparse/issues/12) merging environs and envparse into one project). The _README_ [compares](https://github.com/sloria/environs#why) environs to `os.environ`, and justifies the additional features that environs provides.
+- While it _separates_ config from code, as suggested by the [twelve-factor app](https://12factor.net/config) methodology, it also _combines_ environment variables and settings. Environment variables and their type-casted setting counterparts are combined into the same model.
+- Initially, the source code wasn't consistently type-annotated ([sloria/environs#186](https://github.com/sloria/environs/issues/186)), but based on its [PEP 561](https://www.python.org/dev/peps/pep-0561/) marker file, it appears to be type-annotated now.
+- Depends on python-dotenv ([sloria/environs#196](https://github.com/sloria/environs/issues/196)), so it inherits the limitations described in the [python-dotenv section](#python-dotenv).
 
 ## _pydantic_
 
@@ -54,16 +54,16 @@ _pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/u
 
 ### File I/O
 
--   In addition to reading environment variables that have already been set, _pydantic_ can load environment variables from _.env_ files. However, it depends on python-dotenv to load _.env_ files, so it inherits the limitations described in the [python-dotenv section](#python-dotenv).
--   If no _.env_ file is found at the path provided, _pydantic_ will fail silently, rather than raising a `FileNotFoundError`. This can lead to issues if applications depend on environment variables that _pydantic_ fails to load.
+- In addition to reading environment variables that have already been set, _pydantic_ can load environment variables from _.env_ files. However, it depends on python-dotenv to load _.env_ files, so it inherits the limitations described in the [python-dotenv section](#python-dotenv).
+- If no _.env_ file is found at the path provided, _pydantic_ will fail silently, rather than raising a `FileNotFoundError`. This can lead to issues if applications depend on environment variables that _pydantic_ fails to load.
 
 ## python-decouple
 
--   [python-decouple](https://github.com/henriquebastos/python-decouple) loads settings from _.env_ and _.ini_ files. Its supported configuration file format appears to be inspired by [Foreman](https://github.com/ddollar/foreman), a Ruby configuration management tool.
--   Variables are set with calls to instances of its `AutoConfig` class, which offers type-casting to convert strings to other Python types: `config("DEBUG", cast=bool)`.
--   Source code is not type-annotated.
--   Classes inherit from `object`, and therefore require their own implementations of methods already present in other data structures. This could be easily eliminated by inheriting from a mapping data structure such as `collections.abc.MutableMapping`.
--   Continues supporting Python 2 after its [end-of-life](https://www.python.org/doc/sunset-python-2/), and has not been tested on the latest versions of Python 3.
+- [python-decouple](https://github.com/henriquebastos/python-decouple) loads settings from _.env_ and _.ini_ files. Its supported configuration file format appears to be inspired by [Foreman](https://github.com/ddollar/foreman), a Ruby configuration management tool.
+- Variables are set with calls to instances of its `AutoConfig` class, which offers type-casting to convert strings to other Python types: `config("DEBUG", cast=bool)`.
+- Source code is not type-annotated.
+- Classes inherit from `object`, and therefore require their own implementations of methods already present in other data structures. This could be easily eliminated by inheriting from a mapping data structure such as `collections.abc.MutableMapping`.
+- Continues supporting Python 2 after its [end-of-life](https://www.python.org/doc/sunset-python-2/), and has not been tested on the latest versions of Python 3.
 
 ## python-dotenv
 
@@ -71,52 +71,52 @@ _pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/u
 
 ### Environment variables
 
--   Its primary data structure, `dotenv.main.DotEnv`, inherits from `object`. As a result, it requires its own mapping methods (such as `dict()`) that could be obviated by inheriting from a mapping data structure such as `collections.abc.MutableMapping`.
--   Other methods have confusing, counter-intuitive APIs. For example, the `load_dotenv()` function is supposed to "Parse a .env file and then load all the variables found as environment variables," according to its docstring. However, the function always returns `True`, even if no _.env_ file is found or no environment variables are set, because of `DotEnv.set_as_environment_variables()`. Furthermore, this confusing behavior is not documented, because, as the maintainer [commented](https://github.com/theskumar/python-dotenv/issues/164#issuecomment-494750043), "The return value of `load_dotenv` is undocumented as I was planning to do something useful with it, but could not settle down to one."
+- Its primary data structure, `dotenv.main.DotEnv`, inherits from `object`. As a result, it requires its own mapping methods (such as `dict()`) that could be obviated by inheriting from a mapping data structure such as `collections.abc.MutableMapping`.
+- Other methods have confusing, counter-intuitive APIs. For example, the `load_dotenv()` function is supposed to "Parse a .env file and then load all the variables found as environment variables," according to its docstring. However, the function always returns `True`, even if no _.env_ file is found or no environment variables are set, because of `DotEnv.set_as_environment_variables()`. Furthermore, this confusing behavior is not documented, because, as the maintainer [commented](https://github.com/theskumar/python-dotenv/issues/164#issuecomment-494750043), "The return value of `load_dotenv` is undocumented as I was planning to do something useful with it, but could not settle down to one."
 
 ### File I/O
 
--   Loads files with the synchronous `open()` built-in function. Async support is not provided.
--   Does not integrate with object storage like AWS S3.
+- Loads files with the synchronous `open()` built-in function. Async support is not provided.
+- Does not integrate with object storage like AWS S3.
 
 ### Project maintenance
 
--   Continued supporting Python 2 after its [end-of-life](https://www.python.org/doc/sunset-python-2/) (until 0.19.0), so it had to use [Python 2 type comments](https://mypy.readthedocs.io/en/stable/python2.html) and other legacy cruft.
--   Maintainers have not been receptive to improvements (see [theskumar/python-dotenv#263](https://github.com/theskumar/python-dotenv/pull/263) for context).
+- Continued supporting Python 2 after its [end-of-life](https://www.python.org/doc/sunset-python-2/) (until 0.19.0), so it had to use [Python 2 type comments](https://mypy.readthedocs.io/en/stable/python2.html) and other legacy cruft.
+- Maintainers have not been receptive to improvements (see [theskumar/python-dotenv#263](https://github.com/theskumar/python-dotenv/pull/263) for context).
 
 ### Comparing fastenv and python-dotenv
 
 #### `DotEnv`
 
--   Both fastenv and python-dotenv provide a `DotEnv` class for managing environment variables
--   `fastenv.DotEnv` inherits from `collections.abc.MutableMapping`, `dotenv.main.DotEnv` inherits from `object`
--   fastenv includes `DotEnv` in its `__all__`, python-dotenv does not (it must be directly imported from `dotenv.main`)
+- Both fastenv and python-dotenv provide a `DotEnv` class for managing environment variables
+- `fastenv.DotEnv` inherits from `collections.abc.MutableMapping`, `dotenv.main.DotEnv` inherits from `object`
+- fastenv includes `DotEnv` in its `__all__`, python-dotenv does not (it must be directly imported from `dotenv.main`)
 
 #### `find_dotenv`
 
--   fastenv: `await fastenv.find_dotenv()` (async)
--   python-dotenv: `dotenv.find_dotenv()` (sync)
--   Both fastenv and python-dotenv look for `".env"` by default
--   Both python-dotenv and fastenv return `os.PathLike` objects
--   fastenv raises `FileNotFoundError` exceptions by default if files are not found, python-dotenv does not
+- fastenv: `await fastenv.find_dotenv()` (async)
+- python-dotenv: `dotenv.find_dotenv()` (sync)
+- Both fastenv and python-dotenv look for `".env"` by default
+- Both python-dotenv and fastenv return `os.PathLike` objects
+- fastenv raises `FileNotFoundError` exceptions by default if files are not found, python-dotenv does not
 
 #### `load_dotenv`
 
--   fastenv: `await fastenv.load_dotenv()` (async)
--   python-dotenv: `dotenv.load_dotenv()` (sync)
--   `fastenv.load_dotenv` can load multiple _.env_ files in a single call, `dotenv.load_dotenv` cannot
--   `fastenv.load_dotenv` logs the number of environment variables loaded, `dotenv.load_dotenv` does not
--   `fastenv.load_dotenv` returns a `DotEnv` model, `dotenv.load_dotenv` returns `True` (even if no _.env_ file was found and no environment variables were loaded)
+- fastenv: `await fastenv.load_dotenv()` (async)
+- python-dotenv: `dotenv.load_dotenv()` (sync)
+- `fastenv.load_dotenv` can load multiple _.env_ files in a single call, `dotenv.load_dotenv` cannot
+- `fastenv.load_dotenv` logs the number of environment variables loaded, `dotenv.load_dotenv` does not
+- `fastenv.load_dotenv` returns a `DotEnv` model, `dotenv.load_dotenv` returns `True` (even if no _.env_ file was found and no environment variables were loaded)
 
 #### `find_dotenv` with `load_dotenv`
 
 Users who would like to ensure their _.env_ files are found, and log the result, should be aware that `dotenv.load_dotenv`:
 
--   Only calls `find_dotenv` if a file path is not provided, and does not pass an argument through to `find_dotenv` to raise exceptions if the file is not found
--   Requires a call to `DotEnv.set_as_environment_variables` to actually set environment variables
--   Does not provide logging
--   Does not provide exception handling (its `verbose` argument does not necessarily raise an exception)
--   Does not return the `DotEnv` instance created by `load_dotenv`, but always returns `True`, even if no _.env_ file is found or no environment variables are set
+- Only calls `find_dotenv` if a file path is not provided, and does not pass an argument through to `find_dotenv` to raise exceptions if the file is not found
+- Requires a call to `DotEnv.set_as_environment_variables` to actually set environment variables
+- Does not provide logging
+- Does not provide exception handling (its `verbose` argument does not necessarily raise an exception)
+- Does not return the `DotEnv` instance created by `load_dotenv`, but always returns `True`, even if no _.env_ file is found or no environment variables are set
 
 Something like the following is therefore needed instead of using `dotenv.load_dotenv`:
 
@@ -146,24 +146,24 @@ Something like the following is therefore needed instead of using `dotenv.load_d
 
 The above effect can be accomplished with fastenv in a single call, `await fastenv.load_dotenv(find_source=True)`. This call to `fastenv.load_dotenv`:
 
--   Finds the _.env_ file (`find_source=True`) with its `find_dotenv` method and the file name provided (`".env"` by default), logging and raising a `FileNotFoundError` if not found
--   Sets environment variables automatically
--   Logs successes and errors automatically
--   Raises exceptions by default
--   Returns a `DotEnv` instance
+- Finds the _.env_ file (`find_source=True`) with its `find_dotenv` method and the file name provided (`".env"` by default), logging and raising a `FileNotFoundError` if not found
+- Sets environment variables automatically
+- Logs successes and errors automatically
+- Raises exceptions by default
+- Returns a `DotEnv` instance
 
 #### `dotenv_values`
 
--   fastenv: `await fastenv.dotenv_values()` (async)
--   python-dotenv: `dotenv.dotenv_values()` (sync)
--   `fastenv.dotenv_values` offers a `find_dotenv` argument to find files before loading and returning values, `dotenv.dotenv_values` does not
--   `fastenv.dotenv_values` offers a `raise_exceptions` argument to determine whether or not exceptions will be raised, `dotenv.dotenv_values` does not (its `verbose` argument does not necessarily raise an exception)
--   `fastenv.dotenv_values` logs successes and errors automatically, `dotenv.dotenv_values` does not
+- fastenv: `await fastenv.dotenv_values()` (async)
+- python-dotenv: `dotenv.dotenv_values()` (sync)
+- `fastenv.dotenv_values` offers a `find_dotenv` argument to find files before loading and returning values, `dotenv.dotenv_values` does not
+- `fastenv.dotenv_values` offers a `raise_exceptions` argument to determine whether or not exceptions will be raised, `dotenv.dotenv_values` does not (its `verbose` argument does not necessarily raise an exception)
+- `fastenv.dotenv_values` logs successes and errors automatically, `dotenv.dotenv_values` does not
 
 #### Writing to _.env_ files
 
--   fastenv: `await fastenv.dump_dotenv()` (async, and writes an entire `DotEnv` model to a file)
--   python-dotenv: `dotenv.get_key()`, `dotenv.set_key()`, `dotenv.unset_key()` (sync, and can only write single variables to a file)
+- fastenv: `await fastenv.dump_dotenv()` (async, and writes an entire `DotEnv` model to a file)
+- python-dotenv: `dotenv.get_key()`, `dotenv.set_key()`, `dotenv.unset_key()` (sync, and can only write single variables to a file)
 
 ## Starlette
 
@@ -246,9 +246,9 @@ It is also important to note that the one-way preference will only be enforced w
 
 ### File I/O
 
--   Starlette `Config` accepts an `env_file` keyword argument, which should point to a _.env_ file on disk. It loads the file with the synchronous `open()` built-in function.
--   If no _.env_ file is found at the path provided by `Config(env_file)`, Starlette will raise a warning instead of a `FileNotFoundError` ([encode/starlette#2422](https://github.com/encode/starlette/pull/2422), [encode/starlette#2446](https://github.com/encode/starlette/discussions/2446), [encode/starlette#2485](https://github.com/encode/starlette/pull/2485)). This can lead to issues if applications depend on environment variables that Starlette fails to load.
--   Starlette `Config` does not support multiple _.env_ files ([encode/starlette#432](https://github.com/encode/starlette/issues/432)).
+- Starlette `Config` accepts an `env_file` keyword argument, which should point to a _.env_ file on disk. It loads the file with the synchronous `open()` built-in function.
+- If no _.env_ file is found at the path provided by `Config(env_file)`, Starlette will raise a warning instead of a `FileNotFoundError` ([encode/starlette#2422](https://github.com/encode/starlette/pull/2422), [encode/starlette#2446](https://github.com/encode/starlette/discussions/2446), [encode/starlette#2485](https://github.com/encode/starlette/pull/2485)). This can lead to issues if applications depend on environment variables that Starlette fails to load.
+- Starlette `Config` does not support multiple _.env_ files ([encode/starlette#432](https://github.com/encode/starlette/issues/432)).
 
 ### The future of `starlette.config`
 
@@ -264,7 +264,7 @@ From [encode/starlette#432](https://github.com/encode/starlette/issues/432#issue
 
 ## Other
 
--   [dotenvy](https://github.com/chickenzord/dotenvy) can load _.env_ files and apply a type schema to the variables. It does not appear to be actively maintained.
--   [env](https://github.com/MasterOdin/env) does not add much beyond `os.environ` (does not even load files), has not been released since 2012, and does not appear to be actively maintained.
--   [envparse](https://github.com/rconradharris/envparse) offers features for parsing and type-casting environment variables, but does not appear to be actively maintained.
--   [python-configurator](https://github.com/guitarpoet/python-configurator) depends on python-dotenv and appears to emphasize TOML settings files.
+- [dotenvy](https://github.com/chickenzord/dotenvy) can load _.env_ files and apply a type schema to the variables. It does not appear to be actively maintained.
+- [env](https://github.com/MasterOdin/env) does not add much beyond `os.environ` (does not even load files), has not been released since 2012, and does not appear to be actively maintained.
+- [envparse](https://github.com/rconradharris/envparse) offers features for parsing and type-casting environment variables, but does not appear to be actively maintained.
+- [python-configurator](https://github.com/guitarpoet/python-configurator) depends on python-dotenv and appears to emphasize TOML settings files.
