@@ -98,12 +98,4 @@ async def get_settings(request: Request) -> dict[str, str]:
 
 ## Documentation
 
-Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed on [Vercel](https://vercel.com/), and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
-
-[Vercel build configuration](https://vercel.com/docs/build-step):
-
-- Install command: `python3 -m pip install --user pipx && export PATH="$HOME/.local/bin:$PATH" && pipx install --global --include-deps 'mkdocs-material>=9,<10'`
-- Build command: `mkdocs build --site-dir public`
-- Output directory: `public` (default)
-
-[Vercel site configuration](https://vercel.com/docs/configuration) is specified in _vercel.json_.
+Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed to [Vercel](https://vercel.com/) using the [Vercel project configuration](https://vercel.com/docs/project-configuration) in [`vercel.json`](vercel.json), and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
