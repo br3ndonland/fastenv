@@ -115,6 +115,7 @@ command_line = "-m pytest"
 source = ["fastenv", "tests"]
 
 [tool.mypy]
+exclude_gitignore = true
 files = ["**/*.py"]
 strict = true
 
