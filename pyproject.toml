@@ -116,7 +116,6 @@ source = ["fastenv", "tests"]
 
 [tool.mypy]
 files = ["**/*.py"]
-show_error_codes = true
 strict = true
 
 [tool.pytest.ini_options]
