@@ -55,6 +55,7 @@ jobs:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
     env:
+      HATCH_ENV_TYPE_VIRTUAL_PATH: ".venv"
       HATCH_ENV: "ci"
       HATCH_VERSION: "1.14.1"
       PIPX_VERSION: "1.7.1"
@@ -87,7 +88,7 @@ jobs:
         run: hatch env create ${{ env.HATCH_ENV }}
       - name: Test virtualenv location
         run: |
-          EXPECTED_VIRTUALENV_PATH=$GITHUB_WORKSPACE/.venv
+          EXPECTED_VIRTUALENV_PATH="$GITHUB_WORKSPACE/$HATCH_ENV_TYPE_VIRTUAL_PATH"
           INSTALLED_VIRTUALENV_PATH=$(hatch env find)
           echo "The virtualenv should be at $EXPECTED_VIRTUALENV_PATH."
           echo "Hatch is using a virtualenv at $INSTALLED_VIRTUALENV_PATH."

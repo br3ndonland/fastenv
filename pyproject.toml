@@ -71,7 +71,6 @@ features = [
   "checks",
   "tests",
 ]
-path = ".venv"
 
 [tool.hatch.envs.default]
 dev-mode = true
@@ -80,7 +79,6 @@ features = [
   "docs",
   "tests",
 ]
-path = ".venv"
 
 [tool.hatch.envs.default.scripts]
 check = [
