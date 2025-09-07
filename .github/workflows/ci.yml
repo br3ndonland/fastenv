@@ -200,7 +200,7 @@ jobs:
           git tag -l --sort=-taggerdate:iso --format="$GIT_LOG_FORMAT" >>CHANGELOG.md
           git tag -l --sort=-taggerdate:iso --format="$GIT_LOG_FORMAT" >>docs/changelog.md
       - name: Format changelog with Prettier
-        run: npx -s -y prettier@'^3.4' --write CHANGELOG.md docs/changelog.md
+        run: npx -s -y prettier@'^3' --write CHANGELOG.md docs/changelog.md
       - name: Create pull request with updated changelog
         uses: peter-evans/create-pull-request@v6
         with:
