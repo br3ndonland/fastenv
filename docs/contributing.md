@@ -1,11 +1,11 @@
-# Contributing
+# Guidelines for contributing
 
 ## Summary
 
 **PRs welcome!**
 
-- **Consider starting a [discussion](https://github.com/br3ndonland/fastenv/discussions) to see if there's interest in what you want to do.**
-- **Submit PRs from feature branches on forks to the `develop` branch.**
+- **Consider starting a discussion to see if there's interest in what you want to do.**
+- **Fork the repo and submit PRs from the fork.**
 - **Ensure PRs pass all CI checks.**
 - **Maintain test coverage at 100%.**
 
@@ -262,32 +262,19 @@ See the [Cloudflare R2 docs](https://developers.cloudflare.com/r2/) for further 
 
 ## Maintainers
 
-### Merges
-
-- **The default branch is `develop`.**
-- **PRs should be merged into `develop`.** Head branches are deleted automatically after PRs are merged.
-- **The only merges to `main` should be fast-forward merges from `develop`.**
-- **Branch protection is enabled on `develop` and `main`.**
-    - `develop`:
-        - Require signed commits
-        - Include administrators
-        - Allow force pushes
-    - `main`:
-        - Require signed commits
-        - Include administrators
-        - Do not allow force pushes
-        - Require status checks to pass before merging (commits must have previously been pushed to `develop` and passed all checks)
-
-### Releases
-
+- **PRs should be merged into the default branch.** Head branches are deleted automatically after PRs are merged.
+- **Branch protection is enabled.**
+    - Require signed commits
+    - Include administrators
+    - Do not allow force pushes
+    - Require status checks to pass before merging
 - **To create a release:**
-    - Bump the version number in `fastenv.__version__` with `hatch version` and commit the changes to `develop`.
+    - Bump the version number in `__version__` with `hatch version` and commit the changes.
         - Follow [SemVer](https://semver.org/) guidelines when choosing a version number. Note that [PEP 440](https://peps.python.org/pep-0440/) Python version specifiers and SemVer version specifiers differ, particularly with regard to specifying prereleases. Use syntax compatible with both.
         - The PEP 440 default (like `1.0.0a0`) is different from SemVer. Hatch and PyPI will use this syntax by default.
-        - An alternative form of the Python prerelease syntax permitted in PEP 440 (like `1.0.0-alpha.0`) is compatible with SemVer, and this form should be used when tagging releases. As Hatch uses PEP 440 syntax by default, prerelease versions need to be written directly into `fastenv.__version__`.
+        - An alternative form of the Python prerelease syntax permitted in PEP 440 (like `1.0.0-alpha.0`) is compatible with SemVer, and this form should be used when tagging releases. As Hatch uses PEP 440 syntax by default, prerelease versions need to be written directly into `__version__`.
         - Examples of acceptable tag names: `1.0.0`, `1.0.0-alpha.0`, `1.0.0-beta.1`
-    - Push to `develop` and verify all CI checks pass.
-    - Fast-forward merge to `main`, push, and verify all CI checks pass.
+    - Push the version bump and verify all CI checks pass.
     - Create an [annotated and signed Git tag](https://www.git-scm.com/book/en/v2/Git-Basics-Tagging).
         - List PRs and commits in the tag message:
             ```sh
@@ -296,8 +283,8 @@ See the [Cloudflare R2 docs](https://developers.cloudflare.com/r2/) for further 
             ```
         - Omit the leading `v` (use `1.0.0` instead of `v1.0.0`)
         - Example: `git tag -a -s 1.0.0`
-    - Push the tag. GitHub Actions will build and publish the Python package and update the changelog.
-    - Squash and merge the changelog PR, removing any [`Co-authored-by` trailers](https://docs.github.com/en/pull-requests/committing-changes-to-your-project/creating-and-editing-commits/creating-a-commit-with-multiple-authors) before merging.
+    - Push the tag. GitHub Actions will build and push the Python package and Docker images, and open a PR to update the changelog.
+    - Squash and merge the changelog PR.
 
 ### Deployments
 
