@@ -37,7 +37,7 @@ python -m pip install fastenv
 
 Then start a REPL session and try it out:
 
-```{ .sh .no-copy }
+```sh
 .venv ❯ python
 ```
 
@@ -95,3 +95,7 @@ async def get_settings(request: Request) -> dict[str, str]:
     settings = request.state.settings
     return dict(settings)
 ```
+
+## Documentation
+
+Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed to [Vercel](https://vercel.com/) using the [Vercel project configuration](https://vercel.com/docs/project-configuration) in `vercel.json`, and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).

@@ -28,7 +28,7 @@ dynamic = ["version"]
 keywords = ["asgi", "dotenv", "environment variables", "fastapi", "settings"]
 license = "MIT"
 name = "fastenv"
-readme = "README.md"
+readme = "docs/index.md"
 requires-python = ">=3.9,<4"
 
 [project.optional-dependencies]
