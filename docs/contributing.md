@@ -288,6 +288,6 @@ See the [Cloudflare R2 docs](https://developers.cloudflare.com/r2/) for further 
 
 ### Deployments
 
-Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed to [Vercel](https://vercel.com/) using the [Vercel project configuration](https://vercel.com/docs/project-configuration) in [`vercel.json`](vercel.json), and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
+Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed to [Vercel](https://vercel.com/) using the [Vercel project configuration](https://vercel.com/docs/project-configuration) in `vercel.json`, and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
 
 **The version of `mkdocs-material` installed on Vercel is independent of the version listed in _pyproject.toml_. If the version of `mkdocs-material` is updated in _pyproject.toml_, it must also be updated in the Vercel build configuration.**
