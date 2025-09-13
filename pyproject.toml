@@ -34,7 +34,7 @@ Repository = "https://github.com/br3ndonland/fastenv"
 
 [project.optional-dependencies]
 checks = [
-  "mypy==1.16.1",
+  "basedpyright>=1.31,<1.32",
   "ruff>=0.12,<0.13",
 ]
 cloud = [
@@ -58,6 +58,10 @@ tests = [
 [build-system]
 requires = ["hatchling>=1.26.3,<2"]
 build-backend = "hatchling.build"
+
+[tool.basedpyright]
+pythonVersion = "3.9"
+reportImplicitOverride = "information"
 
 [tool.coverage.report]
 exclude_lines = ["if TYPE_CHECKING:", "pragma: no cover"]
@@ -93,7 +97,7 @@ features = [
 check = [
   "ruff check",
   "ruff format --check",
-  "mypy",
+  "basedpyright",
   "npx -s -y prettier@'^3' . --check",
   "npx -s -y cspell --dot --gitignore *.md **/*.md",
 ]
@@ -111,11 +115,6 @@ features = [
 
 [tool.hatch.version]
 path = "fastenv/__init__.py"
-
-[tool.mypy]
-exclude_gitignore = true
-files = ["**/*.py"]
-strict = true
 
 [tool.pytest.ini_options]
 addopts = "-q"

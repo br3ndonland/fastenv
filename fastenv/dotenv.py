@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class DotEnv(MutableMapping[str, str]):
-    __slots__ = "_data", "source"
+    __slots__: tuple[str, str] = "_data", "source"
 
     def __init__(self, *args: str, **kwargs: str) -> None:
         self._data: MutableMapping[str, str] = {}
@@ -59,7 +59,7 @@ class DotEnv(MutableMapping[str, str]):
     def _is_single_arg_to_get(self, *args: str, **kwargs: str) -> bool:
         return (
             len(args) == 1
-            and isinstance(args[0], str)
+            and isinstance(args[0], str)  # pyright: ignore[reportUnnecessaryIsInstance]
             and not args[0].startswith("#")
             and "=" not in args[0]
             and " " not in args[0]
@@ -67,7 +67,7 @@ class DotEnv(MutableMapping[str, str]):
         )
 
     def _parse_args(self, *args: str) -> list[str]:
-        if any(not isinstance(arg, str) for arg in args):
+        if any(not isinstance(arg, str) for arg in args):  # pyright: ignore[reportUnnecessaryIsInstance]
             raise TypeError("Arguments passed to DotEnv instances should be strings")
         parsed_args: list[str] = []
         for arg in args:
@@ -92,7 +92,7 @@ class DotEnv(MutableMapping[str, str]):
             for k in kwargs
         }
 
-    def _sort_dotenv(self) -> None:
+    def sort_dotenv(self) -> None:
         self._data = dict(sorted(self._data.items()))
 
     def getenv(self, key: str, default: str | None = None) -> str | None:
@@ -173,7 +173,7 @@ async def _read_dotenv_source(
         ]
         dotenv = DotEnv(*iter(source_contents))
     if sort_dotenv:
-        dotenv._sort_dotenv()
+        dotenv.sort_dotenv()
     return dotenv
 
 
@@ -213,7 +213,7 @@ async def dotenv_values(
     """Serialize a `DotEnv` source into a dictionary."""
     if isinstance(source, DotEnv):
         if sort_dotenv:
-            source._sort_dotenv()
+            source.sort_dotenv()
         return dict(source)
     dotenv = await load_dotenv(
         source,
@@ -234,11 +234,11 @@ async def dump_dotenv(
     sort_dotenv: bool = False,
 ) -> anyio.Path:
     """Dump a `DotEnv` model to a file."""
+    dotenv_path = anyio.Path(destination)
     try:
         if isinstance(source, DotEnv) and sort_dotenv:
-            source._sort_dotenv()
-        dotenv_path = anyio.Path(destination)
-        await dotenv_path.write_text(str(source), encoding=encoding)
+            source.sort_dotenv()
+        _ = await dotenv_path.write_text(str(source), encoding=encoding)
         logger.info(f"fastenv dumped to {dotenv_path}")
         return await dotenv_path.resolve(strict=raise_exceptions)
     except Exception as e:

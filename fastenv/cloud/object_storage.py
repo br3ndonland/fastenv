@@ -72,13 +72,14 @@ class ObjectStorageConfig:
         self.access_key = access_key
         self.secret_key = secret_key
         if not bucket_host and not bucket_name:
-            raise AttributeError(
+            error_message = (
                 "Required bucket info not provided. Please provide a bucket, "
                 "like `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3, "
                 "`<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2, "
                 "or `<BUCKET_NAME>.<ACCOUNT_ID>.r2.cloudflarestorage.com` "
                 "for Cloudflare R2."
             )
+            raise AttributeError(error_message)
         elif bucket_host and not bucket_name:
             bucket_host = bucket_host.rstrip("/")
             scheme = (
@@ -113,18 +114,20 @@ class ObjectStorageConfig:
             bucket_host or f"{bucket_name}.s3.{bucket_region}.amazonaws.com"
         )
         if self.bucket_name and self.bucket_name not in self.bucket_host:
-            raise AttributeError(
+            error_message = (
                 f"Bucket host {self.bucket_host} does not "
                 f"include bucket name {self.bucket_name}."
             )
+            raise AttributeError(error_message)
         if (
             not self.bucket_host.endswith(".cloudflarestorage.com")
             and self.bucket_region not in self.bucket_host
         ):
-            raise AttributeError(
+            error_message = (
                 f"Bucket host {self.bucket_host} does not "
                 f"include bucket region {self.bucket_region}."
             )
+            raise AttributeError(error_message)
         self.session_token = (
             session_token
             if session_token is not None
@@ -151,7 +154,7 @@ class ObjectStorageClient:
     https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html
     """
 
-    __slots__ = "_client", "_config"
+    __slots__: tuple[str, str] = "_client", "_config"
 
     def __init__(
         self,
@@ -159,8 +162,10 @@ class ObjectStorageClient:
         config: ObjectStorageConfig | None = None,
         **config_options: str,
     ) -> None:
-        self._client = client or httpx.AsyncClient()
-        self._config = config or ObjectStorageConfig(**config_options)
+        self._client: httpx.AsyncClient = client or httpx.AsyncClient()
+        self._config: ObjectStorageConfig = config or ObjectStorageConfig(
+            **config_options
+        )
 
     async def download(
         self,
@@ -178,12 +183,12 @@ class ObjectStorageClient:
         try:
             download_url = self.generate_presigned_url("GET", bucket_path, expires=30)
             response = await self._client.get(download_url)
-            response.raise_for_status()
+            _ = response.raise_for_status()
             response_text = str(response.text)
             message = f"fastenv loaded {bucket_path} from {self._config.bucket_host}"
             if destination:
                 destination_path = anyio.Path(destination)
-                await destination_path.write_text(response_text)
+                _ = await destination_path.write_text(response_text)
                 logger.info(f"{message} and wrote the contents to {destination_path}")
                 return destination_path
             logger.info(message)
@@ -494,11 +499,12 @@ class ObjectStorageClient:
                 response = await self._client.post(
                     url, data=data, files={"file": content}
                 )
-            response.raise_for_status()
-            logger.info(
+            _ = response.raise_for_status()
+            info_message = (
                 f"{message} and wrote the contents to"
                 f" {self._config.bucket_host}/{bucket_path}"
             )
+            logger.info(info_message)
             return response
         except Exception as e:
             logger.error(f"fastenv error: {e.__class__.__qualname__} {e}")
@@ -801,10 +807,11 @@ class ObjectStorageClient:
         if form_data_key_item and isinstance(form_data_key_item, str):
             return form_data_to_return
         elif form_data_key_item:
-            raise KeyError(
+            error_message = (
                 f"Incorrect data type {type(form_data_key_item)} "
                 f"in form data: {{'key': {form_data_key_item}}}."
             )
+            raise KeyError(error_message)
         else:
             if form_data_key_items := [
                 str(policy_condition[2]) + "${filename}"

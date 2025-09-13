@@ -1,9 +1,12 @@
+# pyright: reportAttributeAccessIssue=information
+# pyright: reportPrivateUsage=information
+# pyright: reportUnknownArgumentType=information, reportUnknownMemberType=information
 from __future__ import annotations
 
 import datetime
 import os
-import urllib
-from typing import TYPE_CHECKING
+import urllib.parse
+from typing import TYPE_CHECKING, final
 
 import anyio
 import freezegun
@@ -22,6 +25,7 @@ if TYPE_CHECKING:
     from fastenv.types import UploadPolicy, UploadPolicyConditions
 
 
+@final
 class TestObjectStorageConfig:
     """Test instantiation of `class ObjectStorageConfig`."""
 
@@ -178,7 +182,7 @@ class TestObjectStorageConfig:
         """
         mocker.patch.dict(os.environ, clear=True)
         with pytest.raises(AttributeError) as e:
-            fastenv.cloud.object_storage.ObjectStorageConfig(**config_kwargs)
+            _ = fastenv.cloud.object_storage.ObjectStorageConfig(**config_kwargs)
         assert "not provided" in str(e.value)
 
     @pytest.mark.parametrize(
@@ -269,7 +273,7 @@ class TestObjectStorageConfig:
             "bucket name sigv4examplebucket."
         )
         with pytest.raises(AttributeError) as e:
-            fastenv.cloud.object_storage.ObjectStorageConfig(
+            _ = fastenv.cloud.object_storage.ObjectStorageConfig(
                 access_key=self.example_access_key,
                 secret_key=self.example_secret_key,
                 bucket_host=bucket_host,
@@ -294,7 +298,7 @@ class TestObjectStorageConfig:
             f"bucket region {self.example_bucket_region}."
         )
         with pytest.raises(AttributeError) as e:
-            fastenv.cloud.object_storage.ObjectStorageConfig(
+            _ = fastenv.cloud.object_storage.ObjectStorageConfig(
                 access_key=self.example_access_key,
                 secret_key=self.example_secret_key,
                 bucket_host=bucket_host,
@@ -365,9 +369,9 @@ class TestObjectStorageClientUnit:
         and assert that an `AttributeError` is raised.
         """
         mocker.patch.dict(os.environ, clear=True)
-        mocker.patch.object(fastenv.cloud.object_storage, "logger", autospec=True)
+        _ = mocker.patch.object(fastenv.cloud.object_storage, "logger", autospec=True)
         with pytest.raises(AttributeError) as e:
-            fastenv.cloud.object_storage.ObjectStorageClient()
+            _ = fastenv.cloud.object_storage.ObjectStorageClient()
         assert "not provided" in str(e.value)
 
     @freezegun.freeze_time("2013-05-24")
@@ -564,7 +568,7 @@ class TestObjectStorageClientUnit:
         assert presigned_url.params["X-Amz-Date"] == "20130524T000000Z"
         assert presigned_url.params["X-Amz-Expires"] == "86400"
         if object_storage_config.session_token:
-            presigned_url_token = presigned_url.params.get("X-Amz-Security-Token")
+            presigned_url_token = dict(presigned_url.params).get("X-Amz-Security-Token")
             assert presigned_url_token == object_storage_config.session_token
         assert presigned_url.params["X-Amz-SignedHeaders"] == "host"
         assert presigned_url.params["X-Amz-Signature"] == expected_x_amz_signature
@@ -631,7 +635,9 @@ class TestObjectStorageClientUnit:
             config=object_storage_config
         )
         with pytest.raises(ValueError) as e:
-            object_storage_client.generate_presigned_url("GET", ".env", expires=expires)
+            _ = object_storage_client.generate_presigned_url(
+                "GET", ".env", expires=expires
+            )
         assert "Expiration time must be between one second and one week" in str(e.value)
 
     @pytest.mark.parametrize("key", ("user/user1/a.png", "user/user1/${filename}"))
@@ -871,10 +877,13 @@ class TestObjectStorageClientUnit:
         assert isinstance(policy["conditions"], list)
         policy["conditions"].remove(["starts-with", "$key", "user/user1/"])
         with pytest.raises(KeyError) as e_missing:
-            object_storage_client._prepare_presigned_post_form_data(policy)
+            _ = object_storage_client._prepare_presigned_post_form_data(policy)
         with pytest.raises(KeyError) as e_mistyped:
-            policy["conditions"].insert(0, {"key": True})  # type: ignore[dict-item]
-            object_storage_client._prepare_presigned_post_form_data(policy)
+            policy["conditions"].insert(
+                0,
+                {"key": True},  # type: ignore[dict-item] # pyright: ignore[reportArgumentType]
+            )
+            _ = object_storage_client._prepare_presigned_post_form_data(policy)
         assert "Missing required form data key" in str(e_missing.value)
         assert "Incorrect data type" in str(e_mistyped.value)
 
@@ -895,7 +904,7 @@ class TestObjectStorageClientUnit:
         )
         policy = object_storage_client_upload_policy_from_presigned_post_example
         with pytest.raises(KeyError) as e:
-            object_storage_client._prepare_presigned_post_form_data(
+            _ = object_storage_client._prepare_presigned_post_form_data(
                 policy, {"foobar": "baz"}
             )
         assert "Unsupported form data key: foobar" in str(e.value)
@@ -961,6 +970,7 @@ class TestObjectStorageClientUnit:
         assert data["x-amz-server-side-encryption"] == "AES256"
 
 
+@final
 class TestObjectStorageClientIntegration:
     """Test `class ObjectStorageClient` and its methods.
 
@@ -985,7 +995,7 @@ class TestObjectStorageClientIntegration:
         instance, load the file, and assert all expected variables are set.
         """
         mocker.patch.dict(os.environ, clear=True)
-        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         environ = mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(
             fastenv.cloud.object_storage, "logger", autospec=True
@@ -1001,10 +1011,11 @@ class TestObjectStorageClientIntegration:
         assert dotenv.source == env_file_download
         for expected_key, expected_value in env_file_object_expected_output.items():
             assert variable_is_set(dotenv, environ, expected_key, expected_value)
-        logger.info.assert_called_once_with(
+        info_message = (
             f"fastenv loaded {self.key} from {object_storage_config.bucket_host} "
             f"and wrote the contents to {destination}"
         )
+        logger.info.assert_called_once_with(info_message)
 
     @pytest.mark.anyio
     async def test_download_to_string_with_object_storage_config(
@@ -1031,9 +1042,10 @@ class TestObjectStorageClientIntegration:
         dotenv = fastenv.dotenv.DotEnv(env_file_contents)
         for expected_key, expected_value in env_file_object_expected_output.items():
             assert variable_is_set(dotenv, environ, expected_key, expected_value)
-        logger.info.assert_called_once_with(
+        info_message = (
             f"fastenv loaded {self.key} from {object_storage_config.bucket_host}"
         )
+        logger.info.assert_called_once_with(info_message)
 
     @pytest.mark.anyio
     async def test_download_error(
@@ -1058,13 +1070,14 @@ class TestObjectStorageClientIntegration:
         )
         expected_exceptions = (httpx.HTTPStatusError, httpx.ReadError)
         with pytest.raises(expected_exceptions) as e:
-            await object_storage_client.download(
+            _ = await object_storage_client.download(
                 bucket_path=f"{self.key}-does-not-exist"
             )
         if e.type is httpx.HTTPStatusError:
-            assert (
-                int(e.value.response.status_code) == 404  # type: ignore[attr-defined]
+            status_code = int(
+                e.value.response.status_code  # type: ignore[attr-defined]
             )
+            assert status_code == 404
             assert str(object_storage_config.bucket_name) in str(e.value)
             assert "fastenv error" in logger.error.call_args.args[0]
             assert "HTTPStatusError" in logger.error.call_args.args[0]
@@ -1102,16 +1115,17 @@ class TestObjectStorageClientIntegration:
             f"{object_storage_client_upload_prefix}/.env.from-file."
             f"{object_storage_config.access_key}.{method.lower()}"
         )
-        await object_storage_client.upload(
+        _ = await object_storage_client.upload(
             bucket_path=bucket_path,
             method=method,
             source=env_file,
             server_side_encryption=server_side_encryption,
         )
-        logger.info.assert_called_once_with(
+        info_message = (
             f"fastenv loaded {env_file} and wrote the contents to"
             f" {object_storage_config.bucket_host}/{bucket_path}"
         )
+        logger.info.assert_called_once_with(info_message)
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("method", ("POST", "PUT"))
@@ -1146,16 +1160,17 @@ class TestObjectStorageClientIntegration:
             f"{object_storage_client_upload_prefix}/.env.from-string."
             f"{object_storage_config.access_key}.{method.lower()}"
         )
-        await object_storage_client.upload(
+        _ = await object_storage_client.upload(
             bucket_path=bucket_path,
             method=method,
             source=env_str,
             server_side_encryption=server_side_encryption,
         )
-        logger.info.assert_called_once_with(
+        info_message = (
             f"fastenv loaded the provided string and wrote the contents to"
             f" {object_storage_config.bucket_host}/{bucket_path}"
         )
+        logger.info.assert_called_once_with(info_message)
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("method", ("POST", "PUT"))
@@ -1190,16 +1205,17 @@ class TestObjectStorageClientIntegration:
             f"{object_storage_client_upload_prefix}/.env.from-bytes."
             f"{object_storage_config.access_key}.{method.lower()}"
         )
-        await object_storage_client.upload(
+        _ = await object_storage_client.upload(
             bucket_path=bucket_path,
             method=method,
             source=env_bytes,
             server_side_encryption=server_side_encryption,
         )
-        logger.info.assert_called_once_with(
+        info_message = (
             f"fastenv read the provided bytes and wrote the contents to"
             f" {object_storage_config.bucket_host}/{bucket_path}"
         )
+        logger.info.assert_called_once_with(info_message)
 
     @pytest.mark.anyio
     async def test_upload_response_from_backblaze_b2(
@@ -1240,10 +1256,11 @@ class TestObjectStorageClientIntegration:
         )
         assert response_json["fileName"] == bucket_path
         assert response_json["serverSideEncryption"]["algorithm"] == "AES256"
-        logger.info.assert_called_once_with(
+        info_message = (
             f"fastenv read the provided bytes and wrote the contents to"
             f" {object_storage_config_backblaze_static.bucket_host}/{bucket_path}"
         )
+        logger.info.assert_called_once_with(info_message)
 
     @pytest.mark.anyio
     async def test_upload_error_incorrect_config(
@@ -1271,12 +1288,12 @@ class TestObjectStorageClientIntegration:
         )
         expected_exceptions = (httpx.HTTPStatusError, httpx.ReadError)
         with pytest.raises(expected_exceptions) as e:
-            await object_storage_client.upload(
+            _ = await object_storage_client.upload(
                 bucket_path=".env.upload-error", source=env_bytes
             )
         if e.type is httpx.HTTPStatusError:
-            assert int(e.value.response.status_code) in {  # type: ignore[attr-defined]
-                401,
-                403,
-            }
+            status_code = int(
+                e.value.response.status_code  # type: ignore[attr-defined]
+            )
+            assert status_code in {401, 403}
             assert "HTTPStatusError" in logger.error.call_args.args[0]

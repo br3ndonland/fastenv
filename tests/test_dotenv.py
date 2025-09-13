@@ -86,7 +86,9 @@ class TestDotEnvClass:
         """
         mocker.patch.dict(os.environ, clear=True)
         with pytest.raises(TypeError) as e:
-            fastenv.dotenv.DotEnv(input_arg_incorrect_type)  # type: ignore[arg-type]
+            _ = fastenv.dotenv.DotEnv(
+                input_arg_incorrect_type  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
+            )
         assert "Arguments passed to DotEnv instances should be strings" in str(e.value)
 
     def test_instantiate_dotenv_class_with_args(
@@ -100,7 +102,7 @@ class TestDotEnvClass:
         """
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(*input_args)
-        for input_arg, output_key, output_value in dotenv_args:
+        for _, output_key, output_value in dotenv_args:
             assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args) == len(input_args)
 
@@ -142,7 +144,7 @@ class TestDotEnvClass:
         """
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(**input_kwargs)
-        for input_kwarg, output_key, output_value in dotenv_kwargs:
+        for _, output_key, output_value in dotenv_kwargs:
             assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_kwargs)
 
@@ -160,7 +162,7 @@ class TestDotEnvClass:
         dotenv = fastenv.dotenv.DotEnv(
             "AWS_ACCESS_KEY_ID_EXAMPLE=OVERRIDETHIS1EXAMPLE", **input_kwargs
         )
-        for input_kwarg, output_key, output_value in dotenv_kwargs:
+        for _, output_key, output_value in dotenv_kwargs:
             assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_kwargs)
 
@@ -175,7 +177,7 @@ class TestDotEnvClass:
         """
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv(env_str)
-        for input_arg, output_key, output_value in dotenv_args:
+        for _, output_key, output_value in dotenv_args:
             assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
 
@@ -237,7 +239,10 @@ class TestDotEnvClass:
         mocker.patch.dict(os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         with pytest.raises(TypeError) as e:
-            dotenv("KEY=value", input_arg_incorrect_type)  # type: ignore[arg-type]
+            _ = dotenv(
+                "KEY=value",
+                input_arg_incorrect_type,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
+            )
         assert not len(dotenv)
         assert "Arguments passed to DotEnv instances should be strings" in str(e.value)
 
@@ -247,7 +252,7 @@ class TestDotEnvClass:
         """Assert that setting a single variable with square brackets
         sets the variable in both the `DotEnv` instance and `os.environ`.
         """
-        input_arg, output_key, output_value = dotenv_arg
+        _, output_key, output_value = dotenv_arg
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         dotenv[output_key] = output_value
@@ -266,7 +271,7 @@ class TestDotEnvClass:
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(*input_args)
-        for input_arg, output_key, output_value in dotenv_args:
+        for _, output_key, output_value in dotenv_args:
             assert variable_is_set(dotenv, environ, output_key, output_value)
             assert response_is_correct(dotenv, response, output_key, output_value)
         assert len(dotenv) == len(dotenv_args) == len(input_args)
@@ -284,7 +289,7 @@ class TestDotEnvClass:
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(**input_kwargs)
-        for input_kwarg, output_key, output_value in dotenv_kwargs:
+        for _, output_key, output_value in dotenv_kwargs:
             assert variable_is_set(dotenv, environ, output_key, output_value)
             assert response_is_correct(dotenv, response, output_key, output_value)
         assert len(dotenv) == len(dotenv_kwargs)
@@ -304,7 +309,7 @@ class TestDotEnvClass:
         response = dotenv(
             "AWS_ACCESS_KEY_ID_EXAMPLE=OVERRIDETHIS1EXAMPLE", **input_kwargs
         )
-        for input_kwarg, output_key, output_value in dotenv_kwargs:
+        for _, output_key, output_value in dotenv_kwargs:
             assert variable_is_set(dotenv, environ, output_key, output_value)
             assert response_is_correct(dotenv, response, output_key, output_value)
         assert len(dotenv) == len(dotenv_kwargs)
@@ -338,7 +343,7 @@ class TestDotEnvClass:
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
         response = dotenv(env_str)
-        for input_arg, output_key, output_value in dotenv_args:
+        for _, output_key, output_value in dotenv_args:
             assert variable_is_set(dotenv, environ, output_key, output_value)
             assert response_is_correct(dotenv, response, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
@@ -350,7 +355,7 @@ class TestDotEnvClass:
         """Assert that comments are ignored when calling a `DotEnv` instance."""
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv = fastenv.dotenv.DotEnv()
-        dotenv(comment)
+        _ = dotenv(comment)
         assert variable_is_unset(dotenv, environ, comment)
 
     def test_delete_variable(
@@ -406,7 +411,7 @@ class TestDotEnvClass:
             assert iteration_result in input_kwargs
             assert isinstance(iteration_result, str)
         with pytest.raises(StopIteration):
-            next(dotenv_iterator)
+            _ = next(dotenv_iterator)
 
     def test_dict(self, input_kwargs: dict[str, str], mocker: MockerFixture) -> None:
         """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
@@ -470,7 +475,7 @@ class TestDotEnvMethods:
         """
         mocker.patch.dict(os.environ, clear=True)
         with pytest.raises(FileNotFoundError) as e:
-            await fastenv.dotenv.find_dotenv(".env.nofile")
+            _ = await fastenv.dotenv.find_dotenv(".env.nofile")
         assert ".env.nofile" in str(e.value)
 
     @pytest.mark.anyio
@@ -481,7 +486,7 @@ class TestDotEnvMethods:
         mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         with pytest.raises(FileNotFoundError) as e:
-            await fastenv.dotenv.load_dotenv(".env.nofile", find_source=True)
+            _ = await fastenv.dotenv.load_dotenv(".env.nofile", find_source=True)
         assert ".env.nofile" in str(e.value)
         logger.error.assert_called_once_with(
             "fastenv error: FileNotFoundError Could not find .env.nofile"
@@ -516,7 +521,7 @@ class TestDotEnvMethods:
         environ = mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(env_file)
-        for input_arg, output_key, output_value in dotenv_args:
+        for _, output_key, output_value in dotenv_args:
             assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == env_file
@@ -536,7 +541,7 @@ class TestDotEnvMethods:
         sorted if `sort_dotenv=True`, or unsorted if `sort_dotenv=False`.
         """
         mocker.patch.dict(os.environ, clear=True)
-        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(
             env_file_unsorted, sort_dotenv=sort_dotenv
         )
@@ -604,7 +609,7 @@ class TestDotEnvMethods:
         os.chdir(env_file_child_dir)
         dotenv = await fastenv.dotenv.load_dotenv(env_file.name, find_source=True)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
-        for input_arg, output_key, output_value in dotenv_args:
+        for _, output_key, output_value in dotenv_args:
             assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == env_file
@@ -655,7 +660,7 @@ class TestDotEnvMethods:
         filenames = tuple(file.name for file in env_files_in_child_dirs)
         os.chdir(env_file_child_dir)
         with pytest.raises(FileNotFoundError) as e:
-            await fastenv.dotenv.load_dotenv(*filenames, find_source=False)
+            _ = await fastenv.dotenv.load_dotenv(*filenames, find_source=False)
         assert "FileNotFoundError" in logger.error.call_args.args[0]
         assert str(e.value) in logger.error.call_args.args[0]
 
@@ -667,8 +672,8 @@ class TestDotEnvMethods:
         `raise_exceptions=False` returns an empty `DotEnv` instance.
         """
         mocker.patch.dict(os.environ, clear=True)
-        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
-        await fastenv.dotenv.load_dotenv("/not/a/file", raise_exceptions=False)
+        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        _ = await fastenv.dotenv.load_dotenv("/not/a/file", raise_exceptions=False)
 
     @pytest.mark.anyio
     async def test_load_dotenv_incorrect_path_with_raise(
@@ -680,7 +685,7 @@ class TestDotEnvMethods:
         mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         with pytest.raises(FileNotFoundError) as e:
-            await fastenv.dotenv.load_dotenv("/not/a/file", raise_exceptions=True)
+            _ = await fastenv.dotenv.load_dotenv("/not/a/file", raise_exceptions=True)
         assert "FileNotFoundError" in logger.error.call_args.args[0]
         assert str(e.value) in logger.error.call_args.args[0]
 
@@ -691,7 +696,7 @@ class TestDotEnvMethods:
     ) -> None:
         """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
         mocker.patch.dict(os.environ, clear=True)
-        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = fastenv.dotenv.DotEnv("zzz=123", **input_kwargs)
         result = await fastenv.dotenv.dotenv_values(dotenv, sort_dotenv=sort_dotenv)
         dotenv_keys = list(result.keys())
@@ -703,7 +708,7 @@ class TestDotEnvMethods:
     ) -> None:
         """Assert that calling `dotenv_values` with a path also calls `load_dotenv`."""
         mocker.patch.dict(os.environ, clear=True)
-        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         load_dotenv = mocker.patch.object(
             fastenv.dotenv,
             "load_dotenv",
@@ -728,7 +733,7 @@ class TestDotEnvMethods:
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         result = await fastenv.dotenv.dotenv_values(env_file)
         assert isinstance(result, dict)
-        for input_arg, output_key, output_value in dotenv_args:
+        for _, output_key, output_value in dotenv_args:
             assert result[output_key] == output_value
             assert environ[output_key] == output_value
         assert len(result) == len(dotenv_args)
@@ -748,7 +753,7 @@ class TestDotEnvMethods:
         sorted if `sort_dotenv=True`, or unsorted if `sort_dotenv=False`.
         """
         mocker.patch.dict(os.environ, clear=True)
-        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         result = await fastenv.dotenv.dotenv_values(
             env_file_unsorted, sort_dotenv=sort_dotenv
         )
@@ -766,7 +771,7 @@ class TestDotEnvMethods:
         mocker.patch.dict(os.environ, clear=True)
         logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         destination = env_file.parent / ".env.dumpedstring"
-        await fastenv.dotenv.dump_dotenv(env_str, destination)
+        _ = await fastenv.dotenv.dump_dotenv(env_str, destination)
         logger.info.assert_called_once_with(f"fastenv dumped to {destination}")
 
     @pytest.mark.anyio
@@ -780,13 +785,13 @@ class TestDotEnvMethods:
         """Dump a `DotEnv` instance to a file, load the file into a new `DotEnv`
         instance, and assert that the new `DotEnv` instance has the expected contents.
         """
-        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv_source = fastenv.dotenv.DotEnv(*input_args)
         destination = env_file.parent / ".env.dumped"
         dump = await fastenv.dotenv.dump_dotenv(dotenv_source, destination)
         result = await fastenv.dotenv.load_dotenv(dump)
-        for input_arg, output_key, output_value in dotenv_args:
+        for _, output_key, output_value in dotenv_args:
             assert variable_is_set(result, environ, output_key, output_value)
 
     @pytest.mark.anyio
@@ -802,7 +807,7 @@ class TestDotEnvMethods:
         instance, and assert that the new `DotEnv` instance is sorted as expected.
         """
         mocker.patch.dict(os.environ, clear=True)
-        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv_source = fastenv.dotenv.DotEnv(env_str_unsorted)
         destination = env_file.parent / ".env.dumpedandsorted"
         dump = await fastenv.dotenv.dump_dotenv(
@@ -824,19 +829,23 @@ class TestDotEnvMethods:
         source = fastenv.dotenv.DotEnv()
         destination = "s3://mybucket/.env"
         with pytest.raises(FileNotFoundError) as e:
-            await fastenv.dotenv.dump_dotenv(source, destination, raise_exceptions=True)
+            _ = await fastenv.dotenv.dump_dotenv(
+                source, destination, raise_exceptions=True
+            )
         assert "FileNotFoundError" in logger.error.call_args.args[0]
         assert str(e.value) in logger.error.call_args.args[0]
 
     @pytest.mark.anyio
     async def test_dump_dotenv_incorrect_path_no_raise(
-        self, mocker: MockerFixture, tmp_path: anyio.Path
+        self, mocker: MockerFixture
     ) -> None:
         """Assert that calling `dump_dotenv` with an incorrect destination
         and `raise_exceptions=False` returns a `pathlib.Path` instance.
         """
         mocker.patch.dict(os.environ, clear=True)
-        mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
+        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         source = fastenv.dotenv.DotEnv()
         destination = anyio.Path("s3://mybucket/.env")
-        await fastenv.dotenv.dump_dotenv(source, destination, raise_exceptions=False)
+        _ = await fastenv.dotenv.dump_dotenv(
+            source, destination, raise_exceptions=False
+        )

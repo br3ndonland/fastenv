@@ -3,9 +3,8 @@ from __future__ import annotations
 import datetime
 import os
 import secrets
-import urllib
-from collections import namedtuple
-from typing import TYPE_CHECKING
+import urllib.parse
+from typing import TYPE_CHECKING, NamedTuple
 
 import anyio
 import pytest
@@ -26,16 +25,13 @@ def anyio_backend() -> str:
     return "asyncio"
 
 
-CloudParams = namedtuple(
-    "CloudParams",
-    (
-        "access_key_variable",
-        "secret_key_variable",
-        "session_token_variable",
-        "bucket_host_variable",
-        "bucket_region_variable",
-    ),
-)
+class CloudParams(NamedTuple):
+    access_key_variable: str
+    secret_key_variable: str
+    session_token_variable: str
+    bucket_host_variable: str
+    bucket_region_variable: str
+
 
 _cloud_params_aws_session = CloudParams(
     access_key_variable="AWS_IAM_ACCESS_KEY_SESSION",
@@ -89,7 +85,7 @@ def object_storage_config(
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    request_param = getattr(request, "param")
+    request_param: CloudParams = getattr(request, "param")
     access_key = os.getenv(request_param.access_key_variable)
     secret_key = os.getenv(request_param.secret_key_variable)
     session_token = (
@@ -168,7 +164,7 @@ def object_storage_config_for_presigned_url_example(
     without regions (`examplebucket.s3.amazonaws.com`), and virtual-hosted-style
     URLs with regions (`examplebucket.s3.us-east-1.amazonaws.com`).
     """
-    use_session_token = getattr(request, "param")
+    use_session_token: bool = getattr(request, "param")
     if use_session_token is True:
         # docs only provide the quoted session token
         quoted_session_token = (
@@ -221,7 +217,7 @@ def object_storage_config_for_presigned_post_example(
     without regions (`examplebucket.s3.amazonaws.com`), and virtual-hosted-style
     URLs with regions (`examplebucket.s3.us-east-1.amazonaws.com`).
     """
-    use_session_token = getattr(request, "param")
+    use_session_token: bool = getattr(request, "param")
     if use_session_token is True:
         # docs only provide the quoted session token
         quoted_session_token = (
@@ -373,7 +369,7 @@ _dotenv_args: tuple[tuple[str, str, str], ...] = (
 
 _dotenv_kwargs: tuple[tuple[dict[str, str], str, str], ...] = tuple(
     ({expected_key: expected_value}, expected_key, expected_value)
-    for input_arg, expected_key, expected_value in _dotenv_args
+    for _, expected_key, expected_value in _dotenv_args
 )
 
 _input_args: tuple[str, ...] = tuple(i[0] for i in _dotenv_args)
@@ -559,7 +555,7 @@ async def env_file(
     """Create .env.testing file with environment variables."""
     tmp_dir = tmp_path_factory.mktemp("env_files")
     tmp_file = anyio.Path(tmp_dir) / ".env.testing"
-    await tmp_file.write_text(env_str)
+    _ = await tmp_file.write_text(env_str)
     return tmp_file
 
 
@@ -568,7 +564,7 @@ async def env_file(
 async def env_file_unsorted(env_file: anyio.Path, env_str_unsorted: str) -> anyio.Path:
     """Create .env file with unsorted environment variables."""
     tmp_file = env_file.parent / ".env.unsorted"
-    await tmp_file.write_text(env_str_unsorted)
+    _ = await tmp_file.write_text(env_str_unsorted)
     return tmp_file
 
 
@@ -577,7 +573,7 @@ async def env_file_unsorted(env_file: anyio.Path, env_str_unsorted: str) -> anyi
 async def env_file_empty(env_file: anyio.Path) -> anyio.Path:
     """Create .env file with no variables."""
     tmp_file = env_file.parent / ".env.empty"
-    await tmp_file.write_text("\n")
+    _ = await tmp_file.write_text("\n")
     return tmp_file
 
 
@@ -600,7 +596,7 @@ async def env_files_in_same_dir(
     env_files: list[anyio.Path] = [env_file]
     for i, env_str in enumerate(env_str_multi):
         new_file = env_file.parent / f".env.child{i}"
-        await new_file.write_text(env_str)
+        _ = await new_file.write_text(env_str)
         env_files.append(new_file)
     return env_files
 
@@ -615,7 +611,7 @@ async def env_files_in_child_dirs(
     env_files: list[anyio.Path] = []
     for i, env_str in enumerate(env_str_multi):
         new_file = env_file_child_dir.parents[i] / f".env.child{i}"
-        await new_file.write_text(env_str)
+        _ = await new_file.write_text(env_str)
         env_files.append(new_file)
     return env_files
 
