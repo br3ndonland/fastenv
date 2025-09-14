@@ -1,9 +1,11 @@
-[build-system]
-build-backend = "hatchling.build"
-requires = ["hatchling>=1.26.3,<2"]
-
 [project]
-authors = [{email = "bws@bws.bio", name = "Brendon Smith"}]
+name = "fastenv"
+description = "Unified environment variable and settings management for FastAPI and beyond."
+readme = "docs/index.md"
+requires-python = ">=3.9,<4"
+license = "MIT"
+authors = [{ name = "Brendon Smith", email = "bws@bws.bio" }]
+keywords = ["asgi", "dotenv", "environment variables", "fastapi", "settings"]
 classifiers = [
   "Environment :: Web Environment",
   "Intended Audience :: Developers",
@@ -23,13 +25,12 @@ classifiers = [
 dependencies = [
   "anyio>=3.3,<5",
 ]
-description = "Unified environment variable and settings management for FastAPI and beyond."
 dynamic = ["version"]
-keywords = ["asgi", "dotenv", "environment variables", "fastapi", "settings"]
-license = "MIT"
-name = "fastenv"
-readme = "docs/index.md"
-requires-python = ">=3.9,<4"
+
+[project.urls]
+Documentation = "https://fastenv.bws.bio"
+Homepage = "https://github.com/br3ndonland/fastenv"
+Repository = "https://github.com/br3ndonland/fastenv"
 
 [project.optional-dependencies]
 checks = [
@@ -54,10 +55,18 @@ tests = [
   "pytest-mock>=3,<4",
 ]
 
-[project.urls]
-Documentation = "https://fastenv.bws.bio"
-Homepage = "https://github.com/br3ndonland/fastenv"
-Repository = "https://github.com/br3ndonland/fastenv"
+[build-system]
+requires = ["hatchling>=1.26.3,<2"]
+build-backend = "hatchling.build"
+
+[tool.coverage.report]
+exclude_lines = ["if TYPE_CHECKING:", "pragma: no cover"]
+fail_under = 100
+show_missing = true
+
+[tool.coverage.run]
+command_line = "-m pytest"
+source = ["fastenv", "tests"]
 
 [tool.hatch.build.targets.sdist]
 include = ["/fastenv"]
@@ -102,15 +111,6 @@ features = [
 
 [tool.hatch.version]
 path = "fastenv/__init__.py"
-
-[tool.coverage.report]
-exclude_lines = ["if TYPE_CHECKING:", "pragma: no cover"]
-fail_under = 100
-show_missing = true
-
-[tool.coverage.run]
-command_line = "-m pytest"
-source = ["fastenv", "tests"]
 
 [tool.mypy]
 exclude_gitignore = true
