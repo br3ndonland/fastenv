@@ -4,8 +4,10 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.inlinehilite
   - pymdownx.magiclink:
+      normalize_issue_symbols: true
       user: br3ndonland
       repo: fastenv
+      repo_url_shortener: true
       repo_url_shorthand: true
   - pymdownx.snippets
   - pymdownx.superfences
