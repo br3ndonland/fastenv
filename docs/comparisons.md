@@ -231,7 +231,7 @@ It is also important to note that the one-way preference will only be enforced w
     # 'bar'
     starlette.config.environ["FOO_VARIABLE"] = "foo"
     # Traceback (most recent call last):
-    # File ".venv/lib/python3.9/site-packages/starlette/config.py", line 26, in __setitem__
+    # File ".venv/lib/python/site-packages/starlette/config.py", line 26, in __setitem__
     #     raise EnvironError(
     # starlette.config.EnvironError: Attempting to set environ['FOO_VARIABLE'],
     # but the value has already been read.
