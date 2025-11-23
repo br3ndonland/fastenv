@@ -2,6 +2,110 @@
 
 [View on GitHub](https://github.com/br3ndonland/fastenv/blob/HEAD/CHANGELOG.md)
 
+## 0.7.0 - 2025-11-23
+
+### Changes
+
+**Drop Python 3.9 support** (#36,
+cbd50f2fa05d546fb4c29445e61422d4f2abe41c)
+
+Python 3.9 is past [end-of-life](https://devguide.python.org/versions/).
+This PR will drop support for Python 3.9.
+
+**Add Python 3.13 support** (#35,
+5d312a40db8a1d8204059d3c3f13f93dfb1df9e9)
+
+This PR will add
+[Python 3.13](https://docs.python.org/3/whatsnew/3.13.html) support to
+fastenv.
+
+- fastenv will now include a Python 3.13 classifier in its PyPI package
+- fastenv will now build and publish its PyPI package using Python 3.13
+- fastenv will now run tests with Python 3.13, in addition to 3.9-3.12
+
+Related projects that have released support for Python 3.13 include:
+
+- AnyIO
+  ([4.6.2 - 2024-10-13](https://github.com/agronholm/anyio/releases/tag/4.6.2))
+- Hatch
+  ([1.13.0 - 2024-10-13](https://github.com/pypa/hatch/releases/tag/hatch-v1.13.0))
+- pipx
+  ([1.8.0 - 2025-09-30](https://github.com/pypa/pipx/releases/tag/1.8.0))
+
+Related projects that have not released support for Python 3.13 include:
+
+- [HTTPX](https://github.com/encode/httpx)
+  (https://github.com/encode/httpx/pull/3460)
+
+HTTPX has not released Python 3.13 support and has not done a release of
+any kind since 2024. The reasons for this, and the path forward, are
+unclear
+([encode/httpx#3344](https://github.com/encode/httpx/discussions/3344)).
+There doesn't seem to be much point in holding back 3.13 support for
+this project any longer.
+
+### Commits
+
+- Bump version from 0.6.0 to 0.7.0 (e509ca6)
+- Add Python 3.13 support (#35) (5d312a4)
+- Drop Python 3.9 support (#36) (cbd50f2)
+- Update to BasedPyright 1.33 (f90640d)
+- Update to Ruff 0.14 (7404218)
+- Update to `aws-actions/configure-aws-credentials@v5` (8e2106f)
+- Update to Hatch 1.15.1 (8f39b61)
+- Update to `pipx==1.8.0` (d1e5270)
+- Update to Hatch 1.14.2 (685dbda)
+- Switch type checking from mypy to BasedPyright (ff91a18)
+- Format `pyproject.toml` with Tombi (5d96c5b)
+- Use same file for contributing docs (690554a)
+- Use same file for README and docs homepage (323a2b8)
+- Update references to `develop` branch (df7bd6e)
+- Use Hatch commands in contributing.md testing docs (96a9158)
+- Update to `peter-evans/create-pull-request@v7` (575cad9)
+- Remove CodeQL GitHub Actions workflow (612ce60)
+- Format Git tag messages with Prettier (b34059f)
+- Relax Prettier version constraint (7942860)
+- Format Git commit messages with Prettier (20d3db5)
+- Update `.gitignore` (c50de07)
+- Use `$HATCH_ENV_TYPE_VIRTUAL_PATH` (90e1e4b)
+- Update to `pypa/gh-action-pypi-publish@v1.13.0` (e43fa38)
+- Fix copyright year in license (127e92f)
+- Move Vercel commands to `vercel.json` (5f68a8b)
+- Add Markdown-specific override to `.prettierrc` (94622c0)
+- Move `.prettierrc` to repo root (6b5facc)
+- Update Vercel commands in README (8e8bb75)
+- Add `exclude_gitignore` mypy setting (3f5e939)
+- Remove deprecated `show_error_codes` mypy setting (b48ce62)
+- Update to Ruff 0.12 (11cd210)
+- Update to `mypy==1.16.1` (089e1d5)
+- Update to Hatch 1.14.1 (5b8b25c)
+- Update to `mypy==1.15.0` (80cc52a)
+- Update to Ruff 0.11 (c5975c4)
+- Update to Hatch 1.14 and Hatchling 1.26.3 (a6bdbd3)
+- Update to Ruff 0.9 (f2b4b6f)
+- Update to `pypa/gh-action-pypi-publish` 1.12.4 (3bb4d54)
+- Update to `pypa/gh-action-pypi-publish` 1.12.3 (c9dad77)
+- Update Markdown formatting for Prettier 3.4 (3f9bfd2)
+- Align Prettier versions (fe631cc)
+- Update to `pypa/gh-action-pypi-publish` 1.11 (5bdb57b)
+- Update to Hatch 1.13.0 and Hatchling 1.26 (bb62e40)
+- Update to Ruff 0.7 (f262187)
+- Update to `mypy==1.13.0` (fdc77af)
+- Update changelog for version 0.6.0 (#34) (98e7dc9)
+
+Tagger: Brendon Smith <bws@bws.bio>
+
+Date: 2025-11-23 18:37:22 -0500
+
+```text
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
+kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQBOR9lhb8HUGMW6WVNx6Mey9JQzIkWVpI3mud14CrMLzAkp8XQ3QNqNb4rdd8eXKdX
+5k1DAxSUAg0darhGSQEQQ=
+-----END SSH SIGNATURE-----
+```
+
 ## 0.6.0 - 2024-10-05
 
 ### Changes
