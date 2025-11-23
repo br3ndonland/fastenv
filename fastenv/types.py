@@ -1,16 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict, Union
+from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
-    import sys
+    from typing import TypeAlias
 
-    if sys.version_info < (3, 10):
-        from typing_extensions import TypeAlias
-    else:
-        from typing import TypeAlias  # pyright: ignore[reportUnreachable]
-
-UploadPolicyConditions: TypeAlias = list[Union[dict[str, str], list[Union[str, int]]]]
+UploadPolicyConditions: TypeAlias = list[dict[str, str] | list[str | int]]
 
 
 class UploadPolicy(TypedDict):
