@@ -33,26 +33,28 @@ Homepage = "https://github.com/br3ndonland/fastenv"
 Repository = "https://github.com/br3ndonland/fastenv"
 
 [project.optional-dependencies]
+cloud = [
+  "httpx>=0.23,<1",
+]
+httpx = [
+  "httpx>=0.23,<1",
+]
+
+[dependency-groups]
 checks = [
   "basedpyright>=1.33,<1.34",
   "ruff>=0.14,<0.15",
 ]
-cloud = [
-  "httpx>=0.23,<1",
-]
 docs = [
   "mkdocs-material>=9,<10",
-]
-httpx = [
-  "httpx>=0.23,<1",
 ]
 tests = [
   "coverage[toml]>=7,<8",
   "fastapi>=0.110.1,<0.122",
   "freezegun>=1,<2",
   "httpx>=0.23,<1",
-  "pytest>=8.1.1,<9",
   "pytest-mock>=3,<4",
+  "pytest>=8.1.1,<9",
 ]
 
 [build-system]
@@ -79,15 +81,16 @@ include = ["/fastenv"]
 packages = ["fastenv"]
 
 [tool.hatch.envs.ci]
+builder = true
 dev-mode = false
-features = [
+dependency-groups = [
   "checks",
   "tests",
 ]
 
 [tool.hatch.envs.default]
 dev-mode = true
-features = [
+dependency-groups = [
   "checks",
   "docs",
   "tests",
@@ -109,7 +112,7 @@ format = [
 
 [tool.hatch.envs.docs]
 dev-mode = false
-features = [
+dependency-groups = [
   "docs",
 ]
 
