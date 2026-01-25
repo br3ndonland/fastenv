@@ -12,6 +12,9 @@ on:
         required: false
         type: environment
 
+permissions:
+  contents: read
+
 jobs:
   setup:
     runs-on: ubuntu-latest
