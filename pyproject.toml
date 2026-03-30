@@ -34,10 +34,7 @@ Repository = "https://github.com/br3ndonland/fastenv"
 
 [project.optional-dependencies]
 cloud = [
-  "httpx>=0.23,<1",
-]
-httpx = [
-  "httpx>=0.23,<1",
+  "httpxyz>=0.23,<1",
 ]
 
 [dependency-groups]
@@ -52,7 +49,7 @@ tests = [
   "coverage[toml]>=7,<8",
   "fastapi>=0.110.1,<0.122",
   "freezegun>=1,<2",
-  "httpx>=0.23,<1",
+  "httpxyz @ git+https://codeberg.org/httpxyz/httpxyz.git@sys-modules-fix-for-httpx",
   "pytest-mock>=3,<4",
   "pytest>=8.1.1,<9",
 ]
