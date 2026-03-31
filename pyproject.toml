@@ -34,10 +34,7 @@ Repository = "https://github.com/br3ndonland/fastenv"
 
 [project.optional-dependencies]
 cloud = [
-  "httpx>=0.23,<1",
-]
-httpx = [
-  "httpx>=0.23,<1",
+  "httpxyz>=0.30,<1",
 ]
 
 [dependency-groups]
@@ -52,9 +49,8 @@ tests = [
   "coverage[toml]>=7,<8",
   "fastapi>=0.110.1,<0.122",
   "freezegun>=1,<2",
-  "httpx>=0.23,<1",
-  "pytest-mock>=3,<4",
   "pytest>=8.1.1,<9",
+  "pytest-mock>=3,<4",
 ]
 
 [build-system]
@@ -87,6 +83,9 @@ dependency-groups = [
   "checks",
   "tests",
 ]
+features = [
+  "cloud",
+]
 
 [tool.hatch.envs.default]
 dev-mode = true
@@ -94,6 +93,9 @@ dependency-groups = [
   "checks",
   "docs",
   "tests",
+]
+features = [
+  "cloud",
 ]
 
 [tool.hatch.envs.default.scripts]

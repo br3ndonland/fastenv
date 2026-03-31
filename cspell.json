@@ -61,6 +61,7 @@
     "hmac",
     "hoppscotch",
     "httpx",
+    "httpxyz",
     "isort",
     "kaplan",
     "kwarg",
