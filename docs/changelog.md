@@ -2,6 +2,108 @@
 
 [View on GitHub](https://github.com/br3ndonland/fastenv/blob/HEAD/CHANGELOG.md)
 
+## 0.8.0 - 2026-03-31
+
+### Changes
+
+**Migrate from HTTPX to HTTPXYZ** (#39,
+ddbc8825f6786d18eb122df688819c770029f2dd)
+
+Concerns have been raised about the governance and future of the HTTPX
+project. HTTPX has not released Python 3.13 support and has not done a
+release of any kind since 2024. The reasons for this, and the path
+forward, are confusing and controversial
+([encode/httpx#3344](https://github.com/encode/httpx/discussions/3344)).
+Issues and discussions were disabled
+([encode/httpx#3784](https://github.com/encode/httpx/discussions/3784)),
+citing "skewed gender representation," making further discussion
+difficult.
+
+Community members volunteered to
+[fork HTTPX](https://httpxyz.org/why-fork/) to help alleviate some of
+these difficulties and move forward.
+
+This release will migrate from HTTPX to the
+[HTTPXYZ](https://httpxyz.org/) fork. As part of this, the
+`fastenv[httpx]` extra will be removed. The `fastenv[cloud]` extra will
+now install HTTPXYZ instead of HTTPX.
+
+In most cases, the migration was accomplished with simply
+`import httpxyz` and updating references in those modules to point to
+the `httpxyz` namespace.
+
+In some specific cases, third-party dependencies rely on HTTPX
+specifically for their internal functionality, such as the
+[FastAPI/Starlette `TestClient`](https://fastapi.tiangolo.com/tutorial/testing/).
+Installing HTTPXYZ 0.28.2 raises an error:
+
+```
+ERROR tests/test_fastapi.py
+RuntimeError: The starlette.testclient module requires the httpx package to be installed.
+You can install this with:
+    $ pip install httpx
+```
+
+In these cases, HTTPXYZ needs to have more precise drop-in compatibility
+with HTTPX. A strategy for achieving this drop-in compatibility is
+`sys.modules.setdefault`, which can replace a module's namespace with
+that of another module. HTTPXYZ uses this strategy
+(`sys.modules.setdefault("httpx", _sys.modules[__name__])`). As long as
+HTTPXYZ is imported before other dependencies that require HTTPX, it
+will just work.
+
+**Migrate from Material for MkDocs to Zensical** (#40,
+4a0d10cf560e251421211064569fdf2f2fd59855)
+
+The documentation for this project was previously built with Material
+for MkDocs, which depends on MkDocs.
+[MkDocs has suffered from problematic project governance for years](https://fpgmaas.com/blog/collapse-of-mkdocs/).
+The original author of MkDocs, also the original author of the similarly
+problematic HTTPX (https://github.com/br3ndonland/fastenv/pull/39), is
+taking the project in a controversial new direction.
+[Material for MkDocs has been placed in maintenance mode](https://squidfunk.github.io/mkdocs-material/blog/2025/11/05/zensical/)
+and there is a newer alternative called
+[Zensical](https://zensical.org/docs/get-started/).
+
+This release will migrate from Material for MkDocs to Zensical. Zensical
+offers [compatibility](https://zensical.org/compatibility/) with MkDocs.
+
+The same `mkdocs.yml` configuration file will be used.
+
+Zensical does not have the `--site-dir` option, so it will be set with
+`site_dir` in `mkdocs.yml` or `zensical.toml`.
+
+### Commits
+
+- Bump version from 0.7.1 to 0.8.0 (3a6f9a5)
+- Migrate from Material for MkDocs to Zensical (#40) (4a0d10c)
+- Migrate from HTTPX to HTTPXYZ (#39) (ddbc882)
+- Use GitHub Actions environment without deployment (f61524e)
+- Update to pipx 1.11 (574dff5)
+- Update to `aws-actions/configure-aws-credentials@v6` (a943705)
+- Update to `peter-evans/create-pull-request@v8` (6a6b2a2)
+- Update to `actions/download-artifact@v8` (5146851)
+- Update to `actions/upload-artifact@v7` (05afde1)
+- Update to `actions/cache@v5` (93015e3)
+- Update to `actions/setup-python@v6` (65ff63b)
+- Update to `actions/checkout@v6` (70fd1cc)
+- Update to BasedPyright 1.37 (91c6452)
+- Fix changelog environment name (1ea4510)
+- Update changelog for version 0.7.1 (#38) (6ba0b98)
+
+Tagger: Brendon Smith <bws@bws.bio>
+
+Date: 2026-03-31 21:14:10 -0400
+
+```text
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
+kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+AAAAQKq5GLJra9fJA+XISPswuO3RWsO9H7d/FaVpL9AwzKhpTcuCvYNOb3r2hBZ5ky6swC
+96+ShQZpa+E+57AXUsaAQ=
+-----END SSH SIGNATURE-----
+```
+
 ## 0.7.1 - 2026-01-25
 
 ### Changes
