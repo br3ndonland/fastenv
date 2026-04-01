@@ -27,6 +27,7 @@ nav:
   - "contributing.md"
 repo_name: br3ndonland/fastenv
 repo_url: https://github.com/br3ndonland/fastenv
+site_dir: public
 site_name: fastenv docs
 site_url: ""
 theme:
@@ -41,7 +42,6 @@ theme:
   icon:
     logo: octicons/gear-24
     repo: octicons/mark-github-16
-  name: material
   palette:
     - media: "(prefers-color-scheme: dark)"
       accent: deep orange
