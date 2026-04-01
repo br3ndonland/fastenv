@@ -98,4 +98,4 @@ async def get_settings(request: Request) -> dict[str, str]:
 
 ## Documentation
 
-Documentation is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/), deployed to [Vercel](https://vercel.com/) using the [Vercel project configuration](https://vercel.com/docs/project-configuration) in `vercel.json`, and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
+Documentation is built with [Zensical](https://zensical.org/), deployed to [Vercel](https://vercel.com/) using the [Vercel project configuration](https://vercel.com/docs/project-configuration) in `vercel.json`, and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).
