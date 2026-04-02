@@ -43,7 +43,7 @@ permalink = true
 toc_depth = 3
 
 [project.theme]
-favicon = "assets/images/favicon.png"
+favicon = "images/favicon.png"
 features = [
   "announce.dismiss",
   "content.action.view",
