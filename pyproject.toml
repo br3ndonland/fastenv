@@ -40,7 +40,7 @@ cloud = [
 [dependency-groups]
 checks = [
   "basedpyright>=1.37,<1.38",
-  "ruff>=0.14,<0.15",
+  "ruff>=0.15,<0.16",
 ]
 docs = [
   "zensical==0.0.31",
