@@ -1,3 +1,7 @@
+---
+icon: lucide/scale
+---
+
 # Comparisons
 
 ## environ

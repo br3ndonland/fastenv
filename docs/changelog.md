@@ -1,3 +1,7 @@
+---
+icon: lucide/clipboard-clock
+---
+
 # Changelog
 
 ## 0.8.0 - 2026-03-31

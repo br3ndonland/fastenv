@@ -1,3 +1,7 @@
+---
+icon: lucide/file-cog
+---
+
 # Dotenv files
 
 ## Overview

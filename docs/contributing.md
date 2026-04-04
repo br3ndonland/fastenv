@@ -1,4 +1,8 @@
-# Guidelines for contributing
+---
+icon: lucide/git-pull-request-create-arrow
+---
+
+# Contributing
 
 ## Summary
 

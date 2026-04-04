@@ -1,3 +1,7 @@
+---
+icon: lucide/cloud
+---
+
 # Cloud object storage
 
 ## Overview
