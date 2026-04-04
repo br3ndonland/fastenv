@@ -150,21 +150,15 @@ jobs:
       - name: Generate changelog from Git tags
         run: |
           echo '# Changelog
-          ' >CHANGELOG.md
-
-          echo '# Changelog
-
-          [View on GitHub](https://github.com/${{github.repository}}/blob/HEAD/CHANGELOG.md)
           ' >docs/changelog.md
 
           GIT_LOG_FORMAT='## %(subject) - %(taggerdate:short)
 
           %(contents:body)'
 
-          git tag -l --sort=-taggerdate:iso --format="$GIT_LOG_FORMAT" >>CHANGELOG.md
           git tag -l --sort=-taggerdate:iso --format="$GIT_LOG_FORMAT" >>docs/changelog.md
       - name: Format changelog with Prettier
-        run: npx -s -y prettier@'^3' --write CHANGELOG.md docs/changelog.md
+        run: npx -s -y prettier@'^3' --write docs/changelog.md
       - name: Set PR and commit title
         id: set-title
         run: |
@@ -179,7 +173,6 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           add-paths: |
-            CHANGELOG.md
             docs/changelog.md
           body: |
             Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action

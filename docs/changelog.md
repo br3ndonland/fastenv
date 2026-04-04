@@ -1,7 +1,5 @@
 # Changelog
 
-[View on GitHub](https://github.com/br3ndonland/fastenv/blob/HEAD/CHANGELOG.md)
-
 ## 0.8.0 - 2026-03-31
 
 ### Changes
