@@ -89,19 +89,6 @@ Zensical does not have the `--site-dir` option, so it will be set with
 - Fix changelog environment name (1ea4510)
 - Update changelog for version 0.7.1 (#38) (6ba0b98)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2026-03-31 21:14:10 -0400
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQKq5GLJra9fJA+XISPswuO3RWsO9H7d/FaVpL9AwzKhpTcuCvYNOb3r2hBZ5ky6swC
-96+ShQZpa+E+57AXUsaAQ=
------END SSH SIGNATURE-----
-```
-
 ## 0.7.1 - 2026-01-25
 
 ### Changes
@@ -145,19 +132,6 @@ environments
 - Add `pymdownx.magiclink` `repo_url_shortener` (4334ffb)
 - Update test dependencies to FastAPI 0.121 (19ac589)
 - Update changelog for version 0.7.0 (#37) (eddc711)
-
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2026-01-25 19:22:21 -0500
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQFBuKcuT3+CMgWtk7Rd0fEh9hcfG+i460stmyKFko6VwecryT1BvzVgf7roH6Ixwwh
-GfTM8eNxm0dWWGN+MDpww=
------END SSH SIGNATURE-----
-```
 
 ## 0.7.0 - 2025-11-23
 
@@ -250,19 +224,6 @@ this project any longer.
 - Update to `mypy==1.13.0` (fdc77af)
 - Update changelog for version 0.6.0 (#34) (98e7dc9)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2025-11-23 18:37:22 -0500
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQBOR9lhb8HUGMW6WVNx6Mey9JQzIkWVpI3mud14CrMLzAkp8XQ3QNqNb4rdd8eXKdX
-5k1DAxSUAg0darhGSQEQQ=
------END SSH SIGNATURE-----
-```
-
 ## 0.6.0 - 2024-10-05
 
 ### Changes
@@ -297,19 +258,6 @@ updating to 3.9 or above.
 - Add project background link to README (34e5b94)
 - Add suggested pronounciation to README (4dedbf9)
 - Update changelog for version 0.5.0 (#33) (6bb820c)
-
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2024-10-05 14:58:44 -0400
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQPPZQ0NDiNZzqt9et0v3OaudHfusChrIQaFQNVPBQj83va5Iy5H3Vyt0GQ0Er3A6Z4
-ScxrGs62HHdwz2Q4gxuAg=
------END SSH SIGNATURE-----
-```
 
 ## 0.5.0 - 2024-04-11
 
@@ -375,19 +323,6 @@ support to fastenv.
 - Add support for Python 3.12 (#31) (5346486)
 - Update changelog for version 0.4.2 (#30) (ed436f9)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2024-04-11 16:36:09 -0400
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQPKWdrKJ0W0TLNMY/hIRlUxqKZ8zDQkP4cb2z73PtFQe9NuFnTcsfQPhITox4xUves
-1jKisa4IV780duz3vJrQA=
------END SSH SIGNATURE-----
-```
-
 ## 0.4.2 - 2024-04-09
 
 ### Changes
@@ -411,19 +346,6 @@ unique URL.
 - Avoid auto-inactivating GitHub Actions deployments (6d6f5c9)
 - Reset `peter-evans/create-pull-request@v6` author (845e8b2)
 - Update changelog for version 0.4.1 (#29) (b60a73d)
-
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2024-04-09 05:27:45 -0400
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQMWcRBk51C/WrcmVgcm7jLrP82RsbXeLL84Q6AmgYlMQBOzdsMkdi4YI2khtoS7BvE
-Go3ymR0RVJiG5DOGZeXAE=
------END SSH SIGNATURE-----
-```
 
 ## 0.4.1 - 2024-04-08
 
@@ -483,19 +405,6 @@ pypa/gh-action-pypi-publish@release/v1.8.
 - Disable CodeQL `setup-python-dependencies` (11d8d60)
 - Update to Node.js 20 actions (a6d2e06)
 - Update changelog for version 0.4.0 (#27) (649cc4c)
-
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2024-04-08 18:47:35 -0400
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQFcFuhsLNWl82ozsEevXNRMuBeJQ9VhpBZdSz5Luxu5iNO33VApk9/PFhHW8mxR1lR
-/ukfFvXg6jXOgunBq6Qwg=
------END SSH SIGNATURE-----
-```
 
 ## 0.4.0 - 2024-01-29
 
@@ -578,19 +487,6 @@ will be migrated from the previous tools (Black, Flake8, isort) to Ruff.
 - Update to configure-aws-credentials@v2 (5d20126)
 - Update changelog for version 0.3.0 (#23) (d13a924)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2024-01-29 18:44:39 -0500
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQJ5iKQerDHiHWEGliUGY/CsOZ8MNoHxG3j4LPio1G+CeF29pNv/WLzWPRmaEbR3p8N
-ORKJgY1v1TfHUEHmpW2w4=
------END SSH SIGNATURE-----
-```
-
 ## 0.3.0 - 2023-02-26
 
 ### Changes
@@ -658,19 +554,6 @@ The contributing.md will be updated with instructions for type checking.
 - Update pre-commit dependencies (8324d2c)
 - Update dependencies (2d0793c)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2023-02-26 13:04:53 -0500
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQPmQOgANjAFVhHDndp2Nap9CY+b/kOLbx/mX0JKs1dirCj9BLfT/R8qxJtquy66pi5
-MZwfvpny7olFG4Kn6/rwQ=
------END SSH SIGNATURE-----
-```
-
 ## 0.3.0-beta.0 - 2023-01-16
 
 ### Changes
@@ -731,19 +614,6 @@ The contributing.md will be updated with instructions for type checking.
 - Update pre-commit dependencies (8324d2c)
 - Update dependencies (2d0793c)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2023-01-16 17:09:08 -0500
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQL+UiOjWdlfmjSqfE5t/SxVZkk/8Q3yPqquBtPvgMK5x5jE1TC09h8SrMU/s8ogx3R
-uKBw4nhahHEl/oqou26gg=
------END SSH SIGNATURE-----
-```
-
 ## 0.3.0-alpha.0 - 2023-01-05
 
 Changes:
@@ -796,19 +666,6 @@ Commits:
 - Update pre-commit dependencies (8324d2c)
 - Update dependencies (2d0793c)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2023-01-05 21:34:04 -0500
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQLxzSE0qq+dNRJKqfdL41qz5Cp4xHW7TNABnxD5bp+Vl0IW+p3XUW85dESWWOMIvo+
-0oLqAAWYluKl2fO5oa/w0=
------END SSH SIGNATURE-----
-```
-
 ## 0.2.5 - 2022-11-26
 
 Commits:
@@ -830,19 +687,6 @@ will also be used to sign Git commits and tags going forward.
 See https://github.com/br3ndonland and br3ndonland/br3ndonland@08257e6
 for corroboration of the new info.
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2022-11-26 16:45:08 -0500
-
-```text
------BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgwLDNmire1DHY/g9GC1rGGr+mrE
-kJ3FC96XsyoFKzm6IAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQFxR6tNPUG7uc5eDWEUY50ErKsPYJcB4MseB3gISrHw/ymXlrLXFgfW1XRSq4dqivm
-tgrbY2MHDvnvzKKsfJyAw=
------END SSH SIGNATURE-----
-```
-
 ## 0.2.4 - 2022-09-04
 
 Commits:
@@ -852,20 +696,6 @@ Commits:
 - Update dependencies (2c0267c)
 - Add changelog command to docs (8162c83)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2022-09-04 14:15:08 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYxTrNQAKCRB4PbryPB1k
-eNc5AQC5ZKIPUkKcKpjOLK+Y9Q5sezqL9+FVyF1bWr9VysGOAgEA52hc028InxLd
-EKdvP0VjjRFvVezFpNmThiDTa9z1hAA=
-=jYCh
------END PGP SIGNATURE-----
-```
-
 ## 0.2.3 - 2022-06-11
 
 Commits:
@@ -874,20 +704,6 @@ Commits:
 - Update stale workflow (d8eedbd)
 - Update to pipx 1.1.0 (0ca9a9e)
 - Update dependencies (2ec067b)
-
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2022-06-11 15:24:57 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYqTsFQAKCRB4PbryPB1k
-eLSVAP0TQ5TaJzkBPd0dgOTACF9CiiTNcXQmJFubX1xjU5KUVQD/awI5Gn5L1wap
-KasWTLD5GOcLWjvHy7HtSppeRunF/AI=
-=KHgo
------END PGP SIGNATURE-----
-```
 
 ## 0.2.2 - 2022-05-28
 
@@ -908,20 +724,6 @@ Commits:
 - Remove Codecov badge from README (e832aa5)
 - Remove Codecov YAML (a834fac)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2022-05-28 14:52:28 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYpJvpAAKCRB4PbryPB1k
-eNrdAQCspNDN0vpQhSCb4AjiV4DpLsq8Yh5cFN0kpCsLhVRpbgEAt7VjXtG4IL0S
-Ts+q5rlpFkY31bXe/Ck5IfILoclC4QY=
-=8CX8
------END PGP SIGNATURE-----
-```
-
 ## 0.2.1 - 2022-04-11
 
 Changes:
@@ -936,20 +738,6 @@ Commits:
 - Add Sourcery config file to set Python version (a0f0a34)
 - Update dependencies (c947c21)
 - Update to codecov/codecov-action@v3 (99b2b65)
-
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2022-04-11 17:54:55 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYlSkFgAKCRB4PbryPB1k
-eDBXAP9auyDwwS2VODgUGR0RbS6I5CYay9Lh6RGy/YvlOIIX6gEA7XRY3TlAvsNT
-w+8ZuwG/HzjjVq/cOfYfrs9MTDhkWgk=
-=Ed6h
------END PGP SIGNATURE-----
-```
 
 ## 0.2.0 - 2022-04-09
 
@@ -980,20 +768,6 @@ Commits:
 - Update dependencies (74f0209)
 - Add missing token permissions to CodeQL workflow (319cd50)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2022-04-09 18:34:56 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYlIKPwAKCRB4PbryPB1k
-eG+0AQDpam+9RUO47+5po7EQPjPvKPVi1ghaPzA2loOj066BiQD/eGhZR9dGAjoc
-NgjHVX6BV0uAMrE7MBByNq2MuFjY0gg=
-=xcZb
------END PGP SIGNATURE-----
-```
-
 ## 0.1.4 - 2021-11-09
 
 - Bump version from 0.1.3 to 0.1.4 (8302177)
@@ -1007,20 +781,6 @@ NgjHVX6BV0uAMrE7MBByNq2MuFjY0gg=
 - Test Poetry virtualenv location (67c375b)
 - Disable Poetry experimental new installer (bd58436)
 - Add push triggers back to CodeQL workflow (861f16e)
-
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2021-11-09 17:41:55 -0500
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYYr5SAAKCRB4PbryPB1k
-eGlyAPkBRftCYGpfY2NMw40sH6oyQeVDG5WOVlhYl4AQwiNj1QEAmcoM/6L5+++m
-9Nvyc7MtZDcLOHgXvy5VpVg3rpJlXgc=
-=M4jL
------END PGP SIGNATURE-----
-```
 
 ## 0.1.3 - 2021-10-23
 
@@ -1043,20 +803,6 @@ eGlyAPkBRftCYGpfY2NMw40sH6oyQeVDG5WOVlhYl4AQwiNj1QEAmcoM/6L5+++m
 - Use heroicons cog as favicon (80878b7)
 - Add missing MkDocs favicon config (b60a4b5)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2021-10-23 17:32:38 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYXSAAAAKCRB4PbryPB1k
-eE0oAQCtjzZ/h8ZtGrJV8lKHrRAThgsd9fWAt8zhb4ovegUEmgD5Ab6kkH6527C+
-35sItU2XI2Pa+0dpbmODlxZUIWCDvAU=
-=SSjv
------END PGP SIGNATURE-----
-```
-
 ## 0.1.2 - 2021-08-06
 
 - Bump version from 0.1.1 to 0.1.2 (8b3115c)
@@ -1065,20 +811,6 @@ eE0oAQCtjzZ/h8ZtGrJV8lKHrRAThgsd9fWAt8zhb4ovegUEmgD5Ab6kkH6527C+
 - Test `find_dotenv` on resolved paths and filenames (aec7672)
 - Clean up `load_dotenv` tests (043626a)
 - Add missing `test_` prefix to `dump_dotenv` test (dea4ef4)
-
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2021-08-06 13:38:27 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYQ1zogAKCRB4PbryPB1k
-eDp6AP4m4+Ru6WJZE3ZUR0y384SJv6ArRlGLARh6TR7z1kFTZgEAkDRch0H9nba3
-EwTBNJ5M8YyedUU6tHHFEUUKPycqsgY=
-=UcsZ
------END PGP SIGNATURE-----
-```
 
 ## 0.1.1 - 2021-08-01
 
@@ -1094,20 +826,6 @@ EwTBNJ5M8YyedUU6tHHFEUUKPycqsgY=
 - Simplify `venv` code blocks in docs (400cb3e)
 - Drop "Development Status" PyPI trove classifier (a5188d1)
 - Correct `find_dotenv` docstring typo (d42fd15)
-
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2021-08-01 19:49:51 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYQczaAAKCRB4PbryPB1k
-eL86AP0cDuyvxVMIgXTSaTHL2bMT2klzvgX22R/Jz3+bbrPtSAEAnYnUR6uw9i5N
-84unqsXm21vgqxbFtoIAx46lfdEFxQs=
-=v0/5
------END PGP SIGNATURE-----
-```
 
 ## 0.1.0 - 2021-07-27
 
@@ -1167,43 +885,6 @@ released in version 3.3.0.
 - Add PyPI badge to README (d3d54fb)
 - Add Codecov badge to README (31c4b9b)
 
-Tagger: Brendon Smith <bws@bws.bio>
-
-Date: 2021-07-27 02:02:25 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iHUEABYKAB0WIQRUOcb2PA6NDBflNNd4PbryPB1keAUCYP+igAAKCRB4PbryPB1k
-eLejAQCvTVT+PqTjLcw8oVArebBIWXSB8S1ElSsTU1IkIE1ZTQD+KR4Z/AWnPD9N
-tioLAzehNCXR9mjr4wRi4hvfTfs1aAU=
-=mBFU
------END PGP SIGNATURE-----
-```
-
 ## 0.0.1 - 2021-04-04
 
 Hello, World! A new project is born. Let's see how this goes!
-
-Tagger: Brendon Smith <br3ndonland@protonmail.com>
-
-Date: 2021-04-04 03:21:05 -0400
-
-```text
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEE8JoyBFTTcRFWvTCPrGY4TPqMabAFAmBpaQkACgkQrGY4TPqM
-abAYUQ/+PaqJLmEFE0D8fc+TobIL+KswqI/EWCjFr7rxcAGWArQVQyXWZpVF32lD
-kiQO1yuxvNzwH5BZ5iQ8MiwnUpnpFdHeLFc/PPcWjmMLVUF4bCVEX3gnHjs7uu5g
-K+ia6OvDMRNKKOSfSjDYzRRWRvT1GvLuf+ZIIx62T/t961W0bgPVpKCoqwmS3X9e
-tIBqmqQFJB6u/jIHiBTVooUdCj4apXa+nseEl+YuUtlvFCmYhq8/1SY9s+UyKF3+
-2w/8H2r+JPv61aVhxakc9hJNRkHKlv6eNUAjVd8Nq8o44KJzplDt7tRTKwdRaudh
-MyXNGNpgRkN7iwOKUgE7gH7xyOl2gfF2mo3KtIz7rvw/oY8KH6PSKHNsmIHUS+yn
-DaPuZ5+t5gkzQUqrz7caJZwXcSR3bXx3SbzkQkanmVVaP0wlSNFa/BgRqWOYW1KC
-NtSVCiyaN6BJ3wY0hQzXLhRd3XI2naCgL2yqZrSY+WeLMN3ApD88y1qjv0XVqoHm
-dnuIvdTrYftCXZp4IB72AkEGhnDFLQ7dEdQDWnsWbtgMo6Mg13QFZWNJv5/SNyWO
-ozYKX8tkh1CF5Oguv8L+vTSPh03hPxBghNScSxLmfOr5yrPm/jhN0aUqvfvpAGBX
-HMlyIRnWW2Z2q6Zlo4iENC+9PVSBsAx2ioM99mfAGmkIlB1O9AA=
-=9bDg
------END PGP SIGNATURE-----
-```
