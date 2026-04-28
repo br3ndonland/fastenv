@@ -47,7 +47,7 @@ docs = [
 ]
 tests = [
   "coverage[toml]>=7,<8",
-  "fastapi>=0.110.1,<0.122",
+  "fastapi>=0.110.1,<0.137",
   "freezegun>=1,<2",
   "pytest>=8.1.1,<9",
   "pytest-mock>=3,<4",
