@@ -34,7 +34,7 @@ jobs:
       HATCH_ENV_TYPE_VIRTUAL_PATH: ".venv"
       HATCH_ENV: "ci"
       HATCH_VERSION: ">=1.16.3,<1.17"
-      PIPX_VERSION: ">=1.11,<1.12"
+      PIPX_VERSION: ">=1.14,<1.15"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
