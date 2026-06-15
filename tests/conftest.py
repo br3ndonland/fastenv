@@ -548,7 +548,6 @@ def env_str_multi() -> tuple[str, ...]:
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.anyio
 async def env_file(
     env_str: str, tmp_path_factory: pytest.TempPathFactory
 ) -> anyio.Path:
@@ -560,7 +559,6 @@ async def env_file(
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.anyio
 async def env_file_unsorted(env_file: anyio.Path, env_str_unsorted: str) -> anyio.Path:
     """Create .env file with unsorted environment variables."""
     tmp_file = env_file.parent / ".env.unsorted"
@@ -569,7 +567,6 @@ async def env_file_unsorted(env_file: anyio.Path, env_str_unsorted: str) -> anyi
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.anyio
 async def env_file_empty(env_file: anyio.Path) -> anyio.Path:
     """Create .env file with no variables."""
     tmp_file = env_file.parent / ".env.empty"
@@ -578,7 +575,6 @@ async def env_file_empty(env_file: anyio.Path) -> anyio.Path:
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.anyio
 async def env_file_child_dir(env_file: anyio.Path) -> anyio.Path:
     """Create child directories to test `find_dotenv`."""
     starting_dir = anyio.Path(env_file.parent) / "child1" / "child2" / "child3"
@@ -587,7 +583,6 @@ async def env_file_child_dir(env_file: anyio.Path) -> anyio.Path:
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.anyio
 async def env_files_in_same_dir(
     env_file: anyio.Path,
     env_str_multi: tuple[str, ...],
@@ -602,7 +597,6 @@ async def env_files_in_same_dir(
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.anyio
 async def env_files_in_child_dirs(
     env_file_child_dir: anyio.Path,
     env_str_multi: tuple[str, ...],
