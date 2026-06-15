@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TypedDict
 
@@ -18,7 +18,7 @@ class LifespanState(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[LifespanState]:
+async def lifespan(_: FastAPI) -> AsyncGenerator[LifespanState]:
     """Configure app lifespan.
 
     https://fastapi.tiangolo.com/advanced/events/

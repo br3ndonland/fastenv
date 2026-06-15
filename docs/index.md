@@ -65,7 +65,7 @@ Use fastenv in your FastAPI app:
 
 ```py
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, TypedDict
+from typing import AsyncGenerator, TypedDict
 
 import fastenv
 from fastapi import FastAPI, Request
@@ -76,7 +76,7 @@ class LifespanState(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[LifespanState]:
+async def lifespan(_: FastAPI) -> AsyncGenerator[LifespanState]:
     """Configure app lifespan.
 
     https://fastapi.tiangolo.com/advanced/events/

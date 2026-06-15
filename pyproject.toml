@@ -39,7 +39,7 @@ cloud = [
 
 [dependency-groups]
 checks = [
-  "basedpyright>=1.37,<1.38",
+  "basedpyright>=1.39,<1.40",
   "ruff>=0.15,<0.16",
 ]
 docs = [
