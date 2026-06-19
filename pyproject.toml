@@ -70,6 +70,9 @@ show_missing = true
 command_line = "-m pytest"
 source = ["fastenv", "tests"]
 
+[tool.hatch]
+locker = "pip"
+
 [tool.hatch.build.targets.sdist]
 include = ["/fastenv"]
 
@@ -79,6 +82,7 @@ packages = ["fastenv"]
 [tool.hatch.envs.ci]
 builder = true
 dev-mode = false
+locked = true
 dependency-groups = [
   "checks",
   "tests",
@@ -89,6 +93,7 @@ features = [
 
 [tool.hatch.envs.default]
 dev-mode = true
+locked = true
 dependency-groups = [
   "checks",
   "docs",
@@ -114,6 +119,7 @@ format = [
 
 [tool.hatch.envs.docs]
 dev-mode = false
+locked = true
 dependency-groups = [
   "docs",
 ]
