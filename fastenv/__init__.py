@@ -20,4 +20,4 @@ __all__ = (
     "find_dotenv",
     "load_dotenv",
 )
-__version__ = "0.8.0"
+__version__ = "0.9.0"
