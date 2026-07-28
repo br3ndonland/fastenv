@@ -4,6 +4,77 @@ icon: lucide/clipboard-clock
 
 # Changelog
 
+## 0.9.0 - 2026-07-27
+
+### Changes
+
+**Drop Python 3.10 support** (#43,
+80da947d6332aab69dce09ff003488f71d745b36)
+
+Python 3.10 is in security-only maintenance and reaches
+[end-of-life](https://devguide.python.org/versions/) in October 2026.
+
+This release will:
+
+- Remove Python 3.10 from the GitHub Actions matrix and package
+  classifiers.
+- Require Python 3.11 or newer.
+- Use `datetime.UTC` now that Python 3.11 is required.
+
+**Add Python 3.14 support** (#42,
+437fd7c3235e850749eff0bd37fdbe34d53b5027)
+
+This release will add
+[Python 3.14](https://docs.python.org/3/whatsnew/3.14.html) support to
+fastenv.
+
+- fastenv will now include a Python 3.14 classifier in its PyPI package
+- fastenv will now build and publish its PyPI package using Python 3.14
+- fastenv will now run tests with Python 3.14, in addition to 3.11-3.13
+
+Related projects that have released support for Python 3.14 include:
+
+- AnyIO
+  ([4.10.0 - 2025-08-04](https://github.com/agronholm/anyio/releases/tag/4.10.0))
+- Hatch
+  ([1.15.0 - 2025-10-15](https://github.com/pypa/hatch/releases/tag/hatch-v1.15.0))
+- HTTPXYZ
+  ([0.28.2 - 2026-03-24](https://pypi.org/project/httpxyz/0.28.2/))
+- pipx
+  ([1.9.0 - 2026-03-17](https://github.com/pypa/pipx/releases/tag/1.9.0))
+
+### Commits
+
+- Bump version from 0.8.0 to 0.9.0 (53040f0)
+- Update to `pypa/gh-action-pypi-publish@v1.14.1` (e1dfd3f)
+- Update to FastAPI 0.140 (bb16a8d)
+- Update to Zensical 0.0.51 (898e460)
+- Drop Python 3.10 support (#43) (80da947)
+- Add Python 3.14 support (#42) (437fd7c)
+- Set Prettier `proseWrap` to `never` (ab6ca84)
+- Update to pipx 1.16 (60fd832)
+- Fix Finder custom icons in `.gitignore` (fee57b0)
+- Update to pipx 1.15 (ea3cf5a)
+- Update to Hatch 1.17 (5f0be8c)
+- Update to pytest 9 (dcfaffa)
+- Update to FastAPI 0.137 (53e0640)
+- Update to Zensical 0.0.45 (214fe3a)
+- Update to BasedPyright 1.39 (df9d557)
+- Update to pipx 1.14 (10c4f40)
+- Update to FastAPI 0.136 (96155cd)
+- Update to Zensical 0.0.37 (a59e55a)
+- Update to `pypa/gh-action-pypi-publish@v1.14.0` (636e9eb)
+- Add frontmatter icons to docs (1623084)
+- Remove `content.action.view` from `zensical.toml` (9dbad15)
+- Remove duplicate changelog (9910fa6)
+- Simplify changelog format (d88a89b)
+- Update to Ruff 0.15 (cd7fefe)
+- Fix favicon path for Zensical (e47e589)
+- Migrate from `mkdocs.yml` to `zensical.toml` (b8ed5fd)
+- Use `zensical build --clean` (c2f8f6f)
+- Update to Zensical 0.0.31 (c597796)
+- Update changelog for version 0.8.0 (#41) (62da602)
+
 ## 0.8.0 - 2026-03-31
 
 ### Changes
