@@ -395,7 +395,7 @@ class TestObjectStorageClientUnit:
             config=object_storage_config
         )
         expires = 86400
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         x_amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
         credential_scope = (
@@ -462,7 +462,7 @@ class TestObjectStorageClientUnit:
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             config=object_storage_config
         )
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         x_amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
         credential_scope = (
@@ -510,7 +510,7 @@ class TestObjectStorageClientUnit:
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             config=object_storage_config
         )
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         date_stamp = now.strftime("%Y%m%d")
         string_to_sign = (
             "AWS4-HMAC-SHA256\n"
@@ -666,7 +666,7 @@ class TestObjectStorageClientUnit:
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             config=object_storage_config
         )
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         x_amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
         expiration_time = now + datetime.timedelta(seconds=129600)
@@ -767,7 +767,7 @@ class TestObjectStorageClientUnit:
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
             config=object_storage_config
         )
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         date_stamp = now.strftime("%Y%m%d")
         base64_encoded_policy = (
             "eyAiZXhwaXJhdGlvbiI6ICIyMDE1LTEyLTMwVDEyOjAwOjAwLjAwMFoiLA0KICAiY29uZGl0"

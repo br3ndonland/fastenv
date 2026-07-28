@@ -298,7 +298,7 @@ def object_storage_client_upload_prefix() -> str:
     will be formatted like "2022-01-01-220123-UTC". There is also a random text
     string added, to ensure that each test run has a unique prefix.
     """
-    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    now = datetime.datetime.now(tz=datetime.UTC)
     now_string = now.strftime("%Y-%m-%d-%H%M%S-%Z")
     hex_prefix = secrets.token_hex()[:10]
     return f"uploads/{now_string}-{hex_prefix}"
