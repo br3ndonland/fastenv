@@ -276,7 +276,7 @@ class ObjectStorageClient:
         https://github.com/encode/httpx/discussions/1599
         https://github.com/encode/httpx/releases/tag/0.18.0
         """
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         x_amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
         credential_scope = (
@@ -620,7 +620,7 @@ class ObjectStorageClient:
         For example, either `x-amz-signature` or `X-Amz-Signature` are valid keys.
         All policy condition keys will be normalized to lowercase.
         """
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         x_amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
         expiration_time = now + datetime.timedelta(seconds=expires)
