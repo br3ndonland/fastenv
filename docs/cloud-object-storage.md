@@ -216,7 +216,6 @@ Here's an example of how the code might look. Save the code snippet below as _ex
         bucket_host = "<BUCKET_NAME>.s3.<REGION>.backblazeb2.com"
         bucket_region = "<REGION>"
         anyio.run(upload_my_dotenv, bucket_host, bucket_region)
-
     ```
 
     1. Step 1: create a configuration instance
@@ -280,7 +279,6 @@ We now have a bucket with a _.env_ file in it. Let's download the file. Steps ar
         bucket_region = "<REGION>"
         # anyio.run(upload_my_dotenv, bucket_host, bucket_region)
         anyio.run(download_my_dotenv, bucket_host, bucket_region)
-
     ```
 
     Then set credentials and run the script from a shell. Remember to activate the virtualenv if you haven't already done so.
@@ -328,7 +326,6 @@ Here's an example of how this could be implemented.
         bucket_host = "<BUCKET_NAME>.s3.<REGION>.backblazeb2.com"
         bucket_region = "<REGION>"
         anyio.run(download_my_dotenvs, bucket_host, bucket_region)
-
     ```
 
 ## Cloud object storage comparisons

@@ -91,9 +91,7 @@ class ObjectStorageConfig:
             )
             if scheme:
                 bucket_host = bucket_host.split(scheme, maxsplit=1)[1]
-            if bucket_host.endswith(".amazonaws.com") or bucket_host.endswith(
-                ".backblazeb2.com"
-            ):
+            if bucket_host.endswith((".amazonaws.com", ".backblazeb2.com")):
                 bucket_name = bucket_host.split(".s3.")[0]
             elif bucket_host.endswith(".cloudflarestorage.com"):
                 bucket_name = bucket_host.rsplit(sep=".", maxsplit=4)[0]
@@ -429,7 +427,7 @@ class ObjectStorageClient:
         *,
         content_type: str = "text/plain",
         method: Literal["POST", "PUT"] = "PUT",
-        server_side_encryption: Literal["AES256", None] = None,
+        server_side_encryption: Literal["AES256"] | None = None,
         specify_content_disposition: bool = True,
     ) -> httpxyz.Response | None:
         """Upload a file to cloud object storage.
@@ -518,7 +516,7 @@ class ObjectStorageClient:
         service: str = "s3",
         content_length: int | None = None,
         content_type: str = "text/plain",
-        server_side_encryption: Literal["AES256", None] = None,
+        server_side_encryption: Literal["AES256"] | None = None,
         specify_content_disposition: bool = True,
         additional_policy_conditions: UploadPolicyConditions | None = None,
         additional_form_data: dict[str, str] | None = None,
@@ -591,7 +589,7 @@ class ObjectStorageClient:
         service: str = "s3",
         content_length: int | None = None,
         content_type: str = "text/plain",
-        server_side_encryption: Literal["AES256", None] = None,
+        server_side_encryption: Literal["AES256"] | None = None,
         specify_content_disposition: bool = True,
         additional_policy_conditions: UploadPolicyConditions | None = None,
         additional_form_data: dict[str, str] | None = None,
@@ -668,7 +666,7 @@ class ObjectStorageClient:
         *,
         content_length: int | None,
         content_type: str | None,
-        server_side_encryption: Literal["AES256", None],
+        server_side_encryption: Literal["AES256"] | None,
         specify_content_disposition: bool,
         additional_policy_conditions: UploadPolicyConditions | None = None,
     ) -> UploadPolicy:
@@ -863,7 +861,7 @@ class ObjectStorageClient:
         content: bytes,
         *,
         content_type: str = "text/plain",
-        server_side_encryption: Literal["AES256", None] = None,
+        server_side_encryption: Literal["AES256"] | None = None,
     ) -> httpxyz.Response:
         """Upload a file to Backblaze B2 object storage, using the authorization token
         and URL obtained from a call to `b2_get_upload_url`.

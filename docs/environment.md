@@ -38,6 +38,7 @@ Next, we will [use the Python interpreter](https://docs.python.org/3/tutorial/in
 
     ```py
     import fastenv
+
     dotenv = fastenv.DotEnv()
     ```
 
@@ -60,6 +61,7 @@ Here is an example REPL session demonstrating how to use the `os.environ`-style 
     ```py
     import os
     import fastenv
+
     dotenv = fastenv.DotEnv()
     dotenv["EXAMPLE_VARIABLE"] = "example_value"
     dotenv["EXAMPLE_VARIABLE"]
@@ -85,6 +87,7 @@ Environment variables can be set when creating instances of `class DotEnv`. Posi
 
     ```py
     import fastenv
+
     dotenv = fastenv.DotEnv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
     dict(dotenv)
     # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
@@ -108,6 +111,7 @@ Multiple positional arguments (and multi-variable strings) with keys only will r
 
     ```py
     import fastenv
+
     dotenv = fastenv.DotEnv("KEY1=value1")
     dotenv("KEY1")
     # 'value1'
@@ -132,6 +136,7 @@ If no return value is needed, the `setenv` method can be used.
 
     ```py
     import fastenv
+
     dotenv = fastenv.DotEnv()
     dotenv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
     # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
@@ -152,6 +157,7 @@ Complex combinations of getting and setting can be accomplished in the same call
 
     ```py
     import fastenv
+
     dotenv = fastenv.DotEnv("KEY1=value1")
     dotenv("KEY1", "KEY2=value2 KEY3=value3", key4="value4")
     # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
@@ -171,6 +177,7 @@ Multiple variables can be deleted by calling the `delenv` method.
 
     ```py
     import fastenv
+
     dotenv = fastenv.DotEnv()
     dotenv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
     # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
@@ -212,6 +219,7 @@ Multiple variables can be deleted by calling the `delenv` method.
 
     ```py
     import fastenv
+
     dotenv = fastenv.DotEnv(incorrect_type=[1, 2, 3])
     dict(dotenv)
     # {'INCORRECT_TYPE': '[1, 2, 3]'}

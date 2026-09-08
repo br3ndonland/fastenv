@@ -57,21 +57,21 @@ class TestObjectStorageConfig:
         f"{example_bucket_name_with_dots}.s3.{example_bucket_region}.amazonaws.com"
     )
     example_config_kwargs_for_bucket = (
-        dict(bucket_host=example_bucket_host),
-        dict(bucket_name=example_bucket_name),
+        {"bucket_host": example_bucket_host},
+        {"bucket_name": example_bucket_name},
     )
     example_config_kwargs_for_bucket_names_with_dots = (
-        dict(bucket_host=example_bucket_host_with_dots_in_the_bucket_name),
-        dict(bucket_name=example_bucket_name_with_dots),
+        {"bucket_host": example_bucket_host_with_dots_in_the_bucket_name},
+        {"bucket_name": example_bucket_name_with_dots},
     )
     example_config_kwargs_incomplete = (
-        dict(access_key=example_access_key, secret_key=example_secret_key),
-        dict(access_key=example_access_key, bucket_name=example_bucket_name),
-        dict(
-            access_key=example_access_key,
-            secret_key=example_secret_key,
-            bucket_name=example_bucket_name,
-        ),
+        {"access_key": example_access_key, "secret_key": example_secret_key},
+        {"access_key": example_access_key, "bucket_name": example_bucket_name},
+        {
+            "access_key": example_access_key,
+            "secret_key": example_secret_key,
+            "bucket_name": example_bucket_name,
+        },
     )
 
     def config_is_correct(
@@ -1092,7 +1092,7 @@ class TestObjectStorageClientIntegration:
         env_file: anyio.Path,
         method: Literal["POST", "PUT"],
         mocker: MockerFixture,
-        server_side_encryption: Literal["AES256", None],
+        server_side_encryption: Literal["AES256"] | None,
     ) -> None:
         """Upload a file to cloud object storage, and assert that the
         expected logger message is provided after a successful upload.
@@ -1137,7 +1137,7 @@ class TestObjectStorageClientIntegration:
         env_str: str,
         method: Literal["POST", "PUT"],
         mocker: MockerFixture,
-        server_side_encryption: Literal["AES256", None],
+        server_side_encryption: Literal["AES256"] | None,
     ) -> None:
         """Upload a string to cloud object storage, and assert that the
         expected logger message is provided after a successful upload.
@@ -1182,7 +1182,7 @@ class TestObjectStorageClientIntegration:
         env_bytes: bytes,
         method: Literal["POST", "PUT"],
         mocker: MockerFixture,
-        server_side_encryption: Literal["AES256", None],
+        server_side_encryption: Literal["AES256"] | None,
     ) -> None:
         """Upload bytes to cloud object storage, and assert that the
         expected logger message is provided after a successful upload.

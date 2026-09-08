@@ -85,7 +85,7 @@ def object_storage_config(
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    request_param: CloudParams = getattr(request, "param")
+    request_param: CloudParams = request.param
     access_key = os.getenv(request_param.access_key_variable)
     secret_key = os.getenv(request_param.secret_key_variable)
     session_token = (
@@ -164,7 +164,7 @@ def object_storage_config_for_presigned_url_example(
     without regions (`examplebucket.s3.amazonaws.com`), and virtual-hosted-style
     URLs with regions (`examplebucket.s3.us-east-1.amazonaws.com`).
     """
-    use_session_token: bool = getattr(request, "param")
+    use_session_token: bool = request.param
     if use_session_token is True:
         # docs only provide the quoted session token
         quoted_session_token = (
@@ -217,7 +217,7 @@ def object_storage_config_for_presigned_post_example(
     without regions (`examplebucket.s3.amazonaws.com`), and virtual-hosted-style
     URLs with regions (`examplebucket.s3.us-east-1.amazonaws.com`).
     """
-    use_session_token: bool = getattr(request, "param")
+    use_session_token: bool = request.param
     if use_session_token is True:
         # docs only provide the quoted session token
         quoted_session_token = (
@@ -401,7 +401,7 @@ def dotenv_arg(request: pytest.FixtureRequest) -> tuple[str, str, str]:
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    request_param: tuple[str, str, str] = getattr(request, "param")
+    request_param: tuple[str, str, str] = request.param
     return request_param
 
 
@@ -429,7 +429,7 @@ def dotenv_kwarg(request: pytest.FixtureRequest) -> tuple[dict[str, str], str, s
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    request_param: tuple[dict[str, str], str, str] = getattr(request, "param")
+    request_param: tuple[dict[str, str], str, str] = request.param
     return request_param
 
 
@@ -462,7 +462,7 @@ def dotenv_kwarg_incorrect_type(
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    request_param: tuple[dict[str, Any], str, str] = getattr(request, "param")
+    request_param: tuple[dict[str, Any], str, str] = request.param
     return request_param
 
 
@@ -495,7 +495,7 @@ def input_arg_incorrect_type(
     will be automatically parametrized, running once for each fixture parameter.
     https://docs.pytest.org/en/latest/how-to/fixtures.html
     """
-    request_param: dict[str, str] | int | list[int] = getattr(request, "param")
+    request_param: dict[str, str] | int | list[int] = request.param
     return request_param
 
 

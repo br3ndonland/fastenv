@@ -41,6 +41,7 @@ Then start a REPL session and try it out:
 ```py
 # instantiate a DotEnv with a variable
 import fastenv
+
 dotenv = fastenv.DotEnv("EXAMPLE_VARIABLE=example_value")
 # add a variable with dictionary syntax
 dotenv["ANOTHER_VARIABLE"] = "another_value"
@@ -54,6 +55,7 @@ dict(dotenv)
 # {'EXAMPLE_VARIABLE': 'example_value', 'I_THINK_FASTENV_IS': 'awesome'}
 # save the DotEnv instance to a file
 import anyio
+
 anyio.run(fastenv.dump_dotenv, dotenv)
 # Path('/path/to/this/dir/.env')
 ```

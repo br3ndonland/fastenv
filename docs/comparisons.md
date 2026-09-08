@@ -140,7 +140,7 @@ Something like the following is therefore needed instead of using `dotenv.load_d
             dotenv = DotEnv(source, verbose=True)
             dotenv.set_as_environment_variables()
             logger.info(
-              f"Python-dotenv loaded {len(dotenv.dict())} variables from {env_file}"
+                f"Python-dotenv loaded {len(dotenv.dict())} variables from {env_file}"
             )
             return dotenv
         except Exception as e:
@@ -202,6 +202,7 @@ Type-casting provides improvements over some aspects of the standard library. Fo
     bool("false")
     # True
     import starlette.config
+
     config = starlette.config.Config()
     config("BOOLEAN_SETTING", cast=bool, default="false")
     # False
@@ -225,6 +226,7 @@ It is also important to note that the one-way preference will only be enforced w
     ```py
     import os
     import starlette.config
+
     os.environ.get("FOO_VARIABLE")
     starlette.config.environ["FOO_VARIABLE"] = "bar"
     os.environ.get("FOO_VARIABLE")
