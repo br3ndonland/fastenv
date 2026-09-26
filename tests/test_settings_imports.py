@@ -116,6 +116,27 @@ def test_settings_integrations_coexist() -> None:
     )
 
 
+def test_pydantic_settings_without_cloud_sdks() -> None:
+    _check_imports(
+        ("boto3", "botocore", "azure", "google"),
+        """
+        import os
+        from fastenv import settings
+
+        for name in settings.__all__:
+            getattr(settings, name)
+
+        class Settings(settings.BaseSettings):
+            model_config = settings.SettingsConfigDict(env_prefix="NO_SDK_TEST_")
+            count: int = 0
+
+        os.environ["NO_SDK_TEST_COUNT"] = "7"
+        assert Settings().count == 7
+        assert not {"boto3", "botocore", "azure", "google"}.intersection(sys.modules)
+        """,
+    )
+
+
 def test_lazy_public_exports_and_unknown_attribute() -> None:
     import fastenv
     from fastenv import settings

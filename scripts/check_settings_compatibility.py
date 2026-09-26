@@ -207,7 +207,15 @@ def main() -> None:
     reference = importlib.import_module("pydantic_settings")
     replacement = importlib.import_module("fastenv.settings")
     assert reference.__version__ == "2.15.0", "Use the pinned reference release"
-    assert set(reference.__all__) <= set(replacement.__all__), "Missing public exports"
+    intentionally_omitted = {
+        "AWSSecretsManagerSettingsSource",
+        "AzureKeyVaultSettingsSource",
+        "GoogleSecretManagerSettingsSource",
+    }
+    missing = set(reference.__all__) - set(replacement.__all__)
+    assert missing == intentionally_omitted, (
+        f"Unexpected public API differences: {missing}"
+    )
     with (
         TemporaryDirectory(
             prefix="fastenv-compat-", dir=os.getenv("TMPDIR", "/tmp")

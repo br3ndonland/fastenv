@@ -25,13 +25,9 @@ if TYPE_CHECKING:
     )
     from .main import BaseSettings, SettingsConfigDict
     from .providers import (
-        AWSSecretsManagerSettingsSource,
-        AzureKeyVaultSettingsSource,
-        GoogleSecretManagerSettingsSource,
         JsonConfigSettingsSource,
         NestedSecretsSettingsSource,
         PyprojectTomlConfigSettingsSource,
-        SecretVersion,
         TomlConfigSettingsSource,
         YamlConfigSettingsSource,
     )
@@ -65,13 +61,9 @@ _EXPORT_MODULES: dict[str, str] = {
     "get_subcommand": ".cli",
     "BaseSettings": ".main",
     "SettingsConfigDict": ".main",
-    "AWSSecretsManagerSettingsSource": ".providers",
-    "AzureKeyVaultSettingsSource": ".providers",
-    "GoogleSecretManagerSettingsSource": ".providers",
     "JsonConfigSettingsSource": ".providers",
     "NestedSecretsSettingsSource": ".providers",
     "PyprojectTomlConfigSettingsSource": ".providers",
-    "SecretVersion": ".providers",
     "TomlConfigSettingsSource": ".providers",
     "YamlConfigSettingsSource": ".providers",
     "DotEnvSettingsSource": ".sources",
@@ -99,8 +91,6 @@ def __getattr__(name: str) -> Any:  # pyright: ignore[reportAny, reportExplicitA
 
 __all__ = (
     "CLI_SUPPRESS",
-    "AWSSecretsManagerSettingsSource",
-    "AzureKeyVaultSettingsSource",
     "BaseSettings",
     "CliApp",
     "CliDualFlag",
@@ -116,7 +106,6 @@ __all__ = (
     "DotEnvSettingsSource",
     "EnvSettingsSource",
     "ForceDecode",
-    "GoogleSecretManagerSettingsSource",
     "IncompleteFieldDefinitionWarning",
     "InitSettingsSource",
     "JsonConfigSettingsSource",
@@ -124,7 +113,6 @@ __all__ = (
     "NoDecode",
     "PydanticBaseSettingsSource",
     "PyprojectTomlConfigSettingsSource",
-    "SecretVersion",
     "SecretsSettingsSource",
     "SettingsConfigDict",
     "SettingsError",
