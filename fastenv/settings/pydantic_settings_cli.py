@@ -35,7 +35,12 @@ from pydantic import AliasChoices, AliasPath, BaseModel, Field, TypeAdapter
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined, to_jsonable_python
 
-from .sources import ForceDecode, NoDecode, PydanticBaseSettingsSource, SettingsError
+from .pydantic_settings_sources import (
+    ForceDecode,
+    NoDecode,
+    PydanticBaseSettingsSource,
+    SettingsError,
+)
 
 T = TypeVar("T")
 BoolT = TypeVar("BoolT", bound=bool)
@@ -915,7 +920,7 @@ class CliApp:
 
     @staticmethod
     def _source(model_cls: type[Any], **kwargs: Any) -> CliSettingsSource[Any]:
-        from .main import BaseSettings
+        from .pydantic_settings import BaseSettings
 
         if not issubclass(model_cls, BaseSettings):
             defaults: dict[str, Any] = {
@@ -944,7 +949,7 @@ class CliApp:
         cli_cmd_method_name: str = "cli_cmd",
         **model_init_data: Any,
     ) -> T:
-        from .main import BaseSettings
+        from .pydantic_settings import BaseSettings
 
         _ = _fields(model_cls)
         source = cli_settings_source or CliApp._source(

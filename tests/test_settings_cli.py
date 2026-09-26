@@ -15,7 +15,8 @@ import pytest
 from pydantic import AliasChoices, AliasPath, BaseModel, Field, ValidationError
 from pydantic.dataclasses import dataclass
 
-from fastenv.settings.cli import (
+from fastenv.settings.pydantic_settings import BaseSettings, SettingsConfigDict
+from fastenv.settings.pydantic_settings_cli import (
     CLI_SUPPRESS,
     CliApp,
     CliDualFlag,
@@ -30,8 +31,7 @@ from fastenv.settings.cli import (
     CliUnknownArgs,
     get_subcommand,
 )
-from fastenv.settings.main import BaseSettings, SettingsConfigDict
-from fastenv.settings.sources import NoDecode, SettingsError
+from fastenv.settings.pydantic_settings_sources import NoDecode, SettingsError
 
 SettingsT = TypeVar("SettingsT", bound=BaseSettings)
 

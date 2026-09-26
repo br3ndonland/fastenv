@@ -16,8 +16,8 @@ from pydantic import AliasChoices, BaseModel, Field, ValidationError
 from pydantic.fields import FieldInfo
 
 from fastenv import parse_dotenv
-from fastenv.settings.main import BaseSettings, SettingsConfigDict
-from fastenv.settings.sources import PydanticBaseSettingsSource
+from fastenv.settings.pydantic_settings import BaseSettings, SettingsConfigDict
+from fastenv.settings.pydantic_settings_sources import PydanticBaseSettingsSource
 
 
 def test_parser_is_pure_and_preserves_fastenv_semantics() -> None:
@@ -259,7 +259,7 @@ def test_supplied_cli_source_receives_arguments() -> None:
 
 
 def test_source_field_lookup_hook() -> None:
-    from fastenv.settings.sources import InitSettingsSource
+    from fastenv.settings.pydantic_settings_sources import InitSettingsSource
 
     class Settings(BaseSettings):
         enabled: bool = False

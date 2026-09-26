@@ -12,14 +12,14 @@ from typing import Any, ClassVar, cast
 import pytest
 from pydantic import BaseModel, Field
 
-from fastenv.settings.main import BaseSettings, SettingsConfigDict
-from fastenv.settings.providers import (
+from fastenv.settings.pydantic_settings import BaseSettings, SettingsConfigDict
+from fastenv.settings.pydantic_settings_providers import (
     JsonConfigSettingsSource,
     NestedSecretsSettingsSource,
     PyprojectTomlConfigSettingsSource,
     TomlConfigSettingsSource,
 )
-from fastenv.settings.sources import (
+from fastenv.settings.pydantic_settings_sources import (
     PydanticBaseSettingsSource,
     SecretsSettingsSource,
     SettingsError,

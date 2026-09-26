@@ -17,7 +17,7 @@ from typing import Any, ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from .sources import (
+from .pydantic_settings_sources import (
     DefaultSettingsSource,
     DotEnvSettingsSource,
     EnvSettingsSource,
@@ -280,7 +280,7 @@ class BaseSettings(BaseModel):
             dotenv_settings=dotenv,
             file_secret_settings=secrets,
         )
-        from .providers import (
+        from .pydantic_settings_providers import (
             JsonConfigSettingsSource,
             PyprojectTomlConfigSettingsSource,
             TomlConfigSettingsSource,
@@ -303,7 +303,7 @@ class BaseSettings(BaseModel):
                             UserWarning,
                             stacklevel=3,
                         )
-        from .cli import CliSettingsSource
+        from .pydantic_settings_cli import CliSettingsSource
 
         if not any(isinstance(source, CliSettingsSource) for source in sources):
             if cli_source is not None:
