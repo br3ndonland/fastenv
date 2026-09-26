@@ -4,13 +4,12 @@ Written from the public API contract, without using pydantic-settings code.
 """
 
 # Settings source values intentionally remain unvalidated until BaseModel.__init__.
-# The CLI imports BaseSettings lazily, after both modules have initialized.
-# pyright: reportAny=false, reportExplicitAny=false, reportImportCycles=false
+# pyright: reportAny=false, reportExplicitAny=false
 
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from os import PathLike
 from pathlib import Path
 from typing import Any, ClassVar, Literal
@@ -61,21 +60,6 @@ class SettingsConfigDict(ConfigDict, total=False):
     toml_table_header: tuple[str, ...]
     pyproject_toml_depth: int
     pyproject_toml_table_header: tuple[str, ...]
-    cli_prog_name: str | None
-    cli_parse_args: bool | list[str] | tuple[str, ...] | None
-    cli_parse_none_str: str | None
-    cli_hide_none_type: bool
-    cli_avoid_json: bool
-    cli_enforce_required: bool
-    cli_use_class_docs_for_groups: bool
-    cli_show_env_vars: bool
-    cli_exit_on_error: bool
-    cli_prefix: str
-    cli_flag_prefix_char: str
-    cli_implicit_flags: bool | Literal["dual", "toggle"]
-    cli_ignore_unknown_args: bool
-    cli_kebab_case: bool | Literal["all", "no_enums"]
-    cli_shortcuts: Mapping[str, str | list[str]] | None
 
 
 _SETTINGS_KEYS = (
@@ -87,8 +71,8 @@ _ENV_FILE_DEFAULT = Path("")
 class BaseSettings(BaseModel):
     """Validate settings from init values, environment, dotenv, and secrets.
 
-    Sources are ordered from highest to lowest priority. CLI values, when
-    enabled, precede the other sources. Pydantic supplies final field defaults.
+    Sources are ordered from highest to lowest priority. Pydantic supplies
+    final field defaults.
     """
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -106,21 +90,6 @@ class BaseSettings(BaseModel):
         env_nested_max_split=None,
         env_parse_none_str=None,
         env_parse_enums=None,
-        cli_prog_name=None,
-        cli_parse_args=None,
-        cli_parse_none_str=None,
-        cli_hide_none_type=False,
-        cli_avoid_json=False,
-        cli_enforce_required=False,
-        cli_use_class_docs_for_groups=False,
-        cli_show_env_vars=False,
-        cli_exit_on_error=True,
-        cli_prefix="",
-        cli_flag_prefix_char="-",
-        cli_implicit_flags=False,
-        cli_ignore_unknown_args=False,
-        cli_kebab_case=False,
-        cli_shortcuts=None,
         json_file=None,
         json_file_encoding=None,
         toml_file=None,
@@ -154,22 +123,6 @@ class BaseSettings(BaseModel):
         _env_nested_max_split: int | None = None,
         _env_parse_none_str: str | None = None,
         _env_parse_enums: bool | None = None,
-        _cli_prog_name: str | None = None,
-        _cli_parse_args: bool | list[str] | tuple[str, ...] | None = None,
-        _cli_settings_source: Any = None,
-        _cli_parse_none_str: str | None = None,
-        _cli_hide_none_type: bool | None = None,
-        _cli_avoid_json: bool | None = None,
-        _cli_enforce_required: bool | None = None,
-        _cli_use_class_docs_for_groups: bool | None = None,
-        _cli_show_env_vars: bool | None = None,
-        _cli_exit_on_error: bool | None = None,
-        _cli_prefix: str | None = None,
-        _cli_flag_prefix_char: str | None = None,
-        _cli_implicit_flags: bool | Literal["dual", "toggle"] | None = None,
-        _cli_ignore_unknown_args: bool | None = None,
-        _cli_kebab_case: bool | Literal["all", "no_enums"] | None = None,
-        _cli_shortcuts: Mapping[str, str | list[str]] | None = None,
         _secrets_dir: PathType | None = None,
         _build_sources: tuple[tuple[SettingsSource, ...], dict[str, Any]] | None = None,
         **values: Any,
@@ -187,21 +140,6 @@ class BaseSettings(BaseModel):
             "env_parse_none_str": _env_parse_none_str,
             "env_parse_enums": _env_parse_enums,
             "secrets_dir": _secrets_dir,
-            "cli_prog_name": _cli_prog_name,
-            "cli_parse_args": _cli_parse_args,
-            "cli_parse_none_str": _cli_parse_none_str,
-            "cli_hide_none_type": _cli_hide_none_type,
-            "cli_avoid_json": _cli_avoid_json,
-            "cli_enforce_required": _cli_enforce_required,
-            "cli_use_class_docs_for_groups": _cli_use_class_docs_for_groups,
-            "cli_show_env_vars": _cli_show_env_vars,
-            "cli_exit_on_error": _cli_exit_on_error,
-            "cli_prefix": _cli_prefix,
-            "cli_flag_prefix_char": _cli_flag_prefix_char,
-            "cli_implicit_flags": _cli_implicit_flags,
-            "cli_ignore_unknown_args": _cli_ignore_unknown_args,
-            "cli_kebab_case": _cli_kebab_case,
-            "cli_shortcuts": _cli_shortcuts,
         }
         options.update(
             {key: value for key, value in overrides.items() if value is not None}
@@ -212,7 +150,7 @@ class BaseSettings(BaseModel):
         sources = (
             _build_sources[0]
             if _build_sources is not None
-            else settings_cls._settings_sources(values, options, _cli_settings_source)
+            else settings_cls._settings_sources(values, options)
         )
         state: dict[str, Any] = {}
         source_data: dict[str, dict[str, Any]] = {}
@@ -240,7 +178,6 @@ class BaseSettings(BaseModel):
         cls,
         values: dict[str, Any],
         options: dict[str, Any],
-        cli_source: Any,
     ) -> tuple[SettingsSource, ...]:
         env_options = {
             key: options.get(key)
@@ -303,33 +240,6 @@ class BaseSettings(BaseModel):
                             UserWarning,
                             stacklevel=3,
                         )
-        from .pydantic_settings_cli import CliSettingsSource
-
-        if not any(isinstance(source, CliSettingsSource) for source in sources):
-            if cli_source is not None:
-                if options["cli_parse_args"] is not None:
-                    cli_source(args=options["cli_parse_args"])
-                sources = (cli_source, *sources)
-            elif (
-                options["cli_parse_args"] is not None
-                and options["cli_parse_args"] is not False
-            ):
-                cli_options = {
-                    key: value
-                    for key, value in options.items()
-                    if key.startswith("cli_")
-                }
-                if options["env_parse_none_str"] is not None:
-                    cli_options["cli_parse_none_str"] = options["env_parse_none_str"]
-                sources = (
-                    CliSettingsSource[Any](
-                        cls,
-                        case_sensitive=options["case_sensitive"],
-                        _env_settings_source=env,
-                        **cli_options,
-                    ),
-                    *sources,
-                )
         return (
             *sources,
             DefaultSettingsSource(

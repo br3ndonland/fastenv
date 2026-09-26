@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -71,6 +72,43 @@ def test_defaults_are_validated_and_extra_init_rejected() -> None:
     assert Valid().quantity == 7
     with pytest.raises(ValidationError):
         _ = Valid(unexpected=1)
+
+
+def test_application_parsed_overrides_merge_before_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dotenv = tmp_path / "config.env"
+    _ = dotenv.write_text(
+        "FASTENV_APP_DEBUG=true FASTENV_APP_COUNT=20 FASTENV_APP_DATABASE__HOST=file"
+    )
+
+    class Database(BaseModel):
+        host: str
+        port: int
+
+    class Settings(BaseSettings):
+        model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+            env_prefix="FASTENV_APP_", env_file=dotenv, env_nested_delimiter="__"
+        )
+        debug: bool
+        count: int
+        database: Database
+
+    monkeypatch.setenv("FASTENV_APP_DATABASE__PORT", "5432")
+    parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
+    _ = parser.add_argument("--debug", action=argparse.BooleanOptionalAction)
+    _ = parser.add_argument("--count", type=int)
+
+    overrides = vars(parser.parse_args(["--no-debug", "--count", "0"]))
+    settings = Settings(**overrides)
+    assert settings.model_dump() == {
+        "debug": False,
+        "count": 0,
+        "database": {"host": "file", "port": 5432},
+    }
+    omitted = Settings(**vars(parser.parse_args([])))
+    assert omitted.debug is True
+    assert omitted.count == 20
 
 
 def test_settings_config_class_keywords_and_inheritance(
@@ -245,19 +283,6 @@ def test_self_can_be_a_field() -> None:
     assert Settings(self="example").self == "example"
 
 
-def test_supplied_cli_source_receives_arguments() -> None:
-    from fastenv.settings import CliSettingsSource
-
-    class Settings(BaseSettings):
-        port: int = 0
-
-    source = CliSettingsSource[Any](Settings)
-    assert (
-        Settings(_cli_settings_source=source, _cli_parse_args=["--port", "5000"]).port
-        == 5000
-    )
-
-
 def test_source_field_lookup_hook() -> None:
     from fastenv.settings.pydantic_settings_sources import InitSettingsSource
 
@@ -301,21 +326,6 @@ def test_unused_file_configuration_warns() -> None:
 
     with pytest.warns(UserWarning, match="json_file.*JsonConfigSettingsSource"):
         _ = Settings()
-
-
-@pytest.mark.parametrize("cli_marker", [None, "empty"])
-def test_environment_null_marker_applies_to_cli(cli_marker: str | None) -> None:
-    class Settings(BaseSettings):
-        count: int | None = 5
-
-    assert (
-        Settings(
-            _env_parse_none_str="nil",
-            _cli_parse_none_str=cli_marker,
-            _cli_parse_args=["--count", "nil"],
-        ).count
-        is None
-    )
 
 
 def test_invalid_alias_field_name_is_not_discarded() -> None:
