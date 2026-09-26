@@ -55,6 +55,8 @@ tests = [
   "coverage[toml]>=7,<8",
   "fastapi>=0.110.1,<0.141",
   "freezegun>=1,<2",
+  "httpx>=0.27,<0.29",
+  "httpx2>=2,<3",
   "pytest>=9,<10",
   "pytest-mock>=3,<4",
 ]

@@ -2,19 +2,28 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
-from typing import TypedDict
+from contextlib import ExitStack, asynccontextmanager
+from pathlib import Path
+from typing import ClassVar, TypedDict, cast
 
+import anyio
 import pytest
-from anyio import Path
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
-import fastenv
+from fastenv.settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(env_file=".env")
+    example_variable: str
+    i_think_fastenv_is: str
+    debug: bool = False
 
 
 class LifespanState(TypedDict):
-    settings: fastenv.DotEnv
+    settings: Settings
 
 
 @asynccontextmanager
@@ -24,8 +33,8 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[LifespanState]:
     https://fastapi.tiangolo.com/advanced/events/
     https://www.starlette.dev/lifespan/
     """
-    env_file = os.environ["ENV_FILE"]
-    settings = await fastenv.load_dotenv(env_file)
+    # Required fields come from settings sources rather than constructor arguments.
+    settings = await anyio.to_thread.run_sync(Settings)  # pyright: ignore[reportArgumentType]
     lifespan_state: LifespanState = {"settings": settings}
     yield lifespan_state
 
@@ -34,28 +43,75 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/settings")
-async def get_settings(request: Request) -> dict[str, str]:
-    settings = request.state.settings
-    return dict(settings)
+async def get_settings(request: Request) -> Settings:
+    return cast(Settings, request.state.settings)
 
 
 @pytest.fixture
-async def test_client(
-    env_file: Path, monkeypatch: pytest.MonkeyPatch
-) -> AsyncGenerator[TestClient, None]:
-    """Instantiate a FastAPI test client.
+def settings_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Create the dotenv file saved by the README quickstart."""
+    monkeypatch.chdir(tmp_path)
+    for name in ("EXAMPLE_VARIABLE", "I_THINK_FASTENV_IS", "DEBUG"):
+        monkeypatch.delenv(name, raising=False)
+    env_file = tmp_path / ".env"
+    _ = env_file.write_text(
+        "EXAMPLE_VARIABLE=example_value\nI_THINK_FASTENV_IS=awesome\n"
+    )
+    return env_file
 
-    https://fastapi.tiangolo.com/tutorial/testing/
-    https://www.starlette.dev/testclient/
-    """
-    monkeypatch.setenv("ENV_FILE", str(env_file))
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_example", "expected_debug"),
+    [
+        ({}, "example_value", False),
+        (
+            {"EXAMPLE_VARIABLE": "environment_value", "DEBUG": "true"},
+            "environment_value",
+            True,
+        ),
+    ],
+)
+@pytest.mark.usefixtures("settings_file")
+def test_fastapi_with_fastenv(
+    monkeypatch: pytest.MonkeyPatch,
+    overrides: dict[str, str],
+    expected_example: str,
+    expected_debug: bool,
+) -> None:
+    """Load typed settings at startup without changing the environment."""
+    for name, value in overrides.items():
+        monkeypatch.setenv(name, value)
+    before = dict(os.environ)
     with TestClient(app) as test_client:
-        yield test_client
+        settings = cast(object, test_client.app_state["settings"])
+        assert isinstance(settings, Settings)
+        response = test_client.get("/settings")
+        assert response.status_code == 200
+        assert response.json() == {
+            "example_variable": expected_example,
+            "i_think_fastenv_is": "awesome",
+            "debug": expected_debug,
+        }
+        assert settings.debug is expected_debug
+    assert dict(os.environ) == before
 
 
-@pytest.mark.anyio
-async def test_fastapi_with_fastenv(test_client: TestClient) -> None:
-    """Test loading a dotenv file into a FastAPI app with fastenv."""
-    response = test_client.get("/settings")
-    response_json = response.json()
-    assert response_json["AWS_ACCESS_KEY_ID_EXAMPLE"] == "AKIAIOSFODNN7EXAMPLE"
+@pytest.mark.parametrize(
+    ("contents", "error_field"),
+    [
+        (
+            "EXAMPLE_VARIABLE=example_value\nI_THINK_FASTENV_IS=awesome\nDEBUG=invalid",
+            "debug",
+        ),
+        ("EXAMPLE_VARIABLE=example_value\n", "i_think_fastenv_is"),
+    ],
+)
+def test_fastapi_rejects_invalid_settings_at_startup(
+    settings_file: Path, contents: str, error_field: str
+) -> None:
+    _ = settings_file.write_text(contents)
+    before = dict(os.environ)
+    with pytest.raises(ValidationError) as exc_info, ExitStack() as stack:
+        _ = stack.enter_context(TestClient(app))
+    assert exc_info.value.errors()[0]["loc"] == (error_field,)
+    assert dict(os.environ) == before
