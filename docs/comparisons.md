@@ -33,7 +33,7 @@ See the [`os` module docs](https://docs.python.org/3/library/os.html) and the [d
 
 Pydantic 2 provides settings management through the separate [pydantic-settings package](https://github.com/pydantic/pydantic-settings). Its `BaseSettings` model reads typed settings from environment variables and other sources, then uses Pydantic for validation.
 
-The optional [`fastenv.settings` integration](pydantic-settings.md) implements this public API with fastenv dotenv parsing and no dependency on python-dotenv.
+The optional [`fastenv.settings` integration](settings.md#pydantic-integration) implements this public API with fastenv dotenv parsing and no dependency on python-dotenv.
 
 <!-- prettier-ignore -->
 !!!example "Simple _pydantic_ settings model"
@@ -260,7 +260,7 @@ It is also important to note that the one-way preference will only be enforced w
 
 ### Comparing fastenv and Starlette
 
-Install `fastenv[starlette]` to use [`fastenv.StarletteConfig`](settings.md), a subclass of Starlette's `Config`. It preserves Starlette's settings lookup, type casting, defaults, and environment prefixes while adding asynchronous loading of multiple dotenv files and TOML settings.
+Install `fastenv[starlette]` to use [`fastenv.StarletteConfig`](settings.md#starlette-integration), a subclass of Starlette's `Config`. It preserves Starlette's settings lookup, type casting, defaults, and environment prefixes while adding asynchronous loading of multiple dotenv files and TOML settings.
 
 - Both classes prefer existing environment variables over file values and leave the environment unchanged when loading files.
 - `fastenv.StarletteConfig.load()` accepts a list or tuple of dotenv paths, with later files overriding earlier files.
