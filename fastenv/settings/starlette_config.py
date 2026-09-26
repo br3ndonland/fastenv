@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, TypeVar, overload
 
 import starlette.config
 
-from fastenv.utilities import _parse_dotenv, _read_toml_file, logger
+from fastenv.utilities import logger, parse_dotenv, read_toml_file
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
@@ -42,7 +42,7 @@ class Config(starlette.config.Config):
         super().__init__(environ=environ, env_prefix=env_prefix)
         if toml_file is not None:
             try:
-                self.file_values.update(_read_toml_file(toml_file, table=toml_table))
+                self.file_values.update(read_toml_file(toml_file, table=toml_table))
             except (OSError, ValueError, LookupError, TypeError) as e:
                 logger.error(
                     f"fastenv error reading {toml_file}: {e.__class__.__qualname__} {e}"
@@ -92,4 +92,4 @@ class Config(starlette.config.Config):
         self, file_name: os.PathLike[str] | str, encoding: str = "utf-8"
     ) -> dict[str, str]:
         with open(file_name, encoding=encoding) as source:
-            return dict(_parse_dotenv(source.read()))
+            return dict(parse_dotenv(source.read()))

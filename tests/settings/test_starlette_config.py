@@ -16,7 +16,7 @@ from starlette.datastructures import CommaSeparatedStrings, Secret
 
 import fastenv
 from fastenv.settings.starlette_config import Config
-from fastenv.utilities import _read_toml_file
+from fastenv.utilities import read_toml_file
 
 
 def test_starlette_config_public_export() -> None:
@@ -364,7 +364,7 @@ empty_string = ""
         "EMPTY_DICT": {},
         "EMPTY_STRING": "",
     }
-    assert _read_toml_file() == expected
+    assert read_toml_file() == expected
     config = Config(environ={}, toml_file=toml_file)
     for key, value in expected.items():
         result = config(key, default="fallback")
