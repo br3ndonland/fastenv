@@ -60,7 +60,7 @@ anyio.run(fastenv.dump_dotenv, dotenv)
 # Path('/path/to/this/dir/.env')
 ```
 
-Use a [Pydantic settings model](settings.md#pydantic-integration) in your FastAPI app to load the `.env` file created above:
+Use a Pydantic settings model in your FastAPI app to load the `.env` file created above:
 
 ```py
 from collections.abc import AsyncGenerator
