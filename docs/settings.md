@@ -179,7 +179,7 @@ Background: [fastenv discussion 21](https://github.com/br3ndonland/fastenv/discu
 
 ## Starlette integration
 
-`fastenv.StarletteConfig` extends [Starlette's `Config`](https://www.starlette.io/config/) with asynchronous loading of multiple dotenv files and TOML settings, plus configurable file error handling. It inherits Starlette's settings lookup, type casting, defaults, and environment prefixes.
+`fastenv.StarletteConfig` extends [Starlette's `Config`](https://starlette.dev/config/) with asynchronous loading of multiple dotenv files and TOML settings, plus configurable file error handling. It inherits Starlette's settings lookup, type casting, defaults, and environment prefixes.
 
 Install the optional integration into your project's virtual environment:
 

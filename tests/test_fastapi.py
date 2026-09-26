@@ -22,7 +22,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[LifespanState]:
     """Configure app lifespan.
 
     https://fastapi.tiangolo.com/advanced/events/
-    https://www.starlette.io/lifespan/
+    https://www.starlette.dev/lifespan/
     """
     env_file = os.environ["ENV_FILE"]
     settings = await fastenv.load_dotenv(env_file)
@@ -46,7 +46,7 @@ async def test_client(
     """Instantiate a FastAPI test client.
 
     https://fastapi.tiangolo.com/tutorial/testing/
-    https://www.starlette.io/testclient/
+    https://www.starlette.dev/testclient/
     """
     monkeypatch.setenv("ENV_FILE", str(env_file))
     with TestClient(app) as test_client:
