@@ -24,12 +24,12 @@ For additional background on the project, see [www.bws.bio/projects/fastenv](htt
 
 ## Quickstart
 
-Install fastenv into a virtual environment:
+Install fastenv with Pydantic settings support and FastAPI into a virtual environment:
 
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install fastenv
+python -m pip install 'fastenv[settings]' fastapi
 ```
 
 Then start a REPL session and try it out:
@@ -60,18 +60,28 @@ anyio.run(fastenv.dump_dotenv, dotenv)
 # Path('/path/to/this/dir/.env')
 ```
 
-Use fastenv in your FastAPI app:
+Use a [Pydantic settings model](settings.md#pydantic-integration) in your FastAPI app to load the `.env` file created above:
 
 ```py
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, TypedDict
+from typing import TypedDict, cast
 
-import fastenv
+import anyio
 from fastapi import FastAPI, Request
+
+from fastenv.settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+    example_variable: str
+    i_think_fastenv_is: str
+    debug: bool = False
 
 
 class LifespanState(TypedDict):
-    settings: fastenv.DotEnv
+    settings: Settings
 
 
 @asynccontextmanager
@@ -81,7 +91,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[LifespanState]:
     https://fastapi.tiangolo.com/advanced/events/
     https://www.starlette.dev/lifespan/
     """
-    settings = await fastenv.load_dotenv(".env")
+    settings = await anyio.to_thread.run_sync(Settings)
     lifespan_state: LifespanState = {"settings": settings}
     yield lifespan_state
 
@@ -90,9 +100,18 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/settings")
-async def get_settings(request: Request) -> dict[str, str]:
-    settings = request.state.settings
-    return dict(settings)
+async def get_settings(request: Request) -> Settings:
+    return cast(Settings, request.state.settings)
+```
+
+The model validates settings at startup without changing the process environment. Environment variables override file values, and `DEBUG=true` overrides the boolean default. The worker thread keeps synchronous settings file reads off the event loop. FastAPI serializes the model returned by `/settings` as JSON:
+
+```json
+{
+    "example_variable": "example_value",
+    "i_think_fastenv_is": "awesome",
+    "debug": false
+}
 ```
 
 ## Documentation
