@@ -48,12 +48,11 @@ For example, `SERVICE_DEBUG=true` becomes a boolean. `SERVICE_DATABASE__PORT=654
 
 The default order, from highest to lowest priority, is:
 
-1. Command-line arguments, when enabled.
-2. Constructor arguments.
-3. Process environment variables.
-4. Dotenv files, with later files overriding earlier files.
-5. Secret files, with later directories overriding earlier directories.
-6. Model defaults.
+1. Constructor arguments.
+2. Process environment variables.
+3. Dotenv files, with later files overriding earlier files.
+4. Secret files, with later directories overriding earlier directories.
+5. Model defaults.
 
 Mappings from different sources are merged recursively. Pydantic validates the merged input and applies field defaults. Default values are validated too. Unknown environment variables are ignored. Unknown constructor and dotenv values are rejected unless `extra="ignore"` or `extra="allow"` is configured.
 
@@ -136,32 +135,31 @@ JSON and TOML use Python's standard library. YAML is [intentionally unsupported]
 
 For dotenv files stored in S3-compatible object storage, use fastenv's [asynchronous object storage client](cloud-object-storage.md#downloading-files) to download a file before loading its path with `Settings(_env_file=...)`. The client is available through `fastenv[cloud]` and does not depend on Boto3. Built-in cloud secret services are outside this integration's scope. See the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings).
 
-### Command-line settings
+### Application command-line arguments
 
-Enable argument parsing explicitly:
+fastenv does not generate or run command-line applications or provide pydantic-settings CLI APIs. Parse arguments in your application with Click or Python's standard-library `argparse`, then pass only explicitly supplied values to `Settings(**overrides)`:
 
 ```py
-from fastenv.settings import BaseSettings, SettingsConfigDict
+import argparse
+
+from fastenv.settings import BaseSettings
 
 
-class Options(BaseSettings):
-    model_config = SettingsConfigDict(cli_parse_args=True, cli_implicit_flags=True)
+class Settings(BaseSettings):
     port: int = 8000
-    verbose: bool = False
 
 
-options = Options()
+parser = argparse.ArgumentParser()
+parser.add_argument("--port", type=int, default=argparse.SUPPRESS)
+overrides = vars(parser.parse_args())
+settings = Settings(**overrides)
 ```
 
-This accepts options such as `--port 9000 --verbose`. A list supplied with `_cli_parse_args=["--port", "9000"]` avoids reading process arguments.
-
-The CLI includes nested options, JSON values, repeated and comma-separated collections, aliases, enum values, boolean flags, positional arguments, subcommands, unknown argument capture, and help configuration. `CliApp` runs model commands, including async commands, and can serialize models back to argument lists. `CliSettingsSource` supports integration with an existing parser.
-
-Public CLI exports include `CLI_SUPPRESS`, `CliApp`, `CliSettingsSource`, `CliSubCommand`, `CliPositionalArg`, `CliImplicitFlag`, `CliExplicitFlag`, `CliDualFlag`, `CliToggleFlag`, `CliSuppress`, `CliUnknownArgs`, `CliMutuallyExclusiveGroup`, and `get_subcommand`.
+`argparse.SUPPRESS` keeps omitted options out of the mapping, allowing environment variables, files, and model defaults to supply their values. When using Click, likewise include only parameters explicitly supplied by the user. Return this mapping from a [custom source](#custom-and-file-sources) when a different priority is needed.
 
 ### Compatibility and verification
 
-The compatibility target is the released **pydantic-settings 2.15.0** public API for environment, local file, custom source, and CLI settings, imported through `fastenv.settings`. YAML, cloud providers, and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, exact error text, and exact CLI help formatting are not compatibility contracts. The fastenv package version remains available as `fastenv.settings.__version__`.
+The compatibility target is the released **pydantic-settings 2.15.0** public API for environment variables, local files, secret directories, and custom sources, imported through `fastenv.settings`. CLI APIs, YAML, cloud providers, and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, and exact error text are not compatibility contracts. The fastenv package version remains available as `fastenv.settings.__version__`.
 
 The implementation was written from public documentation, signatures, and independently authored behavioral probes. No pydantic-settings implementation or tests were copied. The reference package is used only for development. From the repository root, install the local settings integration and pinned reference package in a separate virtual environment, then run the compatibility checks:
 
@@ -173,7 +171,7 @@ python -m scripts.check_settings_compatibility
 deactivate
 ```
 
-This checks supported public exports, verifies the intentional YAML and cloud API omissions, and compares settings behavior across both implementations. The regular test suite covers the integration without installing pydantic-settings or python-dotenv. These checks exercise a defined set of behaviors and are not proof of exhaustive equivalence for all Pydantic types or third-party parser implementations.
+This checks supported public exports, verifies the intentional CLI, YAML, and cloud API omissions, and compares settings behavior across both implementations. The regular test suite covers the integration without installing pydantic-settings or python-dotenv. These checks exercise a defined set of behaviors and are not proof of exhaustive equivalence for all Pydantic types and settings configurations.
 
 Background: [fastenv discussion 21](https://github.com/br3ndonland/fastenv/discussions/21), [pydantic-settings](https://github.com/pydantic/pydantic-settings), and the [Pydantic settings documentation](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/).
 

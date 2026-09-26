@@ -9,21 +9,6 @@ if TYPE_CHECKING:
     from fastenv import __version__
 
     from .pydantic_settings import BaseSettings, SettingsConfigDict
-    from .pydantic_settings_cli import (
-        CLI_SUPPRESS,
-        CliApp,
-        CliDualFlag,
-        CliExplicitFlag,
-        CliImplicitFlag,
-        CliMutuallyExclusiveGroup,
-        CliPositionalArg,
-        CliSettingsSource,
-        CliSubCommand,
-        CliSuppress,
-        CliToggleFlag,
-        CliUnknownArgs,
-        get_subcommand,
-    )
     from .pydantic_settings_providers import (
         JsonConfigSettingsSource,
         NestedSecretsSettingsSource,
@@ -45,19 +30,6 @@ if TYPE_CHECKING:
 
 _EXPORT_MODULES: dict[str, str] = {
     "__version__": "fastenv",
-    "CLI_SUPPRESS": ".pydantic_settings_cli",
-    "CliApp": ".pydantic_settings_cli",
-    "CliDualFlag": ".pydantic_settings_cli",
-    "CliExplicitFlag": ".pydantic_settings_cli",
-    "CliImplicitFlag": ".pydantic_settings_cli",
-    "CliMutuallyExclusiveGroup": ".pydantic_settings_cli",
-    "CliPositionalArg": ".pydantic_settings_cli",
-    "CliSettingsSource": ".pydantic_settings_cli",
-    "CliSubCommand": ".pydantic_settings_cli",
-    "CliSuppress": ".pydantic_settings_cli",
-    "CliToggleFlag": ".pydantic_settings_cli",
-    "CliUnknownArgs": ".pydantic_settings_cli",
-    "get_subcommand": ".pydantic_settings_cli",
     "BaseSettings": ".pydantic_settings",
     "SettingsConfigDict": ".pydantic_settings",
     "JsonConfigSettingsSource": ".pydantic_settings_providers",
@@ -88,19 +60,7 @@ def __getattr__(name: str) -> Any:  # pyright: ignore[reportAny, reportExplicitA
 
 
 __all__ = (
-    "CLI_SUPPRESS",
     "BaseSettings",
-    "CliApp",
-    "CliDualFlag",
-    "CliExplicitFlag",
-    "CliImplicitFlag",
-    "CliMutuallyExclusiveGroup",
-    "CliPositionalArg",
-    "CliSettingsSource",
-    "CliSubCommand",
-    "CliSuppress",
-    "CliToggleFlag",
-    "CliUnknownArgs",
     "DotEnvSettingsSource",
     "EnvSettingsSource",
     "ForceDecode",
@@ -116,5 +76,4 @@ __all__ = (
     "SettingsError",
     "TomlConfigSettingsSource",
     "__version__",
-    "get_subcommand",
 )

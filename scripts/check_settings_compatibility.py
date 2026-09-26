@@ -24,7 +24,6 @@ from typing import Annotated, Any, ClassVar
 from unittest.mock import patch
 
 from pydantic import AliasChoices, AliasPath, BaseModel, Field, Json, ValidationError
-from scripts.settings_cli_probes import probe_cli
 from scripts.settings_provider_probes import probe_providers
 
 
@@ -120,13 +119,6 @@ def probe(api: Any, directory: Path) -> dict[str, Any]:
     record("alias-invalid-name", InvalidAlias, ALIAS=1, value=2)
     record("alias-lowercase-init", InvalidAlias, alias=3)
     record("alias-case-sensitive-init", InvalidAlias, alias=3, _case_sensitive=True)
-    record(
-        "cli-env-none-marker",
-        Optional,
-        _env_parse_none_str="nil",
-        _cli_parse_args=["--choice", "nil"],
-    )
-
     with patch.dict(
         os.environ,
         {"CHOICE": "nil", "DATA": "text", "PARSED": "[7]", "FORCED": "[8]"},
@@ -176,31 +168,7 @@ def probe(api: Any, directory: Path) -> dict[str, Any]:
     with patch.dict(os.environ, {"APP_NUMBER": "9"}, clear=True):
         record("custom-order", Customized, number=10)
 
-    for args in (
-        [],
-        ["--number", "5"],
-        ["--items", "1,2"],
-        ["--items", "[1,2]", "--items", "3"],
-        ["--database.host", "cli", "--database.port", "80"],
-        ["--database", '{"host":"json","port":10}', "--database.port", "81"],
-    ):
-        record(f"cli-{args}", Basic, _cli_parse_args=args)
-    record("cli-priority", Basic, _cli_parse_args=["--number", "10"], number=11)
-    record("cli-flag", Basic, _cli_parse_args=["--enabled"], _cli_implicit_flags=True)
-    record(
-        "cli-no-flag", Basic, _cli_parse_args=["--no-enabled"], _cli_implicit_flags=True
-    )
-    record(
-        "cli-unknown", Basic, _cli_parse_args=["--unknown"], _cli_exit_on_error=False
-    )
-    record(
-        "cli-ignore-unknown",
-        Basic,
-        _cli_parse_args=["--unknown"],
-        _cli_ignore_unknown_args=True,
-    )
     output.update(probe_providers(api, directory))
-    output.update(probe_cli(api))
     return output
 
 
@@ -211,8 +179,21 @@ def main() -> None:
     intentionally_omitted = {
         "AWSSecretsManagerSettingsSource",
         "AzureKeyVaultSettingsSource",
+        "CLI_SUPPRESS",
+        "CliApp",
+        "CliDualFlag",
+        "CliExplicitFlag",
+        "CliImplicitFlag",
+        "CliMutuallyExclusiveGroup",
+        "CliPositionalArg",
+        "CliSettingsSource",
+        "CliSubCommand",
+        "CliSuppress",
+        "CliToggleFlag",
+        "CliUnknownArgs",
         "GoogleSecretManagerSettingsSource",
         "YamlConfigSettingsSource",
+        "get_subcommand",
     }
     missing = set(reference.__all__) - set(replacement.__all__)
     assert missing == intentionally_omitted, (
