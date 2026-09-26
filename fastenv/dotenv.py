@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import anyio
 
-from fastenv.utilities import _parse_dotenv, _parse_dotenv_args, logger
+from fastenv.utilities import logger, parse_dotenv, parse_dotenv_args
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -67,14 +67,14 @@ class DotEnv(MutableMapping[str, str]):
         )
 
     def _parse_args(self, *args: str) -> list[str]:
-        return _parse_dotenv_args(*args)
+        return parse_dotenv_args(*args)
 
     def _parse_args_to_get(self, *args: str) -> tuple[str, ...]:
         parsed_args: list[str] = self._parse_args(*args)
         return tuple(a.upper() for a in parsed_args if "=" not in a)
 
     def _parse_args_to_set(self, *args: str) -> tuple[tuple[str, str], ...]:
-        return _parse_dotenv(*args)
+        return parse_dotenv(*args)
 
     def _parse_kwargs(self, **kwargs: str) -> dict[str, str]:
         return {

@@ -8,12 +8,10 @@ from typing import TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from os import PathLike
 
-__all__ = ("_parse_dotenv", "_parse_dotenv_args", "_read_toml_file", "logger")
-
 logger = logging.getLogger("fastenv")
 
 
-def _parse_dotenv_args(*args: str) -> list[str]:
+def parse_dotenv_args(*args: str) -> list[str]:
     if any(not isinstance(arg, str) for arg in args):  # pyright: ignore[reportUnnecessaryIsInstance]
         raise TypeError("Arguments passed to DotEnv instances should be strings")
     parsed_args: list[str] = []
@@ -22,16 +20,16 @@ def _parse_dotenv_args(*args: str) -> list[str]:
     return parsed_args
 
 
-def _parse_dotenv(*args: str) -> tuple[tuple[str, str], ...]:
+def parse_dotenv(*args: str) -> tuple[tuple[str, str], ...]:
     """Parse dotenv strings without modifying the process environment."""
     return tuple(
         (split_arg[0].strip(" \n\"'").upper(), split_arg[1].strip(" \n\"'"))
-        for arg in _parse_dotenv_args(*args)
+        for arg in parse_dotenv_args(*args)
         if len(split_arg := arg.split(sep="=", maxsplit=1)) == 2
     )
 
 
-def _read_toml_file(
+def read_toml_file(
     toml_file: PathLike[str] | str = "pyproject.toml", table: str = "project"
 ) -> dict[str, object]:
     """Read a TOML table with uppercase keys and preserve native values."""
