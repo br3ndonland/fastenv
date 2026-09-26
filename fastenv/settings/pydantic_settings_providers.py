@@ -12,14 +12,17 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from copy import deepcopy
+from functools import partial
 from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Any, Literal, cast
 
+import anyio
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
 from .pydantic_settings_sources import (
+    _DEFER_SETTINGS_IO,  # pyright: ignore[reportPrivateUsage]
     EnvSettingsSource,
     PydanticBaseSettingsSource,
     SettingsError,
@@ -44,26 +47,65 @@ class _ConfigFileSettingsSource(PydanticBaseSettingsSource, ABC):
     def __init__(self, settings_cls: type[BaseModel]) -> None:
         super().__init__(settings_cls)
         self.data: dict[str, Any] = {}
+        self._files: ConfigPaths = None
+        self._deep_merge: bool = False
+        self._encoding: str | None = "utf-8"
 
     def _load_files(self, files: ConfigPaths, *, deep_merge: bool = False) -> None:
-        if files is None:
+        self._files = files
+        self._deep_merge = deep_merge
+        if files is None or _DEFER_SETTINGS_IO.get():
             return
         paths = [files] if isinstance(files, (str, Path, Traversable)) else files
         for item in paths:
             path = Path(item).expanduser() if isinstance(item, (str, Path)) else item
             if not path.is_file():
                 continue
-            values: Any = self._read_file(path)
-            if not isinstance(values, dict):
-                raise SettingsError(f"Configuration file {path} must contain a mapping")
-            if deep_merge:
-                _merge_data(self.data, cast(dict[str, Any], values))
-            else:
-                self.data.update(cast(dict[str, Any], values))
+            self._merge_file(path, self._read_file(path))
+
+    def _merge_file(self, path: Path | Traversable | anyio.Path, values: Any) -> None:
+        if not isinstance(values, dict):
+            raise SettingsError(f"Configuration file {path} must contain a mapping")
+        if self._deep_merge:
+            _merge_data(self.data, cast(dict[str, Any], values))
+        else:
+            self.data.update(cast(dict[str, Any], values))
+
+    async def load(self) -> dict[str, Any]:
+        """Read filesystem paths asynchronously and apply the normal source hooks.
+
+        Package resources only expose synchronous Traversable methods, so their
+        individual existence checks and reads run in worker threads.
+        """
+        self.data = {}
+        if self._files is not None:
+            paths = (
+                [self._files]
+                if isinstance(self._files, (str, Path, Traversable))
+                else self._files
+            )
+            for item in paths:
+                if isinstance(item, (str, Path)):
+                    path = await anyio.Path(item).expanduser()
+                    if not await path.is_file():
+                        continue
+                    contents = await path.read_text(encoding=self._encoding)
+                else:
+                    if not await anyio.to_thread.run_sync(item.is_file):
+                        continue
+                    contents = await anyio.to_thread.run_sync(
+                        partial(item.read_text, encoding=self._encoding)
+                    )
+                    path = item
+                self._merge_file(path, self._decode_file(contents))
+        return self()
+
+    def _read_file(self, path: Path | Traversable) -> Any:
+        return self._decode_file(path.read_text(encoding=self._encoding))
 
     @abstractmethod
-    def _read_file(self, path: Path | Traversable) -> Any:
-        """Read one configuration document with the selected format parser."""
+    def _decode_file(self, contents: str) -> Any:
+        """Decode one configuration document with the selected format parser."""
 
     def get_field_value(
         self, field: FieldInfo, field_name: str
@@ -92,10 +134,11 @@ class JsonConfigSettingsSource(_ConfigFileSettingsSource):
         self.json_file_encoding: str | None = json_file_encoding or self.config.get(
             "json_file_encoding"
         )
+        self._encoding: str | None = self.json_file_encoding
         self._load_files(self.json_file, deep_merge=deep_merge)
 
-    def _read_file(self, path: Path | Traversable) -> Any:
-        return json.loads(path.read_text(encoding=self.json_file_encoding))
+    def _decode_file(self, contents: str) -> Any:
+        return json.loads(contents)
 
 
 class TomlConfigSettingsSource(_ConfigFileSettingsSource):
@@ -118,8 +161,8 @@ class TomlConfigSettingsSource(_ConfigFileSettingsSource):
         )
         self._load_files(self.toml_file, deep_merge=deep_merge)
 
-    def _read_file(self, path: Path | Traversable) -> Any:
-        values: Any = tomllib.loads(path.read_text(encoding="utf-8"))
+    def _decode_file(self, contents: str) -> Any:
+        values: Any = tomllib.loads(contents)
         for component in self.toml_table_header:
             if not isinstance(values, dict):
                 raise SettingsError("TOML table header must select a mapping")
@@ -137,7 +180,8 @@ class PyprojectTomlConfigSettingsSource(TomlConfigSettingsSource):
         _init_state: Any = None,
     ) -> None:
         config: dict[str, Any] = dict(settings_cls.model_config)
-        if toml_file is None:
+        self._discover_file: bool = toml_file is None
+        if toml_file is None and not _DEFER_SETTINGS_IO.get():
             directory = Path.cwd()
             toml_file = directory / "pyproject.toml"
             for _ in range(max(0, config.get("pyproject_toml_depth", 0)) + 1):
@@ -155,9 +199,22 @@ class PyprojectTomlConfigSettingsSource(TomlConfigSettingsSource):
         self.toml_table_header: tuple[str, ...] = header
         self._load_files(toml_file)
 
-    def _read_file(self, path: Path | Traversable) -> Any:
+    async def load(self) -> dict[str, Any]:
+        if self._discover_file:
+            directory = await anyio.Path.cwd()
+            self.toml_file = Path(directory / "pyproject.toml")
+            for _ in range(max(0, self.config.get("pyproject_toml_depth", 0)) + 1):
+                candidate = directory / "pyproject.toml"
+                if await candidate.is_file():
+                    self.toml_file = Path(candidate)
+                    break
+                directory = directory.parent
+            self._files: ConfigPaths = self.toml_file
+        return await super().load()
+
+    def _decode_file(self, contents: str) -> Any:
         try:
-            return super()._read_file(path)
+            return super()._decode_file(contents)
         except KeyError:
             # An unrelated project's metadata need not contain a settings table.
             return {}
@@ -248,17 +305,13 @@ class NestedSecretsSettingsSource(EnvSettingsSource):
     def _load_env_vars(self) -> dict[str, Any]:
         variables: dict[str, str] = {}
         directories = self.secrets_dir
-        if directories is None:
+        if directories is None or _DEFER_SETTINGS_IO.get():
             return variables
         paths = [directories] if isinstance(directories, (str, Path)) else directories
         for directory in paths:
             path = Path(directory).expanduser()
             if not path.exists():
-                message = f'Secrets directory "{path}" does not exist'
-                if self.secrets_dir_missing == "error":
-                    raise SettingsError(message)
-                if self.secrets_dir_missing == "warn":
-                    warnings.warn(message, UserWarning, stacklevel=3)
+                self._missing_directory(path)
                 continue
             if not path.is_dir():
                 raise SettingsError(f'Secrets path "{path}" is not a directory')
@@ -267,20 +320,60 @@ class NestedSecretsSettingsSource(EnvSettingsSource):
                 if not secret.is_file():
                     continue
                 size = secret.stat().st_size
-                total += size
-                if total > self.secrets_dir_max_size:
-                    raise SettingsError(
-                        f'Secrets directory "{path}" exceeds maximum size'
-                    )
+                self._check_size(path, total + size)
                 # Bound the read as well as checking stat, in case a file grows.
                 with secret.open("rb") as stream:
-                    contents = stream.read(self.secrets_dir_max_size - total + size + 1)
-                if total - size + len(contents) > self.secrets_dir_max_size:
-                    raise SettingsError(
-                        f'Secrets directory "{path}" exceeds maximum size'
-                    )
+                    contents = stream.read(self.secrets_dir_max_size - total + 1)
+                total += len(contents)
+                self._check_size(path, total)
                 key = str(secret.relative_to(path))
                 variables[key if self.case_sensitive else key.lower()] = (
                     contents.decode().strip()
                 )
         return self._parse_env_vars(variables)
+
+    def _missing_directory(self, path: Path | anyio.Path) -> None:
+        message = f'Secrets directory "{path}" does not exist'
+        if self.secrets_dir_missing == "error":
+            raise SettingsError(message)
+        if self.secrets_dir_missing == "warn":
+            warnings.warn(message, UserWarning, stacklevel=3)
+
+    def _check_size(self, path: Path | anyio.Path, total: int) -> None:
+        if total > self.secrets_dir_max_size:
+            raise SettingsError(f'Secrets directory "{path}" exceeds maximum size')
+
+    async def load(self) -> dict[str, Any]:
+        """Read nested secret files asynchronously before decoding field values."""
+        variables: dict[str, str] = {}
+        directories = self.secrets_dir
+        if directories is not None:
+            paths = (
+                [directories] if isinstance(directories, (str, Path)) else directories
+            )
+            for directory in paths:
+                path = await anyio.Path(directory).expanduser()
+                if not await path.exists():
+                    self._missing_directory(path)
+                    continue
+                if not await path.is_dir():
+                    raise SettingsError(f'Secrets path "{path}" is not a directory')
+                total = 0
+                secrets = sorted([secret async for secret in path.rglob("*")], key=str)
+                for secret in secrets:
+                    if not await secret.is_file():
+                        continue
+                    size = (await secret.stat()).st_size
+                    self._check_size(path, total + size)
+                    async with await secret.open("rb") as stream:
+                        contents = await stream.read(
+                            self.secrets_dir_max_size - total + 1
+                        )
+                    total += len(contents)
+                    self._check_size(path, total)
+                    key = str(secret.relative_to(path))
+                    variables[key if self.case_sensitive else key.lower()] = (
+                        contents.decode().strip()
+                    )
+        self.env_vars: dict[str, Any] = self._parse_env_vars(variables)
+        return self()

@@ -6,7 +6,6 @@ from contextlib import ExitStack, asynccontextmanager
 from pathlib import Path
 from typing import ClassVar, TypedDict, cast
 
-import anyio
 import httpxyz
 import pytest
 from fastapi import FastAPI, Request
@@ -34,8 +33,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[LifespanState]:
     https://fastapi.tiangolo.com/advanced/events/
     https://www.starlette.dev/lifespan/
     """
-    # Required fields come from settings sources rather than constructor arguments.
-    settings = await anyio.to_thread.run_sync(Settings)  # pyright: ignore[reportArgumentType]
+    settings = await Settings.load()
     lifespan_state: LifespanState = {"settings": settings}
     yield lifespan_state
 
@@ -45,7 +43,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/settings")
 async def get_settings(request: Request) -> Settings:
-    return cast(Settings, request.state.settings)
+    return request.state.settings  # pyright: ignore[reportAny]
 
 
 @pytest.fixture

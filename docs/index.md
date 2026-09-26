@@ -65,9 +65,8 @@ Use a [Pydantic settings model](settings.md#pydantic-integration) in your FastAP
 ```py
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import TypedDict, cast
+from typing import TypedDict
 
-import anyio
 from fastapi import FastAPI, Request
 
 from fastenv.settings import BaseSettings, SettingsConfigDict
@@ -91,7 +90,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[LifespanState]:
     https://fastapi.tiangolo.com/advanced/events/
     https://www.starlette.dev/lifespan/
     """
-    settings = await anyio.to_thread.run_sync(Settings)
+    settings = await Settings.load()
     lifespan_state: LifespanState = {"settings": settings}
     yield lifespan_state
 
@@ -101,10 +100,10 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/settings")
 async def get_settings(request: Request) -> Settings:
-    return cast(Settings, request.state.settings)
+    return request.state.settings
 ```
 
-The model validates settings at startup without changing the process environment. Environment variables override file values, and `DEBUG=true` overrides the boolean default. The worker thread keeps synchronous settings file reads off the event loop. FastAPI serializes the model returned by `/settings` as JSON:
+The model loads files asynchronously and validates settings at startup without changing the process environment. Environment variables override file values, and `DEBUG=true` overrides the boolean default. FastAPI serializes the model returned by `/settings` as JSON:
 
 ```json
 {

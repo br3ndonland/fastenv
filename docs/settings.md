@@ -19,6 +19,7 @@ python -m pip install 'fastenv[settings]'
 Change settings imports to `fastenv.settings`. Continue importing models, fields, aliases, validators, and types from `pydantic`:
 
 ```py
+import anyio
 from pydantic import BaseModel
 
 from fastenv.settings import BaseSettings, SettingsConfigDict
@@ -39,7 +40,12 @@ class Settings(BaseSettings):
     database: Database = Database()
 
 
-settings = Settings()
+async def main() -> None:
+    settings = await Settings.load()
+    print(settings.model_dump())
+
+
+anyio.run(main)
 ```
 
 For example, `SERVICE_DEBUG=true` becomes a boolean. `SERVICE_DATABASE__PORT=6543` overrides the nested port. A JSON object in `SERVICE_DATABASE` can supply several nested values, and individual nested variables override its matching members.
@@ -56,7 +62,7 @@ The default order, from highest to lowest priority, is:
 
 Mappings from different sources are merged recursively. Pydantic validates the merged input and applies field defaults. Default values are validated too. Unknown environment variables are ignored. Unknown constructor and dotenv values are rejected unless `extra="ignore"` or `extra="allow"` is configured.
 
-Per-instance options use the same leading underscore as pydantic-settings. For example, `Settings(_env_file="production.env")` selects another file, and `Settings(_env_file=None)` disables dotenv loading. `Settings(_env_prefix="OTHER_")` changes the prefix for that instance.
+Per-instance options use the same leading underscore as pydantic-settings. For example, `await Settings.load(_env_file="production.env")` selects another file, and `await Settings.load(_env_file=None)` disables dotenv loading. `await Settings.load(_env_prefix="OTHER_")` changes the prefix for that instance.
 
 The environment and dotenv sources support case sensitivity, aliases, `AliasChoices`, `AliasPath`, prefix targets, nested delimiters and maximum splits, empty-value filtering, null markers, enum names, and JSON decoding. `NoDecode` and `ForceDecode` can be used as `Annotated` metadata. Model configuration can also be supplied through class keywords such as `class Settings(BaseSettings, env_prefix="SERVICE_")`.
 
@@ -84,17 +90,19 @@ values = fastenv.parse_dotenv("PORT=8000 LABEL='local service'")
 assert values == {"PORT": "8000", "LABEL": "local service"}
 ```
 
-`DotEnv`, `load_dotenv`, and `dotenv_values` retain their existing environment mutation behavior. The settings constructor is synchronous, like Pydantic's model constructor. It can be called inside an event loop without starting another loop. To avoid blocking the loop during file I/O, use a worker thread:
+`DotEnv`, `load_dotenv`, and `dotenv_values` retain their existing environment mutation behavior. Use `await Settings.load()` to read settings files asynchronously through AnyIO, then validate the collected values:
 
 ```py
-import anyio
-
-settings = await anyio.to_thread.run_sync(Settings)
+settings = await Settings.load()
 ```
+
+This includes dotenv, JSON, TOML, pyproject files, and secret directories. Sources are processed in priority order so custom sources can inspect values from earlier sources. Parsing and Pydantic validation run after the file contents have been read. The synchronous `Settings(...)` constructor remains available for compatibility with pydantic-settings.
 
 ### Custom and file sources
 
 Override `settings_customise_sources` to add, reorder, or remove sources. The first returned source has the highest priority. A source can be a callable returning a dictionary, or a subclass of `PydanticBaseSettingsSource` with `get_field_value` and `__call__` implementations. Source instances expose `current_state` and `settings_sources_data` while they are being evaluated.
+
+`Settings.load()` also accepts async callable sources. A custom source class can implement `async def load(self)` to await its I/O and return a dictionary. The default source `load()` calls `__call__`, which supports synchronous in-memory sources. Custom sources that read files or use the network should implement asynchronous loading and avoid I/O in their constructors.
 
 ```py
 from fastenv.settings import BaseSettings, TomlConfigSettingsSource
@@ -133,7 +141,7 @@ File sources are opt-in through this hook. Setting `toml_file` or `json_file` al
 
 JSON and TOML use Python's standard library. YAML is [intentionally unsupported](comparisons.md#differences-from-pydantic-settings). The default pyproject section is `[tool.pydantic-settings]`, preserving the migration contract. Set `pyproject_toml_table_header=("tool", "fastenv")` to use `[tool.fastenv]` instead.
 
-For dotenv files stored in S3-compatible object storage, use fastenv's [asynchronous object storage client](cloud-object-storage.md#downloading-files) to download a file before loading its path with `Settings(_env_file=...)`. The client is available through `fastenv[cloud]` and does not depend on Boto3. Built-in cloud secret services are outside this integration's scope. See the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings).
+For dotenv files stored in S3-compatible object storage, use fastenv's [asynchronous object storage client](cloud-object-storage.md#downloading-files) to download a file before loading its path with `await Settings.load(_env_file=...)`. The client is available through `fastenv[cloud]` and does not depend on Boto3. Built-in cloud secret services are outside this integration's scope. See the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings).
 
 ### Application command-line arguments
 

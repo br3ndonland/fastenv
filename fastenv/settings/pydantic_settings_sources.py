@@ -16,6 +16,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from contextvars import ContextVar
 from pathlib import Path
 from typing import (
     Annotated,
@@ -25,6 +26,7 @@ from typing import (
     get_origin,
 )
 
+import anyio
 from pydantic import AliasChoices, AliasPath, BaseModel, Json
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
@@ -69,6 +71,9 @@ class EnvNoneType(str):
 
 
 ENV_FILE_SENTINEL = Path("")
+_DEFER_SETTINGS_IO: ContextVar[bool] = ContextVar(
+    "fastenv_defer_settings_io", default=False
+)
 
 
 def deep_merge(base: Mapping[str, Any], overrides: Mapping[str, Any]) -> dict[str, Any]:
@@ -287,6 +292,10 @@ class PydanticBaseSettingsSource(ABC):
     @abstractmethod
     def __call__(self) -> dict[str, Any]:
         """Read validation inputs from this source."""
+
+    async def load(self) -> dict[str, Any]:
+        """Return inputs, with file sources overriding this to await their I/O."""
+        return self()
 
 
 class DefaultSettingsSource(PydanticBaseSettingsSource):
@@ -708,7 +717,28 @@ class DotEnvSettingsSource(EnvSettingsSource):
         return result
 
     def _load_env_vars(self) -> dict[str, Any]:
+        if _DEFER_SETTINGS_IO.get():
+            return {}
         return self._read_env_files()
+
+    async def load(self) -> dict[str, Any]:
+        self.env_vars: dict[str, Any] = {}
+        if self.env_file is not None:
+            files = (
+                [self.env_file]
+                if isinstance(self.env_file, (str, os.PathLike))
+                else self.env_file
+            )
+            for file in files:
+                path = await anyio.Path(cast(str | os.PathLike[str], file)).expanduser()
+                if await path.is_file() or await path.is_fifo():
+                    contents = await path.read_text(encoding=self.env_file_encoding)
+                    self.env_vars.update(
+                        self._parse_env_vars(
+                            parse_dotenv(contents, case_sensitive=True)
+                        )
+                    )
+        return self()
 
     def __call__(self) -> dict[str, Any]:
         result = super().__call__()
@@ -766,6 +796,7 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
             self.config.get("secrets_dir") if secrets_dir is None else secrets_dir
         )
         self.secrets_paths: list[Path] = []
+        self._async_field_values: dict[str, tuple[Any, str, bool]] | None = None
 
     @staticmethod
     def find_case_path(
@@ -781,6 +812,8 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
     def get_field_value(
         self, field: FieldInfo, field_name: str
     ) -> tuple[Any, str, bool]:
+        if self._async_field_values is not None:
+            return self._async_field_values[field_name]
         names = self._names(field_name, field)
         for env_name, alias in names:
             for directory in reversed(self.secrets_paths):
@@ -795,6 +828,8 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
         return None, str(names[0][1][0]), False
 
     def __call__(self) -> dict[str, Any]:
+        if self._async_field_values is not None:
+            return super().__call__()
         if self.secrets_dir is None:
             return {}
         directories = (
@@ -814,3 +849,56 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
             else:
                 self.secrets_paths.append(path)
         return super().__call__()
+
+    async def _get_field_value_async(
+        self, field: FieldInfo, field_name: str
+    ) -> tuple[Any, str, bool]:
+        names = self._names(field_name, field)
+        for env_name, alias in names:
+            for directory in reversed(self.secrets_paths):
+                async for path in anyio.Path(directory).iterdir():
+                    if self._case(path.name) != env_name:
+                        continue
+                    if not await path.is_file():
+                        warnings.warn(
+                            f'Secret path "{path}" is not a file', stacklevel=2
+                        )
+                        break
+                    value = (await path.read_text()).strip()
+                    return value, str(alias[0]), len(alias) > 1
+        return None, str(names[0][1][0]), False
+
+    async def load(self) -> dict[str, Any]:
+        if self.secrets_dir is None:
+            return self()
+        directories = (
+            [self.secrets_dir]
+            if isinstance(self.secrets_dir, (str, os.PathLike))
+            else self.secrets_dir
+        )
+        self.secrets_paths = []
+        for directory in directories:
+            path = await anyio.Path(
+                cast(str | os.PathLike[str], directory)
+            ).expanduser()
+            if not await path.exists():
+                warnings.warn(f'directory "{path}" does not exist', stacklevel=2)
+            elif not await path.is_dir():
+                raise SettingsError(
+                    f'secrets_dir must reference a directory, not "{path}"'
+                )
+            else:
+                self.secrets_paths.append(Path(path))
+        values: dict[str, tuple[Any, str, bool]] = {}
+        for name, field in self.settings_cls.model_fields.items():
+            try:
+                values[name] = await self._get_field_value_async(field, name)
+            except (OSError, ValueError) as error:
+                raise SettingsError(
+                    f'error getting value for field "{name}" from source "{type(self).__name__}"'
+                ) from error
+        self._async_field_values = values
+        try:
+            return self()
+        finally:
+            self._async_field_values = None

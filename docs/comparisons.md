@@ -60,6 +60,7 @@ The optional [`fastenv.settings` integration](settings.md#pydantic-integration) 
 
 ### File I/O
 
+- fastenv adds `await Settings.load()` to read built-in file sources asynchronously through AnyIO before validation. The synchronous `Settings(...)` constructor remains available for compatibility with pydantic-settings.
 - pydantic-settings loads dotenv files with python-dotenv. `fastenv.settings` uses fastenv instead and leaves the process environment unchanged.
 - Both settings implementations ignore missing dotenv files. Fields without defaults still require a value from another source. By comparison, `fastenv.load_dotenv` raises `FileNotFoundError` by default.
 
