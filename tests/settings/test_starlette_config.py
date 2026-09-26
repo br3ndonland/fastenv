@@ -128,6 +128,7 @@ MixedCase = "retained"
     )
     process_environ = dict(os.environ)
     config = Config(environ={}, toml_file=anyio.Path(toml_file), toml_table="settings")
+    assert assert_type(config.file_values, dict[str, object])["COUNT"] == 3
     assert config("NAME") == "example"
     assert assert_type(config("COUNT"), object) == 3
     assert config("RATIO") == 0.25

@@ -23,7 +23,8 @@ class Config(starlette.config.Config):
     are raised. Set ``raise_exceptions=False`` to log and skip failed sources.
     """
 
-    file_values: dict[str, Any]  # pyright: ignore[reportExplicitAny]
+    # Native TOML values broaden Starlette's string-only storage.
+    file_values: dict[str, object]  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(
         self,
