@@ -19,7 +19,7 @@ from typing import Any, Literal, cast
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-from .sources import (
+from .pydantic_settings_sources import (
     EnvSettingsSource,
     PydanticBaseSettingsSource,
     SettingsError,

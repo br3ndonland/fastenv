@@ -21,7 +21,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-from fastenv.settings.sources import (
+from fastenv.settings.pydantic_settings_sources import (
     DefaultSettingsSource,
     DotEnvSettingsSource,
     EnvSettingsSource,

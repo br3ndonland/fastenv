@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from fastenv import __version__
 
-    from .cli import (
+    from .pydantic_settings import BaseSettings, SettingsConfigDict
+    from .pydantic_settings_cli import (
         CLI_SUPPRESS,
         CliApp,
         CliDualFlag,
@@ -23,14 +24,13 @@ if TYPE_CHECKING:
         CliUnknownArgs,
         get_subcommand,
     )
-    from .main import BaseSettings, SettingsConfigDict
-    from .providers import (
+    from .pydantic_settings_providers import (
         JsonConfigSettingsSource,
         NestedSecretsSettingsSource,
         PyprojectTomlConfigSettingsSource,
         TomlConfigSettingsSource,
     )
-    from .sources import (
+    from .pydantic_settings_sources import (
         DotEnvSettingsSource,
         EnvSettingsSource,
         ForceDecode,
@@ -45,34 +45,34 @@ if TYPE_CHECKING:
 
 _EXPORT_MODULES: dict[str, str] = {
     "__version__": "fastenv",
-    "CLI_SUPPRESS": ".cli",
-    "CliApp": ".cli",
-    "CliDualFlag": ".cli",
-    "CliExplicitFlag": ".cli",
-    "CliImplicitFlag": ".cli",
-    "CliMutuallyExclusiveGroup": ".cli",
-    "CliPositionalArg": ".cli",
-    "CliSettingsSource": ".cli",
-    "CliSubCommand": ".cli",
-    "CliSuppress": ".cli",
-    "CliToggleFlag": ".cli",
-    "CliUnknownArgs": ".cli",
-    "get_subcommand": ".cli",
-    "BaseSettings": ".main",
-    "SettingsConfigDict": ".main",
-    "JsonConfigSettingsSource": ".providers",
-    "NestedSecretsSettingsSource": ".providers",
-    "PyprojectTomlConfigSettingsSource": ".providers",
-    "TomlConfigSettingsSource": ".providers",
-    "DotEnvSettingsSource": ".sources",
-    "EnvSettingsSource": ".sources",
-    "ForceDecode": ".sources",
-    "IncompleteFieldDefinitionWarning": ".sources",
-    "InitSettingsSource": ".sources",
-    "NoDecode": ".sources",
-    "PydanticBaseSettingsSource": ".sources",
-    "SecretsSettingsSource": ".sources",
-    "SettingsError": ".sources",
+    "CLI_SUPPRESS": ".pydantic_settings_cli",
+    "CliApp": ".pydantic_settings_cli",
+    "CliDualFlag": ".pydantic_settings_cli",
+    "CliExplicitFlag": ".pydantic_settings_cli",
+    "CliImplicitFlag": ".pydantic_settings_cli",
+    "CliMutuallyExclusiveGroup": ".pydantic_settings_cli",
+    "CliPositionalArg": ".pydantic_settings_cli",
+    "CliSettingsSource": ".pydantic_settings_cli",
+    "CliSubCommand": ".pydantic_settings_cli",
+    "CliSuppress": ".pydantic_settings_cli",
+    "CliToggleFlag": ".pydantic_settings_cli",
+    "CliUnknownArgs": ".pydantic_settings_cli",
+    "get_subcommand": ".pydantic_settings_cli",
+    "BaseSettings": ".pydantic_settings",
+    "SettingsConfigDict": ".pydantic_settings",
+    "JsonConfigSettingsSource": ".pydantic_settings_providers",
+    "NestedSecretsSettingsSource": ".pydantic_settings_providers",
+    "PyprojectTomlConfigSettingsSource": ".pydantic_settings_providers",
+    "TomlConfigSettingsSource": ".pydantic_settings_providers",
+    "DotEnvSettingsSource": ".pydantic_settings_sources",
+    "EnvSettingsSource": ".pydantic_settings_sources",
+    "ForceDecode": ".pydantic_settings_sources",
+    "IncompleteFieldDefinitionWarning": ".pydantic_settings_sources",
+    "InitSettingsSource": ".pydantic_settings_sources",
+    "NoDecode": ".pydantic_settings_sources",
+    "PydanticBaseSettingsSource": ".pydantic_settings_sources",
+    "SecretsSettingsSource": ".pydantic_settings_sources",
+    "SettingsError": ".pydantic_settings_sources",
 }
 
 
