@@ -11,7 +11,9 @@ icon: lucide/settings
 Install the optional integration into your project's virtual environment:
 
 ```sh
-uv pip install 'fastenv[starlette]'
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install 'fastenv[starlette]'
 ```
 
 Create a `.env` file:
