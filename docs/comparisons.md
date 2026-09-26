@@ -31,7 +31,9 @@ See the [`os` module docs](https://docs.python.org/3/library/os.html) and the [d
 
 ### Settings configuration
 
-_pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/usage/settings/). Settings class attributes are automatically read from environment variables, and the full power of _pydantic_ data parsing/validation can be applied.
+Pydantic 2 provides settings management through the separate [pydantic-settings package](https://github.com/pydantic/pydantic-settings). Its `BaseSettings` model reads typed settings from environment variables and other sources, then uses Pydantic for validation.
+
+The optional [`fastenv.settings` integration](pydantic-settings.md) implements this public API with fastenv dotenv parsing and no dependency on python-dotenv.
 
 <!-- prettier-ignore -->
 !!!example "Simple _pydantic_ settings model"
@@ -39,7 +41,7 @@ _pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/u
     ```py
     import os
 
-    from pydantic import BaseSettings
+    from fastenv.settings import BaseSettings
 
     os.environ["BOOLEAN_SETTING"] = "false"
     os.environ["INTEGER_SETTING"] = "123"
@@ -52,14 +54,14 @@ _pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/u
         string_setting: str = "default_value"
 
 
-    print(SimpleSettings().dict())
+    print(SimpleSettings().model_dump())
     # {"boolean_setting": False, "integer_setting": 123, "string_setting": "example_value"}
     ```
 
 ### File I/O
 
-- In addition to reading environment variables that have already been set, _pydantic_ can load environment variables from _.env_ files. However, it depends on python-dotenv to load _.env_ files, so it inherits the limitations described in the [python-dotenv section](#python-dotenv).
-- If no _.env_ file is found at the path provided, _pydantic_ will fail silently, rather than raising a `FileNotFoundError`. This can lead to issues if applications depend on environment variables that _pydantic_ fails to load.
+- pydantic-settings loads dotenv files with python-dotenv. `fastenv.settings` uses fastenv instead and leaves the process environment unchanged.
+- Both settings implementations ignore missing dotenv files. Fields without defaults still require a value from another source. By comparison, `fastenv.load_dotenv` raises `FileNotFoundError` by default.
 
 ## python-decouple
 

@@ -5,6 +5,7 @@ nav = [
   "environment.md",
   "dotenv.md",
   "settings.md",
+  "pydantic-settings.md",
   "cloud-object-storage.md",
   "comparisons.md",
   "changelog.md",

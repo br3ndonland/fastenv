@@ -4,6 +4,8 @@ icon: lucide/settings
 
 # Application settings
 
+For Pydantic models, see the [Pydantic settings integration](pydantic-settings.md).
+
 ## Starlette integration
 
 `fastenv.StarletteConfig` extends [Starlette's `Config`](https://www.starlette.io/config/) with asynchronous loading of multiple dotenv files and TOML settings, plus configurable file error handling. It inherits Starlette's settings lookup, type casting, defaults, and environment prefixes.

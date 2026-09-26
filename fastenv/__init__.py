@@ -9,7 +9,14 @@ try:
     from .cloud.object_storage import ObjectStorageClient, ObjectStorageConfig
 except ImportError:  # pragma: no cover
     pass
-from .dotenv import DotEnv, dotenv_values, dump_dotenv, find_dotenv, load_dotenv
+from .dotenv import (
+    DotEnv,
+    dotenv_values,
+    dump_dotenv,
+    find_dotenv,
+    load_dotenv,
+    parse_dotenv,
+)
 
 try:
     from .settings.starlette_config import Config as StarletteConfig
@@ -26,5 +33,6 @@ __all__ = (
     "dump_dotenv",
     "find_dotenv",
     "load_dotenv",
+    "parse_dotenv",
 )
 __version__ = "0.9.0"
