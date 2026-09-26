@@ -8,10 +8,12 @@ icon: lucide/settings
 
 `fastenv.settings` provides Pydantic settings models using fastenv to parse dotenv files. It is an original implementation based on the public pydantic-settings 2.15.0 API, with [intentional differences](comparisons.md#differences-from-pydantic-settings). Neither pydantic-settings nor python-dotenv is a runtime dependency.
 
-Install the optional integration:
+Install the optional integration into your project's virtual environment:
 
 ```sh
-uv add 'fastenv[settings]'
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install 'fastenv[settings]'
 ```
 
 Change settings imports to `fastenv.settings`. Continue importing models, fields, aliases, validators, and types from `pydantic`:
@@ -162,11 +164,14 @@ Public CLI exports include `CLI_SUPPRESS`, `CliApp`, `CliSettingsSource`, `CliSu
 
 The compatibility target is the released **pydantic-settings 2.15.0** public API for environment, local file, custom source, and CLI settings, imported through `fastenv.settings`. Cloud providers and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, exact error text, and exact CLI help formatting are not compatibility contracts. The fastenv package version remains available as `fastenv.settings.__version__`.
 
-The implementation was written from public documentation, signatures, and independently authored behavioral probes. No pydantic-settings implementation or tests were copied. The reference package is only used in an isolated developer command:
+The implementation was written from public documentation, signatures, and independently authored behavioral probes. No pydantic-settings implementation or tests were copied. The reference package is used only for development. From the repository root, install the local settings integration and pinned reference package in a separate virtual environment, then run the compatibility checks:
 
 ```sh
-PYTHONPATH=. uv run --no-project --with pydantic-settings==2.15.0 --with PyYAML \
-  python scripts/check_settings_compatibility.py
+python3 -m venv .venv-compat
+. .venv-compat/bin/activate
+python -m pip install -e '.[settings,yaml]' 'pydantic-settings==2.15.0'
+python -m scripts.check_settings_compatibility
+deactivate
 ```
 
 This checks supported public exports, verifies the intentional cloud API omissions, and compares settings behavior across both implementations. The regular test suite covers the integration without installing pydantic-settings or python-dotenv. These checks exercise a defined set of behaviors and are not proof of exhaustive equivalence for all Pydantic types or third-party parser implementations.

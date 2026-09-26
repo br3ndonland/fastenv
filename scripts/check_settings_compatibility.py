@@ -1,9 +1,10 @@
 """Compare original behavior probes with the released public API.
 
-Run from the repository root:
-    PYTHONPATH=. uv run --no-project --with pydantic-settings==2.15.0 --with PyYAML \
-        python scripts/check_settings_compatibility.py
+Run from the repository root in a separate virtual environment containing
+fastenv[settings,yaml] and pydantic-settings==2.15.0:
+    python -m scripts.check_settings_compatibility
 
+See docs/settings.md for installation instructions.
 The reference package is an isolated development oracle, never a fastenv dependency.
 This script uses only public imports and model behavior, not implementation source.
 """
