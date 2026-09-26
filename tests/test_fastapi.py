@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import ClassVar, TypedDict, cast
 
 import anyio
+import httpxyz
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
@@ -85,7 +86,8 @@ def test_fastapi_with_fastenv(
     with TestClient(app) as test_client:
         settings = cast(object, test_client.app_state["settings"])
         assert isinstance(settings, Settings)
-        response = test_client.get("/settings")
+        # Starlette's type annotations assume HTTPX2, but the client uses HTTPXYZ.
+        response = cast(httpxyz.Client, test_client).get("/settings")
         assert response.status_code == 200
         assert response.json() == {
             "example_variable": expected_example,
@@ -112,6 +114,6 @@ def test_fastapi_rejects_invalid_settings_at_startup(
     _ = settings_file.write_text(contents)
     before = dict(os.environ)
     with pytest.raises(ValidationError) as exc_info, ExitStack() as stack:
-        _ = stack.enter_context(TestClient(app))
+        stack.enter_context(TestClient(app))
     assert exc_info.value.errors()[0]["loc"] == (error_field,)
     assert dict(os.environ) == before
