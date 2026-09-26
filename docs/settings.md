@@ -6,7 +6,7 @@ icon: lucide/settings
 
 ## Pydantic integration
 
-`fastenv.settings` provides Pydantic settings models using fastenv to parse dotenv files. It is an original implementation based on the public pydantic-settings 2.15.0 API, with [intentional differences](comparisons.md#differences-from-pydantic-settings). Neither pydantic-settings nor python-dotenv is a runtime dependency.
+fastenv provides Pydantic settings models using its existing dotenv parser. It is an original implementation based on the public pydantic-settings 2.15.0 API, with [intentional differences](comparisons.md#differences-from-pydantic-settings). Neither pydantic-settings nor python-dotenv is a runtime dependency.
 
 Install the optional integration into your project's virtual environment:
 
@@ -16,13 +16,13 @@ python3 -m venv .venv
 python -m pip install 'fastenv[settings]'
 ```
 
-Change settings imports to `fastenv.settings`. Continue importing models, fields, aliases, validators, and types from `pydantic`:
+Change settings imports to `fastenv`. Continue importing models, fields, aliases, validators, and types from `pydantic`:
 
 ```py
 import anyio
 from pydantic import BaseModel
 
-from fastenv.settings import BaseSettings, SettingsConfigDict
+from fastenv import BaseSettings, SettingsConfigDict
 
 
 class Database(BaseModel):
@@ -105,7 +105,7 @@ Override `settings_customise_sources` to add, reorder, or remove sources. The fi
 `Settings.load()` also accepts async callable sources. A custom source class can implement `async def load(self)` to await its I/O and return a dictionary. The default source `load()` calls `__call__`, which supports synchronous in-memory sources. Custom sources that read files or use the network should implement asynchronous loading and avoid I/O in their constructors.
 
 ```py
-from fastenv.settings import BaseSettings, TomlConfigSettingsSource
+from fastenv import BaseSettings, TomlConfigSettingsSource
 
 
 class Settings(BaseSettings):
@@ -150,7 +150,7 @@ fastenv does not generate or run command-line applications or provide pydantic-s
 ```py
 import argparse
 
-from fastenv.settings import BaseSettings
+from fastenv import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -167,7 +167,7 @@ settings = Settings(**overrides)
 
 ### Compatibility and verification
 
-The compatibility target is the released **pydantic-settings 2.15.0** public API for environment variables, local files, secret directories, and custom sources, imported through `fastenv.settings`. CLI APIs, YAML, cloud providers, and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, and exact error text are not compatibility contracts. The fastenv package version remains available as `fastenv.settings.__version__`.
+The compatibility target is the released **pydantic-settings 2.15.0** public API for environment variables, local files, secret directories, and custom sources, imported through `fastenv`. CLI APIs, YAML, cloud providers, and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, and exact error text are not compatibility contracts. The fastenv package version remains available as `fastenv.__version__`.
 
 The implementation was written from public documentation, signatures, and independently authored behavioral comparisons during development. No pydantic-settings implementation or tests were copied.
 
