@@ -8,27 +8,35 @@ Written from the public API contract, without using pydantic-settings code.
 
 from __future__ import annotations
 
+import inspect
 import warnings
-from collections.abc import Callable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
+from contextvars import ContextVar
+from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Any, ClassVar, Literal
+from typing import Any, ClassVar, Literal, Self
 
 from pydantic import BaseModel, ConfigDict
 
 from .pydantic_settings_sources import (
+    _DEFER_SETTINGS_IO,  # pyright: ignore[reportPrivateUsage]
     DefaultSettingsSource,
     DotEnvSettingsSource,
     EnvSettingsSource,
     InitSettingsSource,
     PydanticBaseSettingsSource,
     SecretsSettingsSource,
+    SettingsError,
     canonicalize_inputs,
     deep_merge,
 )
 
 PathType = str | PathLike[str] | Sequence[str | PathLike[str]]
-SettingsSource = PydanticBaseSettingsSource | Callable[[], dict[str, Any]]
+SettingsSource = (
+    PydanticBaseSettingsSource
+    | Callable[[], dict[str, Any] | Awaitable[dict[str, Any]]]
+)
 
 
 class SettingsConfigDict(ConfigDict, total=False):
@@ -66,6 +74,61 @@ _SETTINGS_KEYS = (
     SettingsConfigDict.__annotations__.keys() - ConfigDict.__annotations__.keys()
 )
 _ENV_FILE_DEFAULT = Path("")
+_SOURCE_OVERRIDE_KEYS = (
+    "case_sensitive",
+    "nested_model_default_partial_update",
+    "env_prefix",
+    "env_prefix_target",
+    "env_file_encoding",
+    "env_ignore_empty",
+    "env_nested_delimiter",
+    "env_nested_max_split",
+    "env_parse_none_str",
+    "env_parse_enums",
+    "secrets_dir",
+)
+
+
+@dataclass
+class _PreparedSettings:
+    settings_cls: type[BaseSettings]
+    instance: BaseSettings | None = None
+
+
+_PREPARED_SETTINGS: ContextVar[_PreparedSettings | None] = ContextVar(
+    "fastenv_prepared_settings", default=None
+)
+
+
+class _SettingsState:
+    """Compose source results identically for synchronous and async loads."""
+
+    def __init__(self, settings_cls: type[BaseSettings]) -> None:
+        self.settings_cls: type[BaseSettings] = settings_cls
+        self.state: dict[str, Any] = {}
+        self.source_data: dict[str, dict[str, Any]] = {}
+        self.defaults: dict[str, Any] = {}
+
+    def prepare(self, source: SettingsSource) -> None:
+        if isinstance(source, PydanticBaseSettingsSource):
+            source._set_current_state(self.state.copy())  # pyright: ignore[reportPrivateUsage]
+            source._set_settings_sources_data(self.source_data.copy())  # pyright: ignore[reportPrivateUsage]
+
+    def add(self, source: SettingsSource, data: dict[str, Any]) -> None:
+        canonical = canonicalize_inputs(self.settings_cls, data)
+        if isinstance(source, DefaultSettingsSource):
+            self.defaults = canonical
+        name = getattr(source, "__name__", type(source).__name__)
+        self.source_data[name] = data
+        self.state = deep_merge(canonical, self.state)
+
+    def values(self) -> dict[str, Any]:
+        # Leave unchanged defaults to Pydantic, preserving unset-field semantics.
+        return {
+            key: value
+            for key, value in self.state.items()
+            if key not in self.defaults or value != self.defaults[key]
+        }
 
 
 class BaseSettings(BaseModel):
@@ -110,6 +173,18 @@ class BaseSettings(BaseModel):
                 cls.model_config[key] = kwargs.pop(key)
         super().__init_subclass__(**kwargs)
 
+    def __new__(cls, /, *_args: Any, **_kwargs: Any) -> Self:
+        instance = super().__new__(cls)
+        prepared = _PREPARED_SETTINGS.get()
+        # Bind before a custom initializer can construct another instance.
+        if (
+            prepared is not None
+            and prepared.settings_cls is cls
+            and prepared.instance is None
+        ):
+            prepared.instance = instance
+        return instance
+
     def __init__(
         __settings_self__,  # pyright: ignore[reportSelfClsParameterName]
         _case_sensitive: bool | None = None,
@@ -124,54 +199,95 @@ class BaseSettings(BaseModel):
         _env_parse_none_str: str | None = None,
         _env_parse_enums: bool | None = None,
         _secrets_dir: PathType | None = None,
-        _build_sources: tuple[tuple[SettingsSource, ...], dict[str, Any]] | None = None,
         **values: Any,
     ) -> None:
-        options = dict(__settings_self__.model_config)
-        overrides = {
-            "case_sensitive": _case_sensitive,
-            "nested_model_default_partial_update": _nested_model_default_partial_update,
-            "env_prefix": _env_prefix,
-            "env_prefix_target": _env_prefix_target,
-            "env_file_encoding": _env_file_encoding,
-            "env_ignore_empty": _env_ignore_empty,
-            "env_nested_delimiter": _env_nested_delimiter,
-            "env_nested_max_split": _env_nested_max_split,
-            "env_parse_none_str": _env_parse_none_str,
-            "env_parse_enums": _env_parse_enums,
-            "secrets_dir": _secrets_dir,
-        }
-        options.update(
-            {key: value for key, value in overrides.items() if value is not None}
-        )
-        if _env_file != _ENV_FILE_DEFAULT:
-            options["env_file"] = _env_file
         settings_cls = type(__settings_self__)
-        sources = (
-            _build_sources[0]
-            if _build_sources is not None
-            else settings_cls._settings_sources(values, options)
+        prepared = _PREPARED_SETTINGS.get()
+        if prepared is not None and prepared.instance is __settings_self__:
+            # Consume the bypass before validation can construct nested models.
+            _ = _PREPARED_SETTINGS.set(None)
+            super().__init__(**values)
+            return
+        options = settings_cls._settings_options(
+            {
+                "_case_sensitive": _case_sensitive,
+                "_nested_model_default_partial_update": _nested_model_default_partial_update,
+                "_env_prefix": _env_prefix,
+                "_env_prefix_target": _env_prefix_target,
+                "_env_file": _env_file,
+                "_env_file_encoding": _env_file_encoding,
+                "_env_ignore_empty": _env_ignore_empty,
+                "_env_nested_delimiter": _env_nested_delimiter,
+                "_env_nested_max_split": _env_nested_max_split,
+                "_env_parse_none_str": _env_parse_none_str,
+                "_env_parse_enums": _env_parse_enums,
+                "_secrets_dir": _secrets_dir,
+            }
         )
-        state: dict[str, Any] = {}
-        source_data: dict[str, dict[str, Any]] = {}
-        defaults: dict[str, Any] = {}
+        # A custom async source hook may construct another settings model.
+        # An explicit synchronous constructor retains its normal file behavior.
+        token = _DEFER_SETTINGS_IO.set(False)
+        try:
+            sources = settings_cls._settings_sources(values, options)
+        finally:
+            _DEFER_SETTINGS_IO.reset(token)
+        state = _SettingsState(settings_cls)
         for source in sources:
-            if isinstance(source, PydanticBaseSettingsSource):
-                source._set_current_state(state.copy())  # pyright: ignore[reportPrivateUsage]
-                source._set_settings_sources_data(source_data.copy())  # pyright: ignore[reportPrivateUsage]
+            state.prepare(source)
             data = source()
-            if isinstance(source, DefaultSettingsSource):
-                defaults = canonicalize_inputs(settings_cls, data)
-            name = getattr(source, "__name__", type(source).__name__)
-            source_data[name] = data
-            state = deep_merge(canonicalize_inputs(settings_cls, data), state)
-        # Leave unchanged defaults to Pydantic, preserving unset-field semantics.
-        state = {
-            key: value
-            for key, value in state.items()
-            if key not in defaults or value != defaults[key]
-        }
-        super().__init__(**state)
+            if inspect.isawaitable(data):
+                if inspect.iscoroutine(data):
+                    data.close()
+                raise SettingsError(
+                    "Asynchronous settings sources require await Settings.load()"
+                )
+            state.add(source, data)
+        super().__init__(**state.values())
+
+    @classmethod
+    async def load(cls, /, **values: Any) -> Self:
+        """Load sources asynchronously, then validate a new settings instance.
+
+        Accept the same field values and source overrides as the constructor.
+        Sources run in priority order so custom sources can inspect prior values.
+        File sources use async I/O. Custom sources may return an awaitable or
+        override their async ``load`` method.
+        """
+        options = cls._settings_options(values)
+        token = _DEFER_SETTINGS_IO.set(True)
+        try:
+            sources = cls._settings_sources(values, options)
+        finally:
+            _DEFER_SETTINGS_IO.reset(token)
+        state = _SettingsState(cls)
+        for source in sources:
+            state.prepare(source)
+            data = (
+                await source.load()
+                if isinstance(source, PydanticBaseSettingsSource)
+                else source()
+            )
+            if inspect.isawaitable(data):
+                data = await data
+            state.add(source, data)
+        prepared_token = _PREPARED_SETTINGS.set(_PreparedSettings(cls))
+        try:
+            # Custom constructors receive the ordinary, still unvalidated inputs.
+            return cls(**state.values())
+        finally:
+            _PREPARED_SETTINGS.reset(prepared_token)
+
+    @classmethod
+    def _settings_options(cls, values: dict[str, Any]) -> dict[str, Any]:
+        options = dict(cls.model_config)
+        for key in _SOURCE_OVERRIDE_KEYS:
+            override = values.pop(f"_{key}", None)
+            if override is not None:
+                options[key] = override
+        env_file = values.pop("_env_file", _ENV_FILE_DEFAULT)
+        if env_file != _ENV_FILE_DEFAULT:
+            options["env_file"] = env_file
+        return options
 
     @classmethod
     def _settings_sources(
