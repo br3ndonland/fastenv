@@ -1,30 +1,23 @@
-"""Original provider tests using local fixtures and fake cloud clients."""
+"""Original provider tests using local configuration files and secrets."""
 
-# SDK mocks intentionally expose dynamically typed attributes and callbacks.
-# pyright: reportAny=false, reportExplicitAny=false, reportUnknownLambdaType=false
+# File sources expose dynamic values and configurable Pydantic model fields.
+# pyright: reportAny=false, reportExplicitAny=false
 
 from __future__ import annotations
 
 import importlib
-import json
 import zipfile
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Annotated, Any, ClassVar, cast
-from unittest.mock import Mock
+from typing import Any, ClassVar, cast
 
 import pytest
 from pydantic import BaseModel, Field
 
 from fastenv.settings.main import BaseSettings, SettingsConfigDict
 from fastenv.settings.providers import (
-    AWSSecretsManagerSettingsSource,
-    AzureKeyVaultSettingsSource,
-    GoogleSecretManagerSettingsSource,
     JsonConfigSettingsSource,
     NestedSecretsSettingsSource,
     PyprojectTomlConfigSettingsSource,
-    SecretVersion,
     TomlConfigSettingsSource,
     YamlConfigSettingsSource,
 )
@@ -312,176 +305,10 @@ def test_optional_dependency_has_actionable_error(
         raise ImportError(name)
 
     monkeypatch.setattr(importlib, "import_module", unavailable)
-    with pytest.raises(ImportError, match=r"fastenv\[aws\]"):
-        _ = AWSSecretsManagerSettingsSource(ProviderSettings, "secret")
     path = tmp_path / "config.yaml"
     _ = path.write_text("token: value")
     with pytest.raises(ImportError, match=r"fastenv\[yaml\]"):
         _ = YamlConfigSettingsSource(ProviderSettings, path)
-
-
-def test_aws_json_version_and_nested_settings(monkeypatch: pytest.MonkeyPatch) -> None:
-    client = Mock()
-    client.get_secret_value.return_value = {
-        "SecretString": json.dumps(
-            {"token": "aws", "service--port": "9300", "unused": "ignored"}
-        )
-    }
-    module = SimpleNamespace(client=Mock(return_value=client))
-    monkeypatch.setattr(importlib, "import_module", Mock(return_value=module))
-    source = AWSSecretsManagerSettingsSource(
-        ProviderSettings, "app/settings", region_name="us-east-2", version_id="pinned"
-    )
-    assert source() == {"token": "aws", "service": {"port": "9300"}}
-    client.get_secret_value.assert_called_once_with(
-        SecretId="app/settings", VersionId="pinned"
-    )
-    module.client.assert_called_once_with(
-        "secretsmanager", region_name="us-east-2", endpoint_url=None
-    )
-
-
-@pytest.mark.parametrize(
-    "response", [{"SecretBinary": b"binary"}, {"SecretString": "[]"}]
-)
-def test_aws_rejects_non_object_secrets(
-    monkeypatch: pytest.MonkeyPatch, response: dict[str, str | bytes]
-) -> None:
-    client = Mock()
-    client.get_secret_value.return_value = response
-    monkeypatch.setattr(
-        importlib,
-        "import_module",
-        Mock(return_value=SimpleNamespace(client=Mock(return_value=client))),
-    )
-    with pytest.raises(SettingsError, match="JSON object"):
-        _ = AWSSecretsManagerSettingsSource(ProviderSettings, "app/settings")
-
-
-def test_azure_only_fetches_matching_enabled_secrets(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    client = Mock()
-    client.list_properties_of_secrets.return_value = [
-        SimpleNamespace(name="token", enabled=True),
-        SimpleNamespace(name="service--port", enabled=True),
-        SimpleNamespace(name="unused", enabled=True),
-        SimpleNamespace(name="disabled", enabled=False),
-    ]
-    client.get_secret.side_effect = lambda name: SimpleNamespace(
-        value={"token": "azure", "service--port": "9400"}[name]
-    )
-    factory = Mock(return_value=client)
-    monkeypatch.setattr(
-        importlib,
-        "import_module",
-        Mock(return_value=SimpleNamespace(SecretClient=factory)),
-    )
-    credential = object()
-    source = AzureKeyVaultSettingsSource(
-        ProviderSettings, "https://vault.example", credential
-    )
-    assert source() == {"token": "azure", "service": {"port": "9400"}}
-    assert client.get_secret.call_count == 2
-    factory.assert_called_once_with(
-        vault_url="https://vault.example", credential=credential
-    )
-
-
-def test_azure_name_conversion_preserves_aliases(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    class Configured(BaseSettings):
-        access_key: str
-        alias_value: str = Field(alias="Custom-Alias")
-
-    client = Mock()
-    client.list_properties_of_secrets.return_value = [
-        SimpleNamespace(name=name) for name in ["access-key", "Custom-Alias"]
-    ]
-    client.get_secret.side_effect = lambda name: SimpleNamespace(value=name)
-    monkeypatch.setattr(
-        importlib,
-        "import_module",
-        Mock(return_value=SimpleNamespace(SecretClient=Mock(return_value=client))),
-    )
-    source = AzureKeyVaultSettingsSource(
-        Configured, "url", object(), dash_to_underscore=True
-    )
-    assert source() == {"access_key": "access-key", "Custom-Alias": "Custom-Alias"}
-
-    class SnakeSettings(BaseSettings):
-        api_key: str
-        service: Service
-
-    client.list_properties_of_secrets.return_value = [
-        SimpleNamespace(name=name) for name in ["APIKey", "Service--Port"]
-    ]
-    client.get_secret.side_effect = lambda name: SimpleNamespace(
-        value="9500" if "Port" in name else "value"
-    )
-    source = AzureKeyVaultSettingsSource(
-        SnakeSettings, "url", object(), snake_case_conversion=True
-    )
-    assert source() == {"api_key": "value", "service": {"port": "9500"}}
-
-
-def test_google_uses_previous_source_project_and_only_matching_secrets() -> None:
-    client = Mock()
-    client.list_secrets.return_value = [
-        SimpleNamespace(name=f"projects/runtime/secrets/{name}")
-        for name in ["token", "service__port", "unused"]
-    ]
-    client.access_secret_version.side_effect = lambda request: SimpleNamespace(
-        payload=SimpleNamespace(
-            data=b"9600" if "port" in request["name"] else b"google"
-        )
-    )
-
-    class Configured(ProviderSettings):
-        model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
-            env_nested_delimiter="__"
-        )
-
-    source = GoogleSecretManagerSettingsSource(
-        Configured, secret_client=client, project_id_field="deployment_project"
-    )
-    client.list_secrets.assert_not_called()
-    source._set_current_state({"deployment_project": "runtime"})  # pyright: ignore[reportPrivateUsage]
-    assert source() == {"token": "google", "service": {"port": "9600"}}
-    client.list_secrets.assert_called_once_with(request={"parent": "projects/runtime"})
-    assert client.access_secret_version.call_count == 2
-
-
-def test_google_default_credentials_and_explicit_project(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    client = Mock()
-    client.list_secrets.return_value = []
-    credential = object()
-    auth = SimpleNamespace(default=Mock(return_value=(credential, "default-project")))
-    factory = Mock(return_value=client)
-
-    def lookup_module(name: str) -> Any:
-        return (
-            auth
-            if name == "google.auth"
-            else SimpleNamespace(SecretManagerServiceClient=factory)
-        )
-
-    monkeypatch.setattr(importlib, "import_module", lookup_module)
-    source = GoogleSecretManagerSettingsSource(
-        ProviderSettings, project_id="explicit-project"
-    )
-    source._set_current_state({"project_id": "earlier-project"})  # pyright: ignore[reportPrivateUsage]
-    assert source() == {}
-    factory.assert_called_once_with(credentials=credential)
-    client.list_secrets.assert_called_once_with(
-        request={"parent": "projects/explicit-project"}
-    )
-    auth.default.return_value = (credential, None)
-    with pytest.raises(SettingsError, match="project_id"):
-        _ = GoogleSecretManagerSettingsSource(ProviderSettings)()
 
 
 def test_file_section_must_be_mapping(tmp_path: Path) -> None:
@@ -526,76 +353,6 @@ def test_nested_secret_size_limit_handles_file_growth(
         _ = NestedSecretsSettingsSource(
             ProviderSettings, secrets_dir=tmp_path, secrets_dir_max_size=8
         )
-
-
-def test_google_versions_nested_metadata_and_cache() -> None:
-    class Nested(BaseModel):
-        pinned: Annotated[str, SecretVersion("7")]
-
-    class Versioned(BaseSettings):
-        token: str = Field(default="", alias="access-token")
-        previous: Annotated[str, SecretVersion("3")] = Field(
-            default="", alias="access-token"
-        )
-        same_version: Annotated[str, SecretVersion("3")] = Field(
-            default="", alias="access-token"
-        )
-        nested: Nested
-        model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
-            populate_by_name=True, env_nested_delimiter="__"
-        )
-
-    client = Mock()
-    client.list_secrets.return_value = [
-        SimpleNamespace(name=f"projects/p/secrets/{name}")
-        for name in ["access-token", "nested__pinned"]
-    ]
-
-    def access_version(request: dict[str, str]) -> SimpleNamespace:
-        return SimpleNamespace(
-            payload=SimpleNamespace(data=request["name"].rsplit("/", 1)[-1].encode())
-        )
-
-    client.access_secret_version.side_effect = access_version
-    source = GoogleSecretManagerSettingsSource(
-        Versioned, project_id="p", secret_client=client
-    )
-    data = source()
-    assert data == {
-        "token": "latest",
-        "previous": "3",
-        "same_version": "3",
-        "nested": {"pinned": "7"},
-    }
-    assert client.access_secret_version.call_count == 3
-
-
-def test_google_case_insensitive_prefers_exact_names() -> None:
-    class Cases(BaseSettings):
-        api_key: str
-        custom: str = Field(alias="PascalName")
-        fallback: str
-
-    client = Mock()
-    client.list_secrets.return_value = [
-        SimpleNamespace(name=f"projects/p/secrets/{name}")
-        for name in ["api_key", "API_KEY", "pascalname", "PascalName", "FALLBACK"]
-    ]
-
-    def access_version(request: dict[str, str]) -> SimpleNamespace:
-        return SimpleNamespace(
-            payload=SimpleNamespace(data=request["name"].split("/")[-3].encode())
-        )
-
-    client.access_secret_version.side_effect = access_version
-    source = GoogleSecretManagerSettingsSource(
-        Cases, project_id="p", secret_client=client, case_sensitive=False
-    )
-    assert source() == {
-        "api_key": "api_key",
-        "PascalName": "PascalName",
-        "fallback": "FALLBACK",
-    }
 
 
 def test_yaml_nested_sections_and_literal_dot_precedence(tmp_path: Path) -> None:
