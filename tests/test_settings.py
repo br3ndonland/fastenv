@@ -10,7 +10,7 @@ import argparse
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 
 import pytest
 from pydantic import AliasChoices, BaseModel, Field, ValidationError
@@ -169,6 +169,83 @@ def test_aliases_merge_across_sources(
     )
 
 
+@pytest.mark.parametrize(
+    "variable", ["FASTENV_PRIMARY", "FASTENV_FALLBACK", "FASTENV_COUNT"]
+)
+def test_field_name_overrides_aliased_environment(
+    variable: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class Settings(BaseSettings):
+        model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+            env_prefix="FASTENV_", populate_by_name=True
+        )
+        count: int = Field(
+            default=1,
+            validation_alias=AliasChoices("FASTENV_PRIMARY", "FASTENV_FALLBACK"),
+        )
+
+    monkeypatch.setenv(variable, "5")
+    assert Settings().count == 5
+    assert Settings(count=7).count == 7
+
+
+def test_constructor_environment_options_are_instance_specific(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Settings(BaseSettings):
+        model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+            env_prefix="FASTENV_OPTIONS_"
+        )
+        count: int = 1
+        optional: int | None = 2
+
+    monkeypatch.setenv("FASTENV_OPTIONS_COUNT", "")
+    monkeypatch.setenv("FASTENV_OPTIONS_OPTIONAL", "nil")
+    assert Settings(_env_ignore_empty=True, _env_parse_none_str="nil").model_dump() == {
+        "count": 1,
+        "optional": None,
+    }
+    with pytest.raises(ValidationError) as error:
+        _ = Settings()
+    assert {(item["loc"], item["type"]) for item in error.value.errors()} == {
+        (("count",), "int_parsing"),
+        (("optional",), "int_parsing"),
+    }
+
+
+@pytest.mark.parametrize("extra", ["allow", "ignore"])
+@pytest.mark.parametrize(
+    ("filtering", "extras"),
+    [
+        (None, {"fastenv_unknown": "x", "other": "y"}),
+        ("match_prefix", {"unknown": "x"}),
+        ("only_existing", {}),
+    ],
+)
+def test_dotenv_filtering_respects_extra_policy(
+    tmp_path: Path,
+    extra: Literal["allow", "ignore"],
+    filtering: Literal["match_prefix", "only_existing"] | None,
+    extras: dict[str, str],
+) -> None:
+    dotenv = tmp_path / "config.env"
+    _ = dotenv.write_text("FASTENV_COUNT=3 FASTENV_UNKNOWN=x OTHER=y")
+
+    class Settings(BaseSettings):
+        model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+            env_prefix="FASTENV_",
+            env_file=dotenv,
+            extra=extra,
+            dotenv_filtering=filtering,
+        )
+        count: int = 1
+
+    assert Settings().model_dump() == {
+        "count": 3,
+        **(extras if extra == "allow" else {}),
+    }
+
+
 def test_custom_sources_priority_state_and_removal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -316,6 +393,10 @@ def test_unchanged_partial_defaults_remain_unset(values: dict[str, Any]) -> None
     assert settings.model_dump(exclude_unset=True) == {}
     changed = Settings(nested={"number": 5})  # pyright: ignore[reportArgumentType]
     assert changed.model_fields_set == {"nested"}
+    assert changed.nested.model_fields_set == {"number", "text"}
+    assert changed.model_dump(exclude_unset=True) == {
+        "nested": {"number": 5, "text": "default"}
+    }
 
 
 def test_unused_file_configuration_warns() -> None:

@@ -41,10 +41,13 @@ class ProviderSettings(BaseSettings):
 def test_config_files_merge_in_order(tmp_path: Path, format: str, deep: bool) -> None:
     contents = {
         "json": (
-            '{"service":{"hostname":"first","port":9000}}',
+            '{"token":"base","service":{"hostname":"first","port":9000}}',
             '{"service":{"port":9001}}',
         ),
-        "toml": ('[service]\nhostname="first"\nport=9000', "[service]\nport=9001"),
+        "toml": (
+            'token="base"\n[service]\nhostname="first"\nport=9000',
+            "[service]\nport=9001",
+        ),
     }
     source_class = {
         "json": JsonConfigSettingsSource,
@@ -54,9 +57,10 @@ def test_config_files_merge_in_order(tmp_path: Path, format: str, deep: bool) ->
     for path, content in zip(files, contents[format]):
         _ = path.write_text(content)
     source = source_class(ProviderSettings, files, deep_merge=deep)
-    expected: dict[str, dict[str, int | str]] = {"service": {"port": 9001}}
+    expected_service: dict[str, int | str] = {"port": 9001}
     if deep:
-        expected["service"]["hostname"] = "first"
+        expected_service["hostname"] = "first"
+    expected = {"token": "base", "service": expected_service}
     assert source() == expected
     output = source()
     output["service"]["port"] = -1
