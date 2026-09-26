@@ -6,7 +6,7 @@ icon: lucide/settings
 
 ## Starlette integration
 
-`fastenv.StarletteConfig` extends [Starlette's `Config`](https://www.starlette.io/config/) with multiple dotenv files, TOML settings, and configurable file error handling. It inherits Starlette's settings lookup, type casting, defaults, and environment prefixes.
+`fastenv.StarletteConfig` extends [Starlette's `Config`](https://www.starlette.io/config/) with asynchronous loading of multiple dotenv files and TOML settings, plus configurable file error handling. It inherits Starlette's settings lookup, type casting, defaults, and environment prefixes.
 
 Install the optional integration into your project's virtual environment:
 
@@ -24,18 +24,26 @@ PORT=8000
 ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
-Read settings with the same calling convention as Starlette:
+Load the files asynchronously, then read settings with the same calling convention as Starlette. Save this example as a Python script and run it from the directory containing `.env`:
 
 ```py
+import anyio
 import fastenv
 from starlette.datastructures import CommaSeparatedStrings
 
-config = fastenv.StarletteConfig(".env")
+
+async def load_config() -> fastenv.StarletteConfig:
+    return await fastenv.StarletteConfig.load(".env")
+
+
+config = anyio.run(load_config)
 
 DEBUG = config("DEBUG", cast=bool, default=False)
 PORT = config("PORT", cast=int, default=8000)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=CommaSeparatedStrings, default="localhost")
 ```
+
+The script examples use `anyio.run()` to start an event loop. In an async application, await `StarletteConfig.load()` inside an async function instead. See [application startup](#application-startup) for a lifespan example.
 
 You can also import the same class as `Config`:
 
@@ -47,7 +55,7 @@ Starlette is an optional dependency. Install `fastenv[starlette]` before importi
 
 ## Sources and precedence
 
-The constructor keeps Starlette's positional arguments, `env_file`, `environ`, `env_prefix`, and `encoding`, in that order. The new `toml_file`, `toml_table`, and `raise_exceptions` arguments are keyword-only.
+The asynchronous `StarletteConfig.load()` class method creates a config instance and reads the requested files using AnyIO. It accepts `env_file`, `environ`, `env_prefix`, and `encoding` as positional or keyword arguments. The `toml_file`, `toml_table`, and `raise_exceptions` arguments are keyword-only.
 
 | Argument | Default | Purpose |
 | --- | --- | --- |
@@ -59,7 +67,7 @@ The constructor keeps Starlette's positional arguments, `env_file`, `environ`, `
 | `toml_table` | `"project"` | The top-level TOML table to load. |
 | `raise_exceptions` | `True` | Whether file loading errors are raised after being logged. |
 
-No files are loaded unless their paths are provided. Relative paths are resolved from the current working directory.
+No files are loaded unless their paths are provided. Relative paths are resolved from the current working directory. For environment-only settings, construct `StarletteConfig()` directly. Its constructor accepts only the keyword arguments `environ` and `env_prefix`, and performs no file I/O.
 
 Values are looked up in this order, from highest to lowest priority:
 
@@ -71,12 +79,18 @@ Values are looked up in this order, from highest to lowest priority:
 For example, this configuration loads base values from `pyproject.toml`, overrides them with `.env`, then overrides those values with `.env.local`. An existing environment variable overrides all three files.
 
 ```py
+import anyio
 import fastenv
 
-config = fastenv.StarletteConfig(
-    env_file=[".env", ".env.local"],
-    toml_file="pyproject.toml",
-)
+
+async def load_config() -> fastenv.StarletteConfig:
+    return await fastenv.StarletteConfig.load(
+        env_file=[".env", ".env.local"],
+        toml_file="pyproject.toml",
+    )
+
+
+config = anyio.run(load_config)
 PORT = config("PORT", cast=int, default=8000)
 ```
 
@@ -95,9 +109,15 @@ dependencies = ["fastenv[starlette]"]
 ```
 
 ```py
+import anyio
 import fastenv
 
-config = fastenv.StarletteConfig(toml_file="pyproject.toml")
+
+async def load_config() -> fastenv.StarletteConfig:
+    return await fastenv.StarletteConfig.load(toml_file="pyproject.toml")
+
+
+config = anyio.run(load_config)
 
 APP_NAME = config("NAME")
 APP_VERSION = config("VERSION")
@@ -120,12 +140,18 @@ port = 5432
 ```
 
 ```py
+import anyio
 import fastenv
 
-config = fastenv.StarletteConfig(
-    toml_file="settings.toml",
-    toml_table="application",
-)
+
+async def load_config() -> fastenv.StarletteConfig:
+    return await fastenv.StarletteConfig.load(
+        toml_file="settings.toml",
+        toml_table="application",
+    )
+
+
+config = anyio.run(load_config)
 
 DEBUG = config("DEBUG", cast=bool)
 PORT = config("PORT", cast=int)
@@ -156,21 +182,61 @@ SECRET_KEY = config("SECRET_KEY", cast=Secret)
 
 With the default `starlette.config.environ` mapping, Starlette's protection against modifying environment variables after they have been read still applies. See [the Starlette comparison](comparisons.md#one-way-configuration-preference) for more detail.
 
-## File errors and application startup
+## File errors
 
 Missing, unreadable, or invalid input files are logged and raise an exception by default. To allow optional files, pass `raise_exceptions=False`. A failed source is skipped, while successfully loaded sources remain available:
 
 ```py
+import anyio
 import fastenv
 
-config = fastenv.StarletteConfig(
-    env_file=[".env", ".env.local"],
-    toml_file="pyproject.toml",
-    raise_exceptions=False,
-)
+
+async def load_config() -> fastenv.StarletteConfig:
+    return await fastenv.StarletteConfig.load(
+        env_file=[".env", ".env.local"],
+        toml_file="pyproject.toml",
+        raise_exceptions=False,
+    )
+
+
+config = anyio.run(load_config)
 DEBUG = config("DEBUG", cast=bool, default=False)
 ```
 
 This option only controls source loading errors. Missing required settings and invalid casts still raise exceptions when settings are read.
 
-Construction reads files synchronously and works inside an already running event loop. Create the config once during application startup to avoid reading files on each request. For asynchronous dotenv loading that sets environment variables, use [`fastenv.load_dotenv`](dotenv.md#loading-a-env-file).
+## Application startup
+
+Await `StarletteConfig.load()` once during application startup to avoid reading files on each request. File I/O uses AnyIO, and setting lookups on the returned instance are synchronous. For example, load settings in a Starlette lifespan function and expose them through request state:
+
+```py
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import TypedDict
+
+import fastenv
+from starlette.applications import Starlette
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+
+
+class LifespanState(TypedDict):
+    config: fastenv.StarletteConfig
+
+
+@asynccontextmanager
+async def lifespan(_: Starlette) -> AsyncIterator[LifespanState]:
+    config = await fastenv.StarletteConfig.load(".env")
+    yield {"config": config}
+
+
+async def homepage(request: Request) -> JSONResponse:
+    config = request.state.config
+    return JSONResponse({"debug": config("DEBUG", cast=bool, default=False)})
+
+
+app = Starlette(routes=[Route("/", homepage)], lifespan=lifespan)
+```
+
+The server manages the event loop and calls the lifespan function, so no `anyio.run()` is needed. The same approach works with a FastAPI lifespan function. To load dotenv files into the process environment, use [`fastenv.load_dotenv`](dotenv.md#loading-a-env-file).

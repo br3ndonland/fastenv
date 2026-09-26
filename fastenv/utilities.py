@@ -5,6 +5,8 @@ import shlex
 import tomllib
 from typing import TYPE_CHECKING, cast
 
+import anyio
+
 if TYPE_CHECKING:
     from os import PathLike
 
@@ -29,12 +31,14 @@ def parse_dotenv(*args: str) -> tuple[tuple[str, str], ...]:
     )
 
 
-def read_toml_file(
+async def read_toml_file(
     toml_file: PathLike[str] | str = "pyproject.toml", table: str = "project"
 ) -> dict[str, object]:
-    """Read a TOML table with uppercase keys and preserve native values."""
-    with open(toml_file, "rb") as source:
-        data: dict[str, object] = tomllib.load(source)
+    """Read a TOML table asynchronously, preserving native values and uppercase keys."""
+    path = anyio.Path(toml_file)
+    # Preserve newlines so the parser can reject invalid TOML control characters.
+    content = await path.read_bytes()
+    data: dict[str, object] = tomllib.loads(content.decode("utf-8"))
     values = data[table]
     if not isinstance(values, dict):
         raise TypeError(f"TOML entry {table!r} must be a table")
