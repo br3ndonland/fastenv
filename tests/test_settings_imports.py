@@ -39,23 +39,6 @@ sys.meta_path.insert(0, BlockOptionalDependencies())
     assert result.returncode == 0, result.stderr
 
 
-def test_starlette_integration_without_pydantic() -> None:
-    _check_imports(
-        ("pydantic", "pydantic_core"),
-        """
-        import fastenv
-        import fastenv.settings
-        from fastenv.settings.starlette_config import Config
-
-        assert fastenv.StarletteConfig is Config
-        assert Config(environ={"COUNT": "3"})("COUNT", cast=int) == 3
-        assert fastenv.settings.__version__ == fastenv.__version__
-        assert "pydantic" not in sys.modules
-        assert "pydantic_core" not in sys.modules
-        """,
-    )
-
-
 def test_core_import_without_either_settings_dependency() -> None:
     _check_imports(
         ("pydantic", "pydantic_core", "starlette"),
@@ -98,6 +81,23 @@ def test_pydantic_integration_without_starlette() -> None:
     )
 
 
+def test_starlette_integration_without_pydantic() -> None:
+    _check_imports(
+        ("pydantic", "pydantic_core"),
+        """
+        import fastenv
+        import fastenv.settings
+        from fastenv.settings.starlette_config import Config
+
+        assert fastenv.StarletteConfig is Config
+        assert Config(environ={"COUNT": "3"})("COUNT", cast=int) == 3
+        assert fastenv.settings.__version__ == fastenv.__version__
+        assert "pydantic" not in sys.modules
+        assert "pydantic_core" not in sys.modules
+        """,
+    )
+
+
 def test_settings_integrations_coexist() -> None:
     _check_imports(
         (),
@@ -109,18 +109,21 @@ def test_settings_integrations_coexist() -> None:
         class Settings(BaseSettings):
             count: int = 0
 
+        assert Settings(count="5").count == 5
         assert fastenv.StarletteConfig is Config
         assert Config(environ={"COUNT": "4"})("COUNT", cast=int) == 4
-        assert Settings(count="5").count == 5
         """,
     )
 
 
-def test_pydantic_settings_without_cloud_sdks() -> None:
+def test_pydantic_settings_without_unsupported_dependencies() -> None:
     _check_imports(
-        ("boto3", "botocore", "azure", "google"),
+        ("yaml", "boto3", "botocore", "azure", "google"),
         """
         import os
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
         from fastenv import settings
 
         for name in settings.__all__:
@@ -132,7 +135,15 @@ def test_pydantic_settings_without_cloud_sdks() -> None:
 
         os.environ["NO_SDK_TEST_COUNT"] = "7"
         assert Settings().count == 7
-        assert not {"boto3", "botocore", "azure", "google"}.intersection(sys.modules)
+        with TemporaryDirectory(dir=os.getenv("TMPDIR", "/tmp")) as directory:
+            json_file = Path(directory) / "settings.json"
+            json_file.write_text('{"count": 8}')
+            assert settings.JsonConfigSettingsSource(Settings, json_file)() == {"count": 8}
+            toml_file = Path(directory) / "settings.toml"
+            toml_file.write_text("count = 9")
+            assert settings.TomlConfigSettingsSource(Settings, toml_file)() == {"count": 9}
+
+        assert not {"yaml", "boto3", "botocore", "azure", "google"}.intersection(sys.modules)
         """,
     )
 

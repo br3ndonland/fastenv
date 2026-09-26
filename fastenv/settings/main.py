@@ -57,9 +57,6 @@ class SettingsConfigDict(ConfigDict, total=False):
     secrets_prefix: str
     json_file: PathType | None
     json_file_encoding: str | None
-    yaml_file: PathType | None
-    yaml_file_encoding: str | None
-    yaml_config_section: str | None
     toml_file: PathType | None
     toml_table_header: tuple[str, ...]
     pyproject_toml_depth: int
@@ -126,9 +123,6 @@ class BaseSettings(BaseModel):
         cli_shortcuts=None,
         json_file=None,
         json_file_encoding=None,
-        yaml_file=None,
-        yaml_file_encoding=None,
-        yaml_config_section=None,
         toml_file=None,
         secrets_dir=None,
         protected_namespaces=(
@@ -290,16 +284,11 @@ class BaseSettings(BaseModel):
             JsonConfigSettingsSource,
             PyprojectTomlConfigSettingsSource,
             TomlConfigSettingsSource,
-            YamlConfigSettingsSource,
         )
 
         for source_cls, keys in (
             (JsonConfigSettingsSource, ("json_file", "json_file_encoding")),
             (TomlConfigSettingsSource, ("toml_file", "toml_table_header")),
-            (
-                YamlConfigSettingsSource,
-                ("yaml_file", "yaml_file_encoding", "yaml_config_section"),
-            ),
             (
                 PyprojectTomlConfigSettingsSource,
                 ("pyproject_toml_depth", "pyproject_toml_table_header"),

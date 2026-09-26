@@ -1,7 +1,7 @@
 """Compare original behavior probes with the released public API.
 
 Run from the repository root in a separate virtual environment containing
-fastenv[settings,yaml] and pydantic-settings==2.15.0:
+fastenv[settings] and pydantic-settings==2.15.0:
     python -m scripts.check_settings_compatibility
 
 See docs/settings.md for installation instructions.
@@ -212,6 +212,7 @@ def main() -> None:
         "AWSSecretsManagerSettingsSource",
         "AzureKeyVaultSettingsSource",
         "GoogleSecretManagerSettingsSource",
+        "YamlConfigSettingsSource",
     }
     missing = set(reference.__all__) - set(replacement.__all__)
     assert missing == intentionally_omitted, (

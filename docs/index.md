@@ -97,6 +97,6 @@ async def get_settings(request: Request) -> dict[str, str]:
 
 ## Documentation
 
-For typed application settings, use [`fastenv.StarletteConfig`](settings.md#starlette-integration) with `fastenv[starlette]`, or [`fastenv.settings.BaseSettings`](settings.md#pydantic-integration) with `fastenv[settings]`. Both integrations combine settings sources using fastenv dotenv parsing without depending on python-dotenv.
+For typed application settings, use [`fastenv.settings.BaseSettings`](settings.md#pydantic-integration) with `fastenv[settings]`, or [`fastenv.StarletteConfig`](settings.md#starlette-integration) with `fastenv[starlette]`. Both integrations combine settings sources using fastenv dotenv parsing without depending on python-dotenv.
 
 Documentation is built with [Zensical](https://zensical.org/), deployed to [Vercel](https://vercel.com/) using the [Vercel project configuration](https://vercel.com/docs/project-configuration) in `vercel.json`, and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).

@@ -42,10 +42,6 @@ settings = [
 starlette = [
   "starlette>=0.37.2,<2",
 ]
-yaml = [
-  "pydantic>=2.11,<3",
-  "PyYAML>=6,<7",
-]
 
 [dependency-groups]
 checks = [
@@ -61,7 +57,6 @@ tests = [
   "freezegun>=1,<2",
   "pytest>=9,<10",
   "pytest-mock>=3,<4",
-  "PyYAML>=6,<7",
 ]
 
 [build-system]

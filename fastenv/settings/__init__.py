@@ -1,4 +1,4 @@
-"""Optional Starlette and Pydantic integrations for application settings."""
+"""Optional Pydantic and Starlette integrations for application settings."""
 
 from __future__ import annotations
 
@@ -29,7 +29,6 @@ if TYPE_CHECKING:
         NestedSecretsSettingsSource,
         PyprojectTomlConfigSettingsSource,
         TomlConfigSettingsSource,
-        YamlConfigSettingsSource,
     )
     from .sources import (
         DotEnvSettingsSource,
@@ -65,7 +64,6 @@ _EXPORT_MODULES: dict[str, str] = {
     "NestedSecretsSettingsSource": ".providers",
     "PyprojectTomlConfigSettingsSource": ".providers",
     "TomlConfigSettingsSource": ".providers",
-    "YamlConfigSettingsSource": ".providers",
     "DotEnvSettingsSource": ".sources",
     "EnvSettingsSource": ".sources",
     "ForceDecode": ".sources",
@@ -117,7 +115,6 @@ __all__ = (
     "SettingsConfigDict",
     "SettingsError",
     "TomlConfigSettingsSource",
-    "YamlConfigSettingsSource",
     "__version__",
     "get_subcommand",
 )
