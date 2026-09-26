@@ -1,8 +1,3 @@
-"""Settings sources implemented with Pydantic's public model APIs and fastenv.
-
-Each source returns validation inputs. Sources never modify the process environment.
-"""
-
 from __future__ import annotations
 
 # Source hooks intentionally accept arbitrary Pydantic field values.

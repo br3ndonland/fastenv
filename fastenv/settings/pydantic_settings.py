@@ -1,8 +1,3 @@
-"""Pydantic settings models composed from independent value sources.
-
-Written from the public API contract, without using pydantic-settings code.
-"""
-
 # Settings source values intentionally remain unvalidated until BaseModel.__init__.
 # pyright: reportAny=false, reportExplicitAny=false
 

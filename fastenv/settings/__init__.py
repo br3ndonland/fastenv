@@ -1,5 +1,3 @@
-"""Optional Pydantic and Starlette integrations for application settings."""
-
 from __future__ import annotations
 
 from importlib import import_module

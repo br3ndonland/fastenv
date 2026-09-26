@@ -1,5 +1,3 @@
-"""Exercise asynchronous configuration providers without blocking the event loop."""
-
 # Settings dictionaries and patched filesystem methods are dynamic boundaries.
 # pyright: reportAny=false, reportExplicitAny=false
 
