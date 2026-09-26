@@ -118,7 +118,7 @@ def test_settings_integrations_coexist() -> None:
 
 def test_pydantic_settings_without_unsupported_dependencies() -> None:
     _check_imports(
-        ("yaml", "boto3", "botocore", "azure", "google"),
+        ("pydantic_settings", "dotenv", "yaml", "boto3", "botocore", "azure", "google"),
         """
         import os
         from pathlib import Path
@@ -143,7 +143,9 @@ def test_pydantic_settings_without_unsupported_dependencies() -> None:
             toml_file.write_text("count = 9")
             assert settings.TomlConfigSettingsSource(Settings, toml_file)() == {"count": 9}
 
-        assert not {"yaml", "boto3", "botocore", "azure", "google"}.intersection(sys.modules)
+        assert not {
+            "pydantic_settings", "dotenv", "yaml", "boto3", "botocore", "azure", "google"
+        }.intersection(sys.modules)
         """,
     )
 

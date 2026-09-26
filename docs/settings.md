@@ -161,17 +161,9 @@ settings = Settings(**overrides)
 
 The compatibility target is the released **pydantic-settings 2.15.0** public API for environment variables, local files, secret directories, and custom sources, imported through `fastenv.settings`. CLI APIs, YAML, cloud providers, and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, and exact error text are not compatibility contracts. The fastenv package version remains available as `fastenv.settings.__version__`.
 
-The implementation was written from public documentation, signatures, and independently authored behavioral probes. No pydantic-settings implementation or tests were copied. The reference package is used only for development. From the repository root, install the local settings integration and pinned reference package in a separate virtual environment, then run the compatibility checks:
+The implementation was written from public documentation, signatures, and independently authored behavioral comparisons during development. No pydantic-settings implementation or tests were copied.
 
-```sh
-python3 -m venv .venv-compat
-. .venv-compat/bin/activate
-python -m pip install -e '.[settings]' 'pydantic-settings==2.15.0'
-python -m scripts.check_settings_compatibility
-deactivate
-```
-
-This checks supported public exports, verifies the intentional CLI, YAML, and cloud API omissions, and compares settings behavior across both implementations. The regular test suite covers the integration without installing pydantic-settings or python-dotenv. These checks exercise a defined set of behaviors and are not proof of exhaustive equivalence for all Pydantic types and settings configurations.
+Ongoing regression checks live in the regular test suite and run through the project's [pytest workflow](contributing.md#testing-with-pytest), without installing pydantic-settings or python-dotenv. They cover settings validation, source priority, aliases, nested values, file loading, and optional dependency isolation. These tests exercise a defined set of behaviors and are not proof of exhaustive equivalence for all Pydantic types and settings configurations.
 
 Background: [fastenv discussion 21](https://github.com/br3ndonland/fastenv/discussions/21), [pydantic-settings](https://github.com/pydantic/pydantic-settings), and the [Pydantic settings documentation](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/).
 
