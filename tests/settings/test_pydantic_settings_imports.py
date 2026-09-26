@@ -26,7 +26,7 @@ sys.meta_path.insert(0, BlockOptionalDependencies())
 """ + textwrap.dedent(assertions)
     result = subprocess.run(
         [sys.executable, "-c", script],
-        cwd=Path(__file__).resolve().parents[1],
+        cwd=Path(__file__).resolve().parents[2],
         capture_output=True,
         text=True,
         timeout=20,
