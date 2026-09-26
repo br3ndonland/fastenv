@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import importlib
 import zipfile
 from pathlib import Path
 from typing import Any, ClassVar, cast
@@ -19,7 +18,6 @@ from fastenv.settings.providers import (
     NestedSecretsSettingsSource,
     PyprojectTomlConfigSettingsSource,
     TomlConfigSettingsSource,
-    YamlConfigSettingsSource,
 )
 from fastenv.settings.sources import (
     PydanticBaseSettingsSource,
@@ -39,7 +37,7 @@ class ProviderSettings(BaseSettings):
 
 
 @pytest.mark.parametrize("deep", [False, True])
-@pytest.mark.parametrize("format", ["json", "toml", "yaml"])
+@pytest.mark.parametrize("format", ["json", "toml"])
 def test_config_files_merge_in_order(tmp_path: Path, format: str, deep: bool) -> None:
     contents = {
         "json": (
@@ -47,15 +45,10 @@ def test_config_files_merge_in_order(tmp_path: Path, format: str, deep: bool) ->
             '{"service":{"port":9001}}',
         ),
         "toml": ('[service]\nhostname="first"\nport=9000', "[service]\nport=9001"),
-        "yaml": (
-            "service:\n  hostname: first\n  port: 9000\n",
-            "service:\n  port: 9001\n",
-        ),
     }
     source_class = {
         "json": JsonConfigSettingsSource,
         "toml": TomlConfigSettingsSource,
-        "yaml": YamlConfigSettingsSource,
     }[format]
     files = [tmp_path / f"base.{format}", tmp_path / f"override.{format}"]
     for path, content in zip(files, contents[format]):
@@ -70,19 +63,17 @@ def test_config_files_merge_in_order(tmp_path: Path, format: str, deep: bool) ->
     assert source() == expected
 
 
-@pytest.mark.parametrize("format", ["json", "toml", "yaml"])
+@pytest.mark.parametrize("format", ["json", "toml"])
 def test_config_file_model_config_and_disable(tmp_path: Path, format: str) -> None:
     source_class = {
         "json": JsonConfigSettingsSource,
         "toml": TomlConfigSettingsSource,
-        "yaml": YamlConfigSettingsSource,
     }[format]
     path = tmp_path / f"config.{format}"
     _ = path.write_text(
         {
             "json": '{"token":"configured"}',
             "toml": 'token="configured"',
-            "yaml": "token: configured",
         }[format]
     )
 
@@ -90,7 +81,6 @@ def test_config_file_model_config_and_disable(tmp_path: Path, format: str) -> No
         model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
             json_file=path if format == "json" else None,
             toml_file=path if format == "toml" else None,
-            yaml_file=path if format == "yaml" else None,
         )
 
     assert source_class(Configured)() == {"token": "configured"}
@@ -130,15 +120,11 @@ def test_json_encoding_alias_and_settings_integration(tmp_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("format,content", [("json", "5"), ("yaml", "- item")])
-def test_config_rejects_non_mapping(tmp_path: Path, format: str, content: str) -> None:
+def test_json_config_rejects_non_mapping(tmp_path: Path) -> None:
     path = tmp_path / "config"
-    _ = path.write_text(content)
-    source_class = (
-        JsonConfigSettingsSource if format == "json" else YamlConfigSettingsSource
-    )
+    _ = path.write_text("5")
     with pytest.raises(SettingsError, match="mapping"):
-        _ = source_class(ProviderSettings, path)
+        _ = JsonConfigSettingsSource(ProviderSettings, path)
 
 
 def test_file_resources_without_filesystem_paths(tmp_path: Path) -> None:
@@ -152,28 +138,19 @@ def test_file_resources_without_filesystem_paths(tmp_path: Path) -> None:
         assert source() == {"token": "resource"}
 
 
-def test_toml_and_yaml_table_selection(tmp_path: Path) -> None:
+def test_toml_table_selection(tmp_path: Path) -> None:
     toml = tmp_path / "config.toml"
     _ = toml.write_text('[app.runtime]\ntoken="selected"')
-    yaml = tmp_path / "config.yaml"
-    _ = yaml.write_text("runtime:\n  token: selected\n")
 
     class Configured(ProviderSettings):
         model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
             toml_file=toml,
             toml_table_header=("app", "runtime"),
-            yaml_file=yaml,
-            yaml_config_section="runtime",
         )
 
     assert TomlConfigSettingsSource(Configured)() == {"token": "selected"}
-    assert YamlConfigSettingsSource(Configured)() == {"token": "selected"}
     with pytest.raises(KeyError):
         _ = TomlConfigSettingsSource(Configured, toml_table_header=("missing",))
-    with pytest.raises(KeyError):
-        _ = YamlConfigSettingsSource(Configured, yaml_config_section="missing")
-    _ = yaml.write_text("")
-    assert YamlConfigSettingsSource(ProviderSettings, yaml)() == {}
 
 
 def test_pyproject_search_depth_explicit_file_and_root(
@@ -298,31 +275,12 @@ def test_nested_secret_missing_and_size_limits(tmp_path: Path) -> None:
         _ = NestedSecretsSettingsSource(ProviderSettings, secrets_dir=secret)
 
 
-def test_optional_dependency_has_actionable_error(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    def unavailable(name: str) -> None:
-        raise ImportError(name)
-
-    monkeypatch.setattr(importlib, "import_module", unavailable)
-    path = tmp_path / "config.yaml"
-    _ = path.write_text("token: value")
-    with pytest.raises(ImportError, match=r"fastenv\[yaml\]"):
-        _ = YamlConfigSettingsSource(ProviderSettings, path)
-
-
 def test_file_section_must_be_mapping(tmp_path: Path) -> None:
     path = tmp_path / "invalid.toml"
     _ = path.write_text('section="scalar"')
     with pytest.raises(SettingsError, match="mapping"):
         _ = TomlConfigSettingsSource(
             ProviderSettings, path, toml_table_header=("section", "nested")
-        )
-    yaml = tmp_path / "invalid.yaml"
-    _ = yaml.write_text("- list-item")
-    with pytest.raises(TypeError, match="mapping"):
-        _ = YamlConfigSettingsSource(
-            ProviderSettings, yaml, yaml_config_section="section"
         )
 
 
@@ -353,23 +311,3 @@ def test_nested_secret_size_limit_handles_file_growth(
         _ = NestedSecretsSettingsSource(
             ProviderSettings, secrets_dir=tmp_path, secrets_dir_max_size=8
         )
-
-
-def test_yaml_nested_sections_and_literal_dot_precedence(tmp_path: Path) -> None:
-    yaml = tmp_path / "nested.yaml"
-    _ = yaml.write_text("outer:\n  inner:\n    token: nested\n")
-    assert YamlConfigSettingsSource(
-        ProviderSettings, yaml, yaml_config_section="outer.inner"
-    )() == {"token": "nested"}
-    with pytest.raises(ValueError, match="empty"):
-        _ = YamlConfigSettingsSource(ProviderSettings, yaml, yaml_config_section="")
-    with pytest.raises(TypeError, match="mapping"):
-        _ = YamlConfigSettingsSource(
-            ProviderSettings, yaml, yaml_config_section="outer.inner.token"
-        )
-    _ = yaml.write_text(
-        "outer.inner:\n  token: literal\nouter:\n  inner:\n    token: nested\n"
-    )
-    assert YamlConfigSettingsSource(
-        ProviderSettings, yaml, yaml_config_section="outer.inner"
-    )() == {"token": "literal"}

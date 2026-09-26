@@ -122,18 +122,17 @@ class Settings(BaseSettings):
         )
 ```
 
-File sources are opt-in through this hook. Setting `toml_file`, `json_file`, or `yaml_file` alone does not insert another source and emits a warning.
+File sources are opt-in through this hook. Setting `toml_file` or `json_file` alone does not insert another source and emits a warning.
 
 | Source | Configuration |
 | --- | --- |
 | `JsonConfigSettingsSource` | `json_file`, `json_file_encoding` |
 | `TomlConfigSettingsSource` | `toml_file`, `toml_table_header` |
-| `YamlConfigSettingsSource` | `yaml_file`, `yaml_file_encoding`, `yaml_config_section` |
 | `PyprojectTomlConfigSettingsSource` | `pyproject_toml_depth`, `pyproject_toml_table_header` |
 | `SecretsSettingsSource` | `secrets_dir`, environment prefix and case settings |
 | `NestedSecretsSettingsSource` | Secret directories, nested separators or subdirectories, prefix, case, size and missing-directory policies |
 
-Install `fastenv[yaml]` for YAML. TOML uses Python's standard library. The default pyproject section is `[tool.pydantic-settings]`, preserving the migration contract. Set `pyproject_toml_table_header=("tool", "fastenv")` to use `[tool.fastenv]` instead.
+JSON and TOML use Python's standard library. YAML is [intentionally unsupported](comparisons.md#differences-from-pydantic-settings). The default pyproject section is `[tool.pydantic-settings]`, preserving the migration contract. Set `pyproject_toml_table_header=("tool", "fastenv")` to use `[tool.fastenv]` instead.
 
 For dotenv files stored in S3-compatible object storage, use fastenv's [asynchronous object storage client](cloud-object-storage.md#downloading-files) to download a file before loading its path with `Settings(_env_file=...)`. The client is available through `fastenv[cloud]` and does not depend on Boto3. Built-in cloud secret services are outside this integration's scope. See the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings).
 
@@ -162,19 +161,19 @@ Public CLI exports include `CLI_SUPPRESS`, `CliApp`, `CliSettingsSource`, `CliSu
 
 ### Compatibility and verification
 
-The compatibility target is the released **pydantic-settings 2.15.0** public API for environment, local file, custom source, and CLI settings, imported through `fastenv.settings`. Cloud providers and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, exact error text, and exact CLI help formatting are not compatibility contracts. The fastenv package version remains available as `fastenv.settings.__version__`.
+The compatibility target is the released **pydantic-settings 2.15.0** public API for environment, local file, custom source, and CLI settings, imported through `fastenv.settings`. YAML, cloud providers, and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, exact error text, and exact CLI help formatting are not compatibility contracts. The fastenv package version remains available as `fastenv.settings.__version__`.
 
 The implementation was written from public documentation, signatures, and independently authored behavioral probes. No pydantic-settings implementation or tests were copied. The reference package is used only for development. From the repository root, install the local settings integration and pinned reference package in a separate virtual environment, then run the compatibility checks:
 
 ```sh
 python3 -m venv .venv-compat
 . .venv-compat/bin/activate
-python -m pip install -e '.[settings,yaml]' 'pydantic-settings==2.15.0'
+python -m pip install -e '.[settings]' 'pydantic-settings==2.15.0'
 python -m scripts.check_settings_compatibility
 deactivate
 ```
 
-This checks supported public exports, verifies the intentional cloud API omissions, and compares settings behavior across both implementations. The regular test suite covers the integration without installing pydantic-settings or python-dotenv. These checks exercise a defined set of behaviors and are not proof of exhaustive equivalence for all Pydantic types or third-party parser implementations.
+This checks supported public exports, verifies the intentional YAML and cloud API omissions, and compares settings behavior across both implementations. The regular test suite covers the integration without installing pydantic-settings or python-dotenv. These checks exercise a defined set of behaviors and are not proof of exhaustive equivalence for all Pydantic types or third-party parser implementations.
 
 Background: [fastenv discussion 21](https://github.com/br3ndonland/fastenv/discussions/21), [pydantic-settings](https://github.com/pydantic/pydantic-settings), and the [Pydantic settings documentation](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/).
 

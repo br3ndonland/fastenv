@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import importlib
 import json
 import os
 import tomllib
@@ -39,15 +38,6 @@ def _merge_data(target: dict[str, Any], incoming: dict[str, Any]) -> None:
             _merge_data(target[key], cast(dict[str, Any], value))
         else:
             target[key] = deepcopy(cast(Any, value))
-
-
-def _optional_module(name: str, extra: str) -> Any:
-    try:
-        return importlib.import_module(name)
-    except ImportError as exc:
-        raise ImportError(
-            f"Install fastenv[{extra}] to use this settings source."
-        ) from exc
 
 
 class _ConfigFileSettingsSource(PydanticBaseSettingsSource, ABC):
@@ -135,57 +125,6 @@ class TomlConfigSettingsSource(_ConfigFileSettingsSource):
                 raise SettingsError("TOML table header must select a mapping")
             values = cast(dict[str, Any], values)[component]
         return values
-
-
-class YamlConfigSettingsSource(_ConfigFileSettingsSource):
-    """Read YAML with PyYAML's safe loader, optionally selecting a section."""
-
-    def __init__(
-        self,
-        settings_cls: type[BaseModel],
-        yaml_file: ConfigPaths = _CONFIG_DEFAULT,
-        yaml_file_encoding: str | None = None,
-        yaml_config_section: str | None = None,
-        deep_merge: bool = False,
-        _init_state: Any = None,
-    ) -> None:
-        super().__init__(settings_cls)
-        self.yaml_file: ConfigPaths = (
-            self.config.get("yaml_file") if yaml_file == _CONFIG_DEFAULT else yaml_file
-        )
-        self.yaml_file_encoding: str | None = yaml_file_encoding or self.config.get(
-            "yaml_file_encoding"
-        )
-        self.yaml_config_section: str | None = (
-            yaml_config_section
-            if yaml_config_section is not None
-            else self.config.get("yaml_config_section")
-        )
-        self._load_files(self.yaml_file, deep_merge=deep_merge)
-
-    def _read_file(self, path: Path | Traversable) -> Any:
-        yaml = _optional_module("yaml", "yaml")
-        values: Any = (
-            yaml.safe_load(path.read_text(encoding=self.yaml_file_encoding)) or {}
-        )
-        if self.yaml_config_section is not None:
-            remaining = self.yaml_config_section
-            while True:
-                if not remaining:
-                    raise ValueError("yaml_config_section cannot be empty")
-                if not isinstance(values, dict):
-                    raise TypeError("YAML section path must traverse a mapping")
-                section = cast(dict[str, Any], values)
-                if remaining in section:
-                    values = section[remaining]
-                    break
-                component, separator, remaining = remaining.partition(".")
-                if not separator or component not in section:
-                    raise KeyError(self.yaml_config_section)
-                values = section[component]
-            if not isinstance(values, dict):
-                raise TypeError("YAML section must contain a mapping")
-        return cast(Any, values)
 
 
 class PyprojectTomlConfigSettingsSource(TomlConfigSettingsSource):

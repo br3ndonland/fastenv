@@ -35,12 +35,6 @@ def probe_providers(api: Any, directory: Path) -> dict[str, Any]:
             'token="base"\n[endpoint]\nhostname="host"\nport=1',
             "[endpoint]\nport=2",
         ),
-        (
-            "yaml",
-            api.YamlConfigSettingsSource,
-            "token: base\nendpoint:\n  hostname: host\n  port: 1\n",
-            "endpoint:\n  port: 2\n",
-        ),
     ):
         first, second = directory / f"base.{suffix}", directory / f"override.{suffix}"
         _ = first.write_text(base)
@@ -55,21 +49,6 @@ def probe_providers(api: Any, directory: Path) -> dict[str, Any]:
     _ = toml.write_text('[tool.runtime]\ntoken="table"')
     output["provider-toml-table"] = api.TomlConfigSettingsSource(
         Config, toml, toml_table_header=("tool", "runtime")
-    )()
-    yaml = directory / "section.yaml"
-    _ = yaml.write_text("runtime:\n  token: section\n")
-    output["provider-yaml-section"] = api.YamlConfigSettingsSource(
-        Config, yaml, yaml_config_section="runtime"
-    )()
-    _ = yaml.write_text("app:\n  runtime:\n    token: nested-section\n")
-    output["provider-yaml-nested-section"] = api.YamlConfigSettingsSource(
-        Config, yaml, yaml_config_section="app.runtime"
-    )()
-    _ = yaml.write_text(
-        "app.runtime:\n  token: literal-section\napp:\n  runtime:\n    token: nested-section\n"
-    )
-    output["provider-yaml-literal-section"] = api.YamlConfigSettingsSource(
-        Config, yaml, yaml_config_section="app.runtime"
     )()
     pyproject = directory / "example-pyproject.toml"
     _ = pyproject.write_text('[tool.pydantic-settings]\ntoken="pyproject"')
