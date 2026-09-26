@@ -4,6 +4,7 @@ import datetime
 import os
 import subprocess
 import sys
+import threading
 import tomllib
 from pathlib import Path
 from typing import assert_type, cast
@@ -39,8 +40,9 @@ def test_starlette_config_without_files(
     assert isolated_config("FASTENV_CONFIG_TEST_VALUE", default="default") == "default"
 
 
+@pytest.mark.anyio
 @pytest.mark.parametrize("path_type", ("str", "pathlib", "anyio"))
-def test_starlette_config_dotenv_path(tmp_path: Path, path_type: str) -> None:
+async def test_starlette_config_dotenv_path(tmp_path: Path, path_type: str) -> None:
     env_file = tmp_path / ".env"
     _ = env_file.write_text("FASTENV_CONFIG_TEST_VALUE=dotenv\n")
     path: str | os.PathLike[str] = str(env_file)
@@ -48,11 +50,12 @@ def test_starlette_config_dotenv_path(tmp_path: Path, path_type: str) -> None:
         path = env_file
     elif path_type == "anyio":
         path = anyio.Path(env_file)
-    config = Config(path, environ={})
+    config = await Config.load(path, environ={})
     assert config("FASTENV_CONFIG_TEST_VALUE") == "dotenv"
 
 
-def test_starlette_config_dotenv_parser_and_isolation(tmp_path: Path) -> None:
+@pytest.mark.anyio
+async def test_starlette_config_dotenv_parser_and_isolation(tmp_path: Path) -> None:
     env_file = tmp_path / ".env"
     _ = env_file.write_text(
         """# Full-line comment
@@ -68,7 +71,7 @@ existing=file
     )
     environ = {"EXISTING": "environment"}
     process_environ = dict(os.environ)
-    config = Config(env_file, environ=environ)
+    config = await Config.load(env_file, environ=environ)
     assert config("LOWER_KEY") == "last value"
     assert config("QUOTED_HASH") == "value#not-comment"
     assert config("EQUALS") == "left=right"
@@ -81,8 +84,11 @@ existing=file
     assert dict(os.environ) == process_environ
 
 
+@pytest.mark.anyio
 @pytest.mark.parametrize("use_tuple", (False, True))
-def test_starlette_config_source_precedence(tmp_path: Path, use_tuple: bool) -> None:
+async def test_starlette_config_source_precedence(
+    tmp_path: Path, use_tuple: bool
+) -> None:
     toml_file = tmp_path / "settings.toml"
     _ = toml_file.write_text(
         """[project]
@@ -98,7 +104,7 @@ only_toml = "toml"
     _ = second_file.write_text("SHARED=second FILE_VALUE=second\n")
     files = (first_file, second_file) if use_tuple else [first_file, second_file]
     environ = {"SHARED": "environment"}
-    config = Config(files, environ=environ, toml_file=toml_file)
+    config = await Config.load(files, environ=environ, toml_file=toml_file)
     assert config("SHARED", default="default") == "environment"
     assert config("FILE_VALUE", default="default") == "second"
     assert config("EARLIER", default="default") == "first"
@@ -107,12 +113,14 @@ only_toml = "toml"
     assert environ == {"SHARED": "environment"}
 
 
-def test_starlette_config_empty_file_sequence() -> None:
-    config = Config([], environ={})
+@pytest.mark.anyio
+async def test_starlette_config_empty_file_sequence() -> None:
+    config = await Config.load([], environ={})
     assert config("MISSING", default="default") == "default"
 
 
-def test_starlette_config_toml_native_values(tmp_path: Path) -> None:
+@pytest.mark.anyio
+async def test_starlette_config_toml_native_values(tmp_path: Path) -> None:
     toml_file = tmp_path / "settings.toml"
     _ = toml_file.write_text(
         """[settings]
@@ -127,7 +135,9 @@ MixedCase = "retained"
 """
     )
     process_environ = dict(os.environ)
-    config = Config(environ={}, toml_file=anyio.Path(toml_file), toml_table="settings")
+    config = await Config.load(
+        environ={}, toml_file=anyio.Path(toml_file), toml_table="settings"
+    )
     assert assert_type(config.file_values, dict[str, object])["COUNT"] == 3
     assert config("NAME") == "example"
     assert assert_type(config("COUNT"), object) == 3
@@ -140,19 +150,23 @@ MixedCase = "retained"
     assert dict(os.environ) == process_environ
 
 
-def test_starlette_config_positional_arguments_and_encoding(tmp_path: Path) -> None:
+@pytest.mark.anyio
+async def test_starlette_config_positional_arguments_and_encoding(
+    tmp_path: Path,
+) -> None:
     env_file = tmp_path / ".env"
     _ = env_file.write_text("APP_MESSAGE=ol\xe1\n", encoding="latin-1")
-    config = Config(env_file, {}, "APP_", "latin-1")
+    config = await Config.load(env_file, {}, "APP_", "latin-1")
     assert config("MESSAGE") == "ol\xe1"
 
 
-def test_starlette_config_prefix_applies_to_every_source(tmp_path: Path) -> None:
+@pytest.mark.anyio
+async def test_starlette_config_prefix_applies_to_every_source(tmp_path: Path) -> None:
     env_file = tmp_path / ".env"
     _ = env_file.write_text("APP_FILE=file\nAPP_ENV=file\n")
     toml_file = tmp_path / "settings.toml"
     _ = toml_file.write_text('[project]\napp_toml = "toml"\n')
-    config = Config(
+    config = await Config.load(
         env_file,
         environ={"APP_ENV": "environment"},
         env_prefix="APP_",
@@ -187,11 +201,12 @@ def test_starlette_config_casting_and_defaults() -> None:
         _ = config("COUNT", cast=bool)
 
 
-def test_starlette_config_environ_read_protection(tmp_path: Path) -> None:
+@pytest.mark.anyio
+async def test_starlette_config_environ_read_protection(tmp_path: Path) -> None:
     env_file = tmp_path / ".env"
     _ = env_file.write_text("FROM_FILE=file\n")
     environ = Environ({"FROM_ENV": "environment"})
-    config = Config(env_file, environ=environ)
+    config = await Config.load(env_file, environ=environ)
     assert config("FROM_ENV") == "environment"
     assert config("FROM_FILE") == "file"
     with pytest.raises(EnvironError):
@@ -204,9 +219,10 @@ def test_starlette_config_environ_read_protection(tmp_path: Path) -> None:
     assert environ["UNREAD"] == "allowed"
 
 
+@pytest.mark.anyio
 @pytest.mark.parametrize("suppress", (False, True))
 @pytest.mark.parametrize("failure", ("missing", "directory", "parse", "decode"))
-def test_starlette_config_dotenv_failure(
+async def test_starlette_config_dotenv_failure(
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
     suppress: bool,
@@ -224,16 +240,17 @@ def test_starlette_config_dotenv_failure(
         _ = env_file.write_bytes(b"BROKEN=\xff\n")
         expected_exception = UnicodeDecodeError
     if suppress:
-        config = Config(env_file, environ={}, raise_exceptions=False)
+        config = await Config.load(env_file, environ={}, raise_exceptions=False)
         assert config("PARTIAL", default="absent") == "absent"
     else:
         with pytest.raises(expected_exception):
-            _ = Config(env_file, environ={})
+            _ = await Config.load(env_file, environ={})
     assert str(env_file) in caplog.text
     assert any(record.levelname == "ERROR" for record in caplog.records)
 
 
-def test_starlette_config_skips_only_failed_dotenv_source(
+@pytest.mark.anyio
+async def test_starlette_config_skips_only_failed_dotenv_source(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     first_file = tmp_path / ".env.first"
@@ -244,7 +261,7 @@ def test_starlette_config_skips_only_failed_dotenv_source(
     )
     last_file = tmp_path / ".env.last"
     _ = last_file.write_text("LAST=last\n")
-    config = Config(
+    config = await Config.load(
         [first_file, broken_file, last_file], environ={}, raise_exceptions=False
     )
     assert config("FIRST") == "first"
@@ -254,9 +271,10 @@ def test_starlette_config_skips_only_failed_dotenv_source(
     assert str(broken_file) in caplog.text
 
 
+@pytest.mark.anyio
 @pytest.mark.parametrize("suppress", (False, True))
 @pytest.mark.parametrize("failure", ("missing", "parse", "missing_table", "not_table"))
-def test_starlette_config_toml_failure(
+async def test_starlette_config_toml_failure(
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
     suppress: bool,
@@ -276,26 +294,26 @@ def test_starlette_config_toml_failure(
     env_file = tmp_path / ".env"
     _ = env_file.write_text("FROM_FILE=file\n")
     if suppress:
-        config = Config(
+        config = await Config.load(
             env_file, environ={}, toml_file=toml_file, raise_exceptions=False
         )
         assert config("FROM_FILE") == "file"
     else:
         with pytest.raises(expected_exception):
-            _ = Config(env_file, environ={}, toml_file=toml_file)
+            _ = await Config.load(env_file, environ={}, toml_file=toml_file)
     assert str(toml_file) in caplog.text
     assert any(record.levelname == "ERROR" for record in caplog.records)
 
 
 @pytest.mark.anyio
-async def test_starlette_config_constructed_in_running_event_loop(
+async def test_starlette_config_loaded_in_running_event_loop(
     tmp_path: Path,
 ) -> None:
     env_file = tmp_path / ".env"
     _ = env_file.write_text("FROM_FILE=file\n")
     toml_file = tmp_path / "settings.toml"
     _ = toml_file.write_text('[project]\nname = "example"\n')
-    config = Config(env_file, environ={}, toml_file=toml_file)
+    config = await Config.load(env_file, environ={}, toml_file=toml_file)
     assert config("FROM_FILE") == "file"
     assert config("NAME") == "example"
 
@@ -330,9 +348,10 @@ assert not hasattr(fastenv, "StarletteConfig")
     assert result.returncode == 0, result.stderr
 
 
-def test_starlette_config_repository_project_metadata() -> None:
+@pytest.mark.anyio
+async def test_starlette_config_repository_project_metadata() -> None:
     toml_file = Path(__file__).resolve().parents[2] / "pyproject.toml"
-    config = Config(environ={}, toml_file=toml_file)
+    config = await Config.load(environ={}, toml_file=toml_file)
     assert config("NAME") == "fastenv"
     assert config("DESCRIPTION") == (
         "Unified environment variable and settings management for FastAPI and beyond."
@@ -344,7 +363,8 @@ def test_starlette_config_repository_project_metadata() -> None:
     }
 
 
-def test_starlette_config_falsey_toml_values(
+@pytest.mark.anyio
+async def test_starlette_config_falsey_toml_values(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     toml_file = tmp_path / "pyproject.toml"
@@ -365,19 +385,20 @@ empty_string = ""
         "EMPTY_DICT": {},
         "EMPTY_STRING": "",
     }
-    assert read_toml_file() == expected
-    config = Config(environ={}, toml_file=toml_file)
+    assert await read_toml_file() == expected
+    config = await Config.load(environ={}, toml_file=toml_file)
     for key, value in expected.items():
         result = config(key, default="fallback")
         assert result == value
         assert type(result) is type(value)
 
 
-def test_starlette_config_reads_live_environ_mapping(tmp_path: Path) -> None:
+@pytest.mark.anyio
+async def test_starlette_config_reads_live_environ_mapping(tmp_path: Path) -> None:
     env_file = tmp_path / ".env"
     _ = env_file.write_text("VALUE=file\n")
     environ = {"VALUE": "initial"}
-    config = Config(env_file, environ=environ)
+    config = await Config.load(env_file, environ=environ)
     assert config("VALUE") == "initial"
     environ["VALUE"] = "updated"
     assert config("VALUE") == "updated"
@@ -387,7 +408,10 @@ def test_starlette_config_reads_live_environ_mapping(tmp_path: Path) -> None:
     assert config("VALUE") == "file"
 
 
-def test_starlette_config_strict_failure_preserves_environ(tmp_path: Path) -> None:
+@pytest.mark.anyio
+async def test_starlette_config_strict_failure_preserves_environ(
+    tmp_path: Path,
+) -> None:
     first_file = tmp_path / ".env.first"
     _ = first_file.write_text("FASTENV_CONFIG_TEST_VALUE=first\n")
     broken_file = tmp_path / ".env.broken"
@@ -398,6 +422,92 @@ def test_starlette_config_strict_failure_preserves_environ(tmp_path: Path) -> No
     supplied_environ = dict(environ)
     process_environ = dict(os.environ)
     with pytest.raises(ValueError, match="No closing quotation"):
-        _ = Config([first_file, broken_file], environ=environ)
+        _ = await Config.load([first_file, broken_file], environ=environ)
     assert environ == supplied_environ
     assert dict(os.environ) == process_environ
+
+
+@pytest.mark.anyio
+async def test_starlette_config_loading_keeps_event_loop_responsive(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env_file = tmp_path / ".env"
+    _ = env_file.write_text("VALUE=file\n")
+    read_started = threading.Event()
+    allow_read = threading.Event()
+    read_text = Path.read_text
+
+    def delayed_read(
+        path: Path,
+        encoding: str | None = None,
+        errors: str | None = None,
+        newline: str | None = None,
+    ) -> str:
+        assert newline is None
+        read_started.set()
+        assert allow_read.wait(timeout=5), "The file read blocked the event loop"
+        return read_text(path, encoding=encoding, errors=errors)
+
+    async def release_from_event_loop() -> None:
+        assert await anyio.to_thread.run_sync(read_started.wait, 5)
+        allow_read.set()
+
+    monkeypatch.setattr(Path, "read_text", delayed_read)
+    async with anyio.create_task_group() as task_group:
+        _ = task_group.start_soon(release_from_event_loop)
+        config = await Config.load(env_file, environ={})
+        assert config("VALUE") == "file"
+        assert read_started.is_set()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("source", ("dotenv", "toml"))
+async def test_starlette_config_cancellation_is_not_suppressed(
+    tmp_path: Path, source: str
+) -> None:
+    env_file = tmp_path / ".env"
+    _ = env_file.write_text("VALUE=file\n")
+    toml_file = tmp_path / "settings.toml"
+    _ = toml_file.write_text('[project]\nvalue = "toml"\n')
+    with anyio.CancelScope() as scope:
+        scope.cancel()
+        with pytest.raises(anyio.get_cancelled_exc_class()):
+            _ = await Config.load(
+                env_file if source == "dotenv" else None,
+                environ={},
+                toml_file=toml_file if source == "toml" else None,
+                raise_exceptions=False,
+            )
+
+
+@pytest.mark.anyio
+async def test_starlette_config_load_preserves_subclass(tmp_path: Path) -> None:
+    class AppConfig(Config):
+        pass
+
+    env_file = tmp_path / ".env"
+    _ = env_file.write_text("VALUE=file\n")
+    config = await AppConfig.load(env_file, environ={})
+    assert type(assert_type(config, AppConfig)) is AppConfig
+    assert config("VALUE") == "file"
+
+
+def test_starlette_config_constructor_rejects_file_arguments(tmp_path: Path) -> None:
+    with pytest.raises(TypeError):
+        _ = Config(tmp_path / ".env")  # pyright: ignore[reportCallIssue]
+    with pytest.raises(TypeError):
+        _ = Config(env_file=tmp_path / ".env")  # pyright: ignore[reportCallIssue]
+    with pytest.raises(TypeError):
+        _ = Config(toml_file=tmp_path / "pyproject.toml")  # pyright: ignore[reportCallIssue]
+
+
+@pytest.mark.anyio
+async def test_starlette_config_toml_rejects_bare_carriage_returns(
+    tmp_path: Path,
+) -> None:
+    toml_file = tmp_path / "settings.toml"
+    _ = toml_file.write_bytes(b'[project]\rname = "invalid"\r')
+    with pytest.raises(tomllib.TOMLDecodeError):
+        _ = await read_toml_file(toml_file)
+    with pytest.raises(tomllib.TOMLDecodeError):
+        _ = await Config.load(environ={}, toml_file=toml_file)

@@ -97,6 +97,6 @@ async def get_settings(request: Request) -> dict[str, str]:
 
 ## Documentation
 
-For typed application settings, install `fastenv[starlette]` and use [`fastenv.StarletteConfig`](settings.md) to combine environment variables, multiple dotenv files, and TOML settings with Starlette's type casting.
+For typed application settings, install `fastenv[starlette]` and use [`fastenv.StarletteConfig.load()`](settings.md) to load multiple dotenv files and TOML settings asynchronously, combining them with environment variables and Starlette's type casting.
 
 Documentation is built with [Zensical](https://zensical.org/), deployed to [Vercel](https://vercel.com/) using the [Vercel project configuration](https://vercel.com/docs/project-configuration) in `vercel.json`, and available at [fastenv.bws.bio](https://fastenv.bws.bio) and [fastenv.vercel.app](https://fastenv.vercel.app).

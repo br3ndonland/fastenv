@@ -3,13 +3,14 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, TypeVar, overload
 
+import anyio
 import starlette.config
 
 from fastenv.utilities import logger, parse_dotenv, read_toml_file
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
-    from typing import Any
+    from typing import Any, Self
 
 T = TypeVar("T")
 
@@ -18,9 +19,10 @@ class Config(starlette.config.Config):
     """Starlette settings with multiple dotenv files and TOML metadata.
 
     Environment variables take priority over dotenv files, which take priority
-    over TOML values. Later dotenv files override earlier ones. File loading is
-    synchronous and does not modify the environment. By default, file errors
-    are raised. Set ``raise_exceptions=False`` to log and skip failed sources.
+    over TOML values. Later dotenv files override earlier ones. Use ``load`` to
+    read files asynchronously without modifying the environment, then retrieve
+    settings synchronously. By default, file errors are raised. Set
+    ``raise_exceptions=False`` to log and skip failed sources.
     """
 
     # Native TOML values broaden Starlette's string-only storage.
@@ -28,6 +30,15 @@ class Config(starlette.config.Config):
 
     def __init__(
         self,
+        *,
+        environ: Mapping[str, str] = starlette.config.environ,
+        env_prefix: str = "",
+    ) -> None:
+        super().__init__(environ=environ, env_prefix=env_prefix)
+
+    @classmethod
+    async def load(
+        cls,
         env_file: Sequence[os.PathLike[str] | str]
         | os.PathLike[str]
         | str
@@ -39,11 +50,14 @@ class Config(starlette.config.Config):
         toml_file: os.PathLike[str] | str | None = None,
         toml_table: str = "project",
         raise_exceptions: bool = True,
-    ) -> None:
-        super().__init__(environ=environ, env_prefix=env_prefix)
+    ) -> Self:
+        """Load dotenv and TOML files asynchronously into a new config instance."""
+        config = cls(environ=environ, env_prefix=env_prefix)
         if toml_file is not None:
             try:
-                self.file_values.update(read_toml_file(toml_file, table=toml_table))
+                config.file_values.update(
+                    await read_toml_file(toml_file, table=toml_table)
+                )
             except (OSError, ValueError, LookupError, TypeError) as e:
                 logger.error(
                     f"fastenv error reading {toml_file}: {e.__class__.__qualname__} {e}"
@@ -59,13 +73,16 @@ class Config(starlette.config.Config):
         )
         for file in files:
             try:
-                self.file_values.update(self._read_file(file, encoding))
+                path = anyio.Path(file)
+                content = await path.read_text(encoding=encoding)
+                config.file_values.update(parse_dotenv(content))
             except (OSError, ValueError, LookupError, TypeError) as e:
                 logger.error(
                     f"fastenv error reading {file}: {e.__class__.__qualname__} {e}"
                 )
                 if raise_exceptions:
                     raise
+        return config
 
     @overload
     def __call__(
@@ -88,9 +105,3 @@ class Config(starlette.config.Config):
         default: object = starlette.config.undefined,
     ) -> object:
         return self.get(key, cast, default)  # pyright: ignore[reportAny]
-
-    def _read_file(
-        self, file_name: os.PathLike[str] | str, encoding: str = "utf-8"
-    ) -> dict[str, str]:
-        with open(file_name, encoding=encoding) as source:
-            return dict(parse_dotenv(source.read()))

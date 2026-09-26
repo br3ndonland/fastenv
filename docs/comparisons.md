@@ -258,13 +258,14 @@ It is also important to note that the one-way preference will only be enforced w
 
 ### Comparing fastenv and Starlette
 
-Install `fastenv[starlette]` to use [`fastenv.StarletteConfig`](settings.md), a subclass of Starlette's `Config`. It preserves Starlette's settings lookup, type casting, defaults, and environment prefixes while adding support for multiple dotenv files and TOML settings.
+Install `fastenv[starlette]` to use [`fastenv.StarletteConfig`](settings.md), a subclass of Starlette's `Config`. It preserves Starlette's settings lookup, type casting, defaults, and environment prefixes while adding asynchronous loading of multiple dotenv files and TOML settings.
 
 - Both classes prefer existing environment variables over file values and leave the environment unchanged when loading files.
-- `fastenv.StarletteConfig` accepts a list or tuple of dotenv paths, with later files overriding earlier files.
-- `fastenv.StarletteConfig` can load a TOML table as a fallback beneath environment variables and dotenv files, preserving native TOML values.
-- `fastenv.StarletteConfig` logs file errors and raises them by default. Set `raise_exceptions=False` to skip failed sources and retain successfully loaded sources.
-- Both constructors read files synchronously and can be used inside a running event loop.
+- `fastenv.StarletteConfig.load()` accepts a list or tuple of dotenv paths, with later files overriding earlier files.
+- `fastenv.StarletteConfig.load()` can load a TOML table as a fallback beneath environment variables and dotenv files, preserving native TOML values.
+- `fastenv.StarletteConfig.load()` logs file errors and raises them by default. Set `raise_exceptions=False` to skip failed sources and retain successfully loaded sources.
+- Starlette reads files synchronously in its constructor. Await `fastenv.StarletteConfig.load()` to read files asynchronously with AnyIO, then read settings synchronously from the returned config instance.
+- `fastenv.StarletteConfig()` performs no file I/O and accepts only the keyword arguments `environ` and `env_prefix` for environment-only settings.
 
 ### The future of `starlette.config`
 
