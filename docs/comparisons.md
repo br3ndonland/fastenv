@@ -256,6 +256,16 @@ It is also important to note that the one-way preference will only be enforced w
 - If no _.env_ file is found at the path provided by `Config(env_file)`, Starlette will raise a warning instead of a `FileNotFoundError` ([encode/starlette#2422](https://github.com/encode/starlette/pull/2422), [encode/starlette#2446](https://github.com/encode/starlette/discussions/2446), [encode/starlette#2485](https://github.com/encode/starlette/pull/2485)). This can lead to issues if applications depend on environment variables that Starlette fails to load.
 - Starlette `Config` does not support multiple _.env_ files ([encode/starlette#432](https://github.com/encode/starlette/issues/432)).
 
+### Comparing fastenv and Starlette
+
+Install `fastenv[starlette]` to use [`fastenv.StarletteConfig`](settings.md), a subclass of Starlette's `Config`. It preserves Starlette's settings lookup, type casting, defaults, and environment prefixes while adding support for multiple dotenv files and TOML settings.
+
+- Both classes prefer existing environment variables over file values and leave the environment unchanged when loading files.
+- `fastenv.StarletteConfig` accepts a list or tuple of dotenv paths, with later files overriding earlier files.
+- `fastenv.StarletteConfig` can load a TOML table as a fallback beneath environment variables and dotenv files, preserving native TOML values.
+- `fastenv.StarletteConfig` logs file errors and raises them by default. Set `raise_exceptions=False` to skip failed sources and retain successfully loaded sources.
+- Both constructors read files synchronously and can be used inside a running event loop.
+
 ### The future of `starlette.config`
 
 From [encode/starlette#432](https://github.com/encode/starlette/issues/432#issuecomment-471617467):
