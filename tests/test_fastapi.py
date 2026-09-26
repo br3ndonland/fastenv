@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from fastenv.settings import BaseSettings, SettingsConfigDict
+from fastenv import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):

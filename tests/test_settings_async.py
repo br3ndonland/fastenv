@@ -13,7 +13,7 @@ import pytest
 from pydantic import AliasChoices, BaseModel, Field, ValidationError, model_validator
 from pydantic.fields import FieldInfo
 
-from fastenv.settings import BaseSettings, SettingsConfigDict, SettingsError
+from fastenv import BaseSettings, SettingsConfigDict, SettingsError
 from fastenv.settings.pydantic_settings import SettingsSource
 from fastenv.settings.pydantic_settings_sources import (
     _DEFER_SETTINGS_IO,  # pyright: ignore[reportPrivateUsage]

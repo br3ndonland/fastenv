@@ -5,8 +5,6 @@ import sys
 import textwrap
 from pathlib import Path
 
-import pytest
-
 
 def _check_imports(blocked: tuple[str, ...], assertions: str) -> None:
     script = f"""
@@ -47,12 +45,14 @@ def test_core_import_without_either_settings_dependency() -> None:
         assert callable(fastenv.DotEnv)
         assert callable(fastenv.load_dotenv)
         assert fastenv.parse_dotenv("VALUE=example") == {"VALUE": "example"}
-        assert fastenv.settings.__version__ == fastenv.__version__
+        assert not hasattr(fastenv, "BaseSettings")
         assert not hasattr(fastenv, "StarletteConfig")
+        assert not hasattr(fastenv.settings, "BaseSettings")
+        assert not hasattr(fastenv.settings, "__version__")
         assert "pydantic" not in sys.modules
         assert "starlette" not in sys.modules
         try:
-            from fastenv.settings import BaseSettings
+            from fastenv.settings.pydantic_settings import BaseSettings
         except ModuleNotFoundError as error:
             assert error.name == "pydantic"
         else:
@@ -66,7 +66,7 @@ def test_pydantic_integration_without_starlette() -> None:
         ("starlette",),
         """
         import fastenv
-        from fastenv.settings import BaseSettings, SettingsConfigDict
+        from fastenv import BaseSettings, SettingsConfigDict
 
         class Settings(BaseSettings):
             model_config = SettingsConfigDict(env_prefix="OPTIONAL_IMPORT_TEST_")
@@ -89,7 +89,7 @@ def test_starlette_integration_without_pydantic() -> None:
 
         assert fastenv.StarletteConfig is Config
         assert Config(environ={"COUNT": "3"})("COUNT", cast=int) == 3
-        assert fastenv.settings.__version__ == fastenv.__version__
+        assert not hasattr(fastenv, "BaseSettings")
         assert "pydantic" not in sys.modules
         assert "pydantic_core" not in sys.modules
         """,
@@ -101,7 +101,7 @@ def test_settings_integrations_coexist() -> None:
         (),
         """
         import fastenv
-        from fastenv.settings import BaseSettings
+        from fastenv import BaseSettings
         from fastenv.settings.starlette_config import Config
 
         class Settings(BaseSettings):
@@ -122,13 +122,15 @@ def test_pydantic_settings_without_unsupported_dependencies() -> None:
         from pathlib import Path
         from tempfile import TemporaryDirectory
 
-        from fastenv import settings
+        from fastenv import (
+            BaseSettings,
+            JsonConfigSettingsSource,
+            SettingsConfigDict,
+            TomlConfigSettingsSource,
+        )
 
-        for name in settings.__all__:
-            getattr(settings, name)
-
-        class Settings(settings.BaseSettings):
-            model_config = settings.SettingsConfigDict(env_prefix="NO_SDK_TEST_")
+        class Settings(BaseSettings):
+            model_config = SettingsConfigDict(env_prefix="NO_SDK_TEST_")
             count: int = 0
 
         os.environ["NO_SDK_TEST_COUNT"] = "7"
@@ -136,10 +138,10 @@ def test_pydantic_settings_without_unsupported_dependencies() -> None:
         with TemporaryDirectory(dir=os.getenv("TMPDIR", "/tmp")) as directory:
             json_file = Path(directory) / "settings.json"
             json_file.write_text('{"count": 8}')
-            assert settings.JsonConfigSettingsSource(Settings, json_file)() == {"count": 8}
+            assert JsonConfigSettingsSource(Settings, json_file)() == {"count": 8}
             toml_file = Path(directory) / "settings.toml"
             toml_file.write_text("count = 9")
-            assert settings.TomlConfigSettingsSource(Settings, toml_file)() == {"count": 9}
+            assert TomlConfigSettingsSource(Settings, toml_file)() == {"count": 9}
 
         assert not {
             "pydantic_settings", "dotenv", "yaml", "boto3", "botocore", "azure", "google"
@@ -148,12 +150,42 @@ def test_pydantic_settings_without_unsupported_dependencies() -> None:
     )
 
 
-def test_lazy_public_exports_and_unknown_attribute() -> None:
-    import fastenv
-    from fastenv import settings
+def test_missing_pydantic_dependency_is_not_swallowed() -> None:
+    _check_imports(
+        ("pydantic_core",),
+        """
+        try:
+            import fastenv
+        except ModuleNotFoundError as error:
+            assert error.name == "pydantic_core"
+        else:
+            raise AssertionError("A broken Pydantic installation must fail to import")
+        """,
+    )
 
-    for name in settings.__all__:
-        assert settings.__getattr__(name) is getattr(settings, name)
-    assert settings.__version__ == fastenv.__version__
-    with pytest.raises(AttributeError):
-        _ = settings.__getattr__("not_a_settings_export")  # pyright: ignore[reportAny]
+
+def test_public_settings_exports() -> None:
+    import fastenv
+    import fastenv.settings
+
+    for name in (
+        "BaseSettings",
+        "DotEnvSettingsSource",
+        "EnvSettingsSource",
+        "ForceDecode",
+        "IncompleteFieldDefinitionWarning",
+        "InitSettingsSource",
+        "JsonConfigSettingsSource",
+        "NestedSecretsSettingsSource",
+        "NoDecode",
+        "PydanticBaseSettingsSource",
+        "PyprojectTomlConfigSettingsSource",
+        "SecretsSettingsSource",
+        "SettingsConfigDict",
+        "SettingsError",
+        "TomlConfigSettingsSource",
+    ):
+        assert name in fastenv.__all__
+        assert callable(getattr(fastenv, name))  # pyright: ignore[reportAny]
+        assert not hasattr(fastenv.settings, name)
+    assert not hasattr(fastenv.settings, "__version__")

@@ -69,7 +69,7 @@ from typing import TypedDict
 
 from fastapi import FastAPI, Request
 
-from fastenv.settings import BaseSettings, SettingsConfigDict
+from fastenv import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):

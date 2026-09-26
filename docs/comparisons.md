@@ -33,7 +33,7 @@ See the [`os` module docs](https://docs.python.org/3/library/os.html) and the [d
 
 Pydantic 2 provides settings management through the separate [pydantic-settings package](https://github.com/pydantic/pydantic-settings). Its `BaseSettings` model reads typed settings from environment variables and other sources, then uses Pydantic for validation.
 
-The optional [`fastenv.settings` integration](settings.md#pydantic-integration) follows the supported parts of this public API with fastenv dotenv parsing and no dependency on python-dotenv. Its scope includes environment variables, local configuration files, secret directories, and custom sources, with the [differences described below](#differences-from-pydantic-settings).
+The optional [Pydantic integration](settings.md#pydantic-integration) follows the supported parts of this public API with fastenv dotenv parsing and no dependency on python-dotenv. Its scope includes environment variables, local configuration files, secret directories, and custom sources, with the [differences described below](#differences-from-pydantic-settings).
 
 <!-- prettier-ignore -->
 !!!example "Simple _pydantic_ settings model"
@@ -41,7 +41,7 @@ The optional [`fastenv.settings` integration](settings.md#pydantic-integration) 
     ```py
     import os
 
-    from fastenv.settings import BaseSettings
+    from fastenv import BaseSettings
 
     os.environ["BOOLEAN_SETTING"] = "false"
     os.environ["INTEGER_SETTING"] = "123"
@@ -61,7 +61,7 @@ The optional [`fastenv.settings` integration](settings.md#pydantic-integration) 
 ### File I/O
 
 - fastenv adds `await Settings.load()` to read built-in file sources asynchronously through AnyIO before validation. The synchronous `Settings(...)` constructor remains available for compatibility with pydantic-settings.
-- pydantic-settings loads dotenv files with python-dotenv. `fastenv.settings` uses fastenv instead and leaves the process environment unchanged.
+- pydantic-settings loads dotenv files with python-dotenv. The fastenv integration uses its own parser instead and leaves the process environment unchanged.
 - Both settings implementations ignore missing dotenv files. Fields without defaults still require a value from another source. By comparison, `fastenv.load_dotenv` raises `FileNotFoundError` by default.
 
 ### Command-line interfaces
@@ -87,13 +87,13 @@ fastenv keeps its integration focused on loading and validating settings. Genera
 
 fastenv intentionally differs from pydantic-settings in these areas:
 
-- **Imports and dependencies**. Import settings APIs from `fastenv.settings` and install `fastenv[settings]` for Pydantic support. This extra does not depend on pydantic-settings or python-dotenv.
+- **Imports and dependencies**. Import settings APIs from `fastenv` and install `fastenv[settings]` for Pydantic support. This extra does not depend on pydantic-settings or python-dotenv.
 - **Command-line interfaces**. fastenv does not expose pydantic-settings CLI APIs such as `CliApp`, `CliSettingsSource`, CLI annotations, or `cli_*` configuration and `_cli_*` constructor options. See the [CLI comparison](#command-line-interfaces) for the use cases, implementation history, and rationale for keeping argument parsing in applications.
 - **YAML configuration**. fastenv does not support YAML settings files or provide `YamlConfigSettingsSource`, the `yaml_file`, `yaml_file_encoding`, or `yaml_config_section` options, or a YAML dependency extra. This avoids installing a separate YAML parser. Use dotenv, JSON, or TOML files instead. JSON and TOML parsing use Python's standard library.
 - **Dotenv syntax**. Files use [fastenv's parser](settings.md#dotenv-parsing-and-environment-isolation), including shell tokenization, whitespace-separated assignments, and literal variable references such as `${HOME}`. There is no variable interpolation. Bare names without `=` are ignored, and invalid shell quoting raises an error. Whitespace and quote handling can differ from python-dotenv.
-- **Cloud secret services**. pydantic-settings supports [AWS Secrets Manager](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/#aws-secrets-manager), [AWS Systems Manager Parameter Store](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/#aws-systems-manager-parameter-store), Azure Key Vault, and Google Cloud Secret Manager. fastenv does not provide these integrations or their SDK dependencies. `AWSSecretsManagerSettingsSource`, `AzureKeyVaultSettingsSource`, `GoogleSecretManagerSettingsSource`, and `SecretVersion` are intentionally absent from `fastenv.settings`.
+- **Cloud secret services**. pydantic-settings supports [AWS Secrets Manager](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/#aws-secrets-manager), [AWS Systems Manager Parameter Store](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/#aws-systems-manager-parameter-store), Azure Key Vault, and Google Cloud Secret Manager. fastenv does not provide these integrations or their SDK dependencies. `AWSSecretsManagerSettingsSource`, `AzureKeyVaultSettingsSource`, `GoogleSecretManagerSettingsSource`, and `SecretVersion` are intentionally absent from fastenv.
 - **Cloud object storage**. `fastenv[cloud]` provides its own asynchronous client for dotenv files in S3-compatible object storage, including AWS S3, Backblaze B2, and Cloudflare R2. It [avoids Boto3](cloud-object-storage.md#overview). Download a dotenv file before loading its path with `Settings(_env_file=...)`. Object storage support does not include SSM Parameter Store or cloud secret services.
-- **Compatibility scope**. The reference release is pydantic-settings 2.15.0 for environment variables, local files, secret directories, and custom sources. Private methods, module paths, and exact error messages are outside the compatibility contract. `fastenv.settings.__version__` reports the fastenv version. Behavioral probes check the supported API without requiring every upstream export.
+- **Compatibility scope**. The reference release is pydantic-settings 2.15.0 for environment variables, local files, secret directories, and custom sources. Private methods, module paths, and exact error messages are outside the compatibility contract. `fastenv.__version__` reports the fastenv version. Behavioral probes check the supported API without requiring every upstream export.
 
 ## python-decouple
 

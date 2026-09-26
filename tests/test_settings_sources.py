@@ -575,7 +575,7 @@ def test_incomplete_annotation_warning() -> None:
 
     from pydantic import create_model
 
-    from fastenv.settings import IncompleteFieldDefinitionWarning
+    from fastenv import IncompleteFieldDefinitionWarning
 
     settings = create_model(
         "UnresolvedSettings", pending=(ForwardRef("LaterModel"), ...)

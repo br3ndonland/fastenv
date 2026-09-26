@@ -11,10 +11,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar
 
+import anyio
 import pytest
 from pydantic import BaseModel
 
-from fastenv.settings import BaseSettings, SettingsConfigDict
+from fastenv import BaseSettings, SettingsConfigDict
 from fastenv.settings.pydantic_settings_providers import (
     JsonConfigSettingsSource,
     NestedSecretsSettingsSource,
@@ -52,6 +53,8 @@ def _deferred(
 
 def _guard_filesystem(monkeypatch: pytest.MonkeyPatch) -> None:
     """Allow filesystem calls only in AnyIO workers, including during setup."""
+    # Import AnyIO's file helpers before guarding reads from settings sources.
+    _ = anyio.Path
     event_loop_thread = threading.get_ident()
 
     def guarded(method: Callable[..., Any]) -> Callable[..., Any]:
