@@ -1,5 +1,3 @@
-"""Original provider tests using local configuration files and secrets."""
-
 # File sources expose dynamic values and configurable Pydantic model fields.
 # pyright: reportAny=false, reportExplicitAny=false
 

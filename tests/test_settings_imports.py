@@ -1,5 +1,3 @@
-"""Verify that optional settings integrations can be imported independently."""
-
 from __future__ import annotations
 
 import subprocess

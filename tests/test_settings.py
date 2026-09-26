@@ -1,5 +1,3 @@
-"""Original behavioral tests for settings composition and fastenv isolation."""
-
 # Settings values intentionally exercise runtime coercion and constructor options
 # beyond the signature synthesized by Pydantic's dataclass transform.
 # pyright: reportCallIssue=false, reportAny=false, reportExplicitAny=false

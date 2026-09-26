@@ -1,5 +1,3 @@
-"""Async file sources preserve settings semantics without blocking the event loop."""
-
 # Source hooks intentionally accept arbitrary Pydantic field values.
 # pyright: reportAny=false, reportExplicitAny=false, reportPrivateUsage=false
 

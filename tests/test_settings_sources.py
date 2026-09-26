@@ -1,5 +1,3 @@
-"""Original source tests covering public settings behavior and fastenv parsing."""
-
 from __future__ import annotations
 
 # Custom settings source hooks intentionally accept arbitrary model field values.

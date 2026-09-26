@@ -1,5 +1,3 @@
-"""Optional settings sources for local configuration files and secret directories."""
-
 # Parsed configuration and user-supplied settings are dynamic at this boundary.
 # pyright: reportAny=false, reportExplicitAny=false
 

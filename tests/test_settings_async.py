@@ -1,5 +1,3 @@
-"""Async settings composition preserves validation and source precedence."""
-
 # Settings sources expose unvalidated values and constructor configuration.
 # pyright: reportCallIssue=false, reportAny=false, reportExplicitAny=false
 
