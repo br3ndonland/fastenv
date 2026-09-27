@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import threading
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -172,32 +173,30 @@ async def test_secrets_load_uses_async_io_and_preserves_alias_priority(
     environment = dict(os.environ)
     source = SecretsSettingsSource(Settings, secrets_dir=[first, second])
     event_loop_thread = threading.get_ident()
-    original_read_text = Path.read_text
-    original_stat = Path.stat
-    original_listdir = os.listdir
+    operations: set[str] = set()
 
-    def read_text(path: Path, *args: Any, **kwargs: Any) -> str:
-        assert threading.get_ident() != event_loop_thread
-        return original_read_text(path, *args, **kwargs)
+    def guard_io(method: Callable[..., Any]) -> Callable[..., Any]:
+        def checked(
+            path: str | os.PathLike[str] = ".", *args: Any, **kwargs: Any
+        ) -> Any:
+            if Path(path).is_relative_to(tmp_path):
+                assert threading.get_ident() != event_loop_thread
+                operations.add(method.__name__)
+            return method(path, *args, **kwargs)
 
-    def stat(path: Path, *args: Any, **kwargs: Any) -> os.stat_result:
-        if path.is_relative_to(tmp_path):
-            assert threading.get_ident() != event_loop_thread
-        return original_stat(path, *args, **kwargs)
-
-    def listdir(path: str | os.PathLike[str] = ".") -> list[str]:
-        if Path(path).is_relative_to(tmp_path):
-            assert threading.get_ident() != event_loop_thread
-        return original_listdir(path)
+        return checked
 
     with monkeypatch.context() as patches:
-        patches.setattr(Path, "read_text", read_text)
-        patches.setattr(Path, "stat", stat)
-        patches.setattr(os, "listdir", listdir)
+        patches.setattr(Path, "read_text", guard_io(Path.read_text))
+        patches.setattr(os, "stat", guard_io(os.stat))
+        patches.setattr(os, "listdir", guard_io(os.listdir))
+        patches.setattr(os, "scandir", guard_io(os.scandir))
         assert await source.load() == {
             "PRIMARY": "preferred alias",
             "items": [1, 2],
         }
+    assert {"read_text", "stat"} <= operations
+    assert {"listdir", "scandir"} & operations
     assert dict(os.environ) == environment
     _ = (second / "PRIMARY").write_text("updated")
     assert source()["PRIMARY"] == "updated"
