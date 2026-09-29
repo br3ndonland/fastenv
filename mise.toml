@@ -1,5 +1,3 @@
-min_version = "2026.9.0"
-
 [tools]
 python = "prefix:3.14"
 node = "prefix:24"
