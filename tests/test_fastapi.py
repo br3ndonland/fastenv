@@ -59,59 +59,63 @@ def settings_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return env_file
 
 
-@pytest.mark.parametrize(
-    ("overrides", "expected_example", "expected_debug"),
-    [
-        ({}, "example_value", False),
-        (
-            {"EXAMPLE_VARIABLE": "environment_value", "DEBUG": "true"},
-            "environment_value",
-            True,
-        ),
-    ],
-)
-@pytest.mark.usefixtures("settings_file")
-def test_fastapi_with_fastenv(
-    monkeypatch: pytest.MonkeyPatch,
-    overrides: dict[str, str],
-    expected_example: str,
-    expected_debug: bool,
-) -> None:
-    """Load typed settings at startup without changing the environment."""
-    for name, value in overrides.items():
-        monkeypatch.setenv(name, value)
-    before = dict(os.environ)
-    with TestClient(app) as test_client:
-        settings = cast(object, test_client.app_state["settings"])
-        assert isinstance(settings, Settings)
-        # Starlette's type annotations assume HTTPX2, but the client uses HTTPXYZ.
-        response = cast(httpxyz.Client, test_client).get("/settings")
-        assert response.status_code == 200
-        assert response.json() == {
-            "example_variable": expected_example,
-            "i_think_fastenv_is": "awesome",
-            "debug": expected_debug,
-        }
-        assert settings.debug is expected_debug
-    assert dict(os.environ) == before
+class TestFastAPISettings:
+    """Test settings loading during FastAPI startup."""
 
+    @pytest.mark.parametrize(
+        ("overrides", "expected_example", "expected_debug"),
+        [
+            ({}, "example_value", False),
+            (
+                {"EXAMPLE_VARIABLE": "environment_value", "DEBUG": "true"},
+                "environment_value",
+                True,
+            ),
+        ],
+    )
+    @pytest.mark.usefixtures("settings_file")
+    def test_fastapi_with_fastenv(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        overrides: dict[str, str],
+        expected_example: str,
+        expected_debug: bool,
+    ) -> None:
+        """Load typed settings at startup without changing the environment."""
+        for name, value in overrides.items():
+            monkeypatch.setenv(name, value)
+        before = dict(os.environ)
+        with TestClient(app) as test_client:
+            settings = cast(object, test_client.app_state["settings"])
+            assert isinstance(settings, Settings)
+            # Starlette's type annotations assume HTTPX2, but the client uses HTTPXYZ.
+            response = cast(httpxyz.Client, test_client).get("/settings")
+            assert response.status_code == 200
+            assert response.json() == {
+                "example_variable": expected_example,
+                "i_think_fastenv_is": "awesome",
+                "debug": expected_debug,
+            }
+            assert settings.debug is expected_debug
+        assert dict(os.environ) == before
 
-@pytest.mark.parametrize(
-    ("contents", "error_field"),
-    [
-        (
-            "EXAMPLE_VARIABLE=example_value\nI_THINK_FASTENV_IS=awesome\nDEBUG=invalid",
-            "debug",
-        ),
-        ("EXAMPLE_VARIABLE=example_value\n", "i_think_fastenv_is"),
-    ],
-)
-def test_fastapi_rejects_invalid_settings_at_startup(
-    settings_file: Path, contents: str, error_field: str
-) -> None:
-    _ = settings_file.write_text(contents)
-    before = dict(os.environ)
-    with pytest.raises(ValidationError) as exc_info, ExitStack() as stack:
-        stack.enter_context(TestClient(app))
-    assert exc_info.value.errors()[0]["loc"] == (error_field,)
-    assert dict(os.environ) == before
+    @pytest.mark.parametrize(
+        ("contents", "error_field"),
+        [
+            (
+                "EXAMPLE_VARIABLE=example_value\nI_THINK_FASTENV_IS=awesome\nDEBUG=invalid",
+                "debug",
+            ),
+            ("EXAMPLE_VARIABLE=example_value\n", "i_think_fastenv_is"),
+        ],
+    )
+    def test_fastapi_rejects_invalid_settings_at_startup(
+        self, settings_file: Path, contents: str, error_field: str
+    ) -> None:
+        """Reject invalid or missing settings before the application starts."""
+        _ = settings_file.write_text(contents)
+        before = dict(os.environ)
+        with pytest.raises(ValidationError) as exc_info, ExitStack() as stack:
+            stack.enter_context(TestClient(app))
+        assert exc_info.value.errors()[0]["loc"] == (error_field,)
+        assert dict(os.environ) == before
