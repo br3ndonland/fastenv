@@ -314,3 +314,7 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+## Amp
+
+.amp/portals/*

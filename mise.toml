@@ -1,0 +1,19 @@
+min_version = "2026.9.0"
+
+[tools]
+python = "prefix:3.14"
+node = "prefix:24"
+hatch = "prefix:1.17"
+"npm:prettier" = "prefix:3"
+"npm:cspell" = "prefix:10"
+
+[tasks.setup]
+description = "Install project dependencies"
+run = [
+  "hatch env remove default",
+  "hatch env create default",
+  "mkdir -p .cache",
+  "touch .cache/mise-setup",
+]
+sources = ["pyproject.toml"]
+outputs = [".cache/mise-setup"]
