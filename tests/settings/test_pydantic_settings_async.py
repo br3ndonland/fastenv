@@ -475,10 +475,16 @@ class TestAsyncSettingsIsolation:
             ) -> tuple[SettingsSource, ...]:
                 return (suspended,)
 
+        cancellation = anyio.CancelScope()
+
+        async def load_until_cancelled() -> None:
+            with cancellation:
+                _ = await Settings.load()
+
         async with anyio.create_task_group() as tasks:
-            _ = tasks.start_soon(Settings.load)
+            _ = tasks.start_soon(load_until_cancelled)
             await started.wait()
-            tasks.cancel_scope.cancel()
+            cancellation.cancel()
         assert cancelled.is_set()
         assert not _DEFER_SETTINGS_IO.get()
         dotenv = tmp_path / "config.env"
