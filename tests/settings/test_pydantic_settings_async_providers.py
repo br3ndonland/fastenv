@@ -23,7 +23,7 @@ from fastenv.settings.pydantic_settings_providers import (
     TomlConfigSettingsSource,
 )
 from fastenv.settings.pydantic_settings_sources import (
-    _DEFER_SETTINGS_IO,  # pyright: ignore[reportPrivateUsage]
+    DEFER_SETTINGS_IO,
     PydanticBaseSettingsSource,
     SettingsError,
 )
@@ -44,11 +44,11 @@ class ProviderSettings(BaseSettings):
 def _deferred(
     factory: Callable[[], PydanticBaseSettingsSource],
 ) -> PydanticBaseSettingsSource:
-    token = _DEFER_SETTINGS_IO.set(True)
+    token = DEFER_SETTINGS_IO.set(True)
     try:
         return factory()
     finally:
-        _DEFER_SETTINGS_IO.reset(token)
+        DEFER_SETTINGS_IO.reset(token)
 
 
 def _guard_filesystem(monkeypatch: pytest.MonkeyPatch) -> None:

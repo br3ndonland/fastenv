@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
 from .pydantic_settings_sources import (
-    _DEFER_SETTINGS_IO,  # pyright: ignore[reportPrivateUsage]
+    DEFER_SETTINGS_IO,
     EnvSettingsSource,
     PydanticBaseSettingsSource,
     SettingsError,
@@ -52,7 +52,7 @@ class _ConfigFileSettingsSource(PydanticBaseSettingsSource, ABC):
     def _load_files(self, files: ConfigPaths, *, deep_merge: bool = False) -> None:
         self._files = files
         self._deep_merge = deep_merge
-        if files is None or _DEFER_SETTINGS_IO.get():
+        if files is None or DEFER_SETTINGS_IO.get():
             return
         paths = [files] if isinstance(files, (str, Path, Traversable)) else files
         for item in paths:
@@ -179,7 +179,7 @@ class PyprojectTomlConfigSettingsSource(TomlConfigSettingsSource):
     ) -> None:
         config: dict[str, Any] = dict(settings_cls.model_config)
         self._discover_file: bool = toml_file is None
-        if toml_file is None and not _DEFER_SETTINGS_IO.get():
+        if toml_file is None and not DEFER_SETTINGS_IO.get():
             directory = Path.cwd()
             toml_file = directory / "pyproject.toml"
             for _ in range(max(0, config.get("pyproject_toml_depth", 0)) + 1):
@@ -303,7 +303,7 @@ class NestedSecretsSettingsSource(EnvSettingsSource):
     def _load_env_vars(self) -> dict[str, Any]:
         variables: dict[str, str] = {}
         directories = self.secrets_dir
-        if directories is None or _DEFER_SETTINGS_IO.get():
+        if directories is None or DEFER_SETTINGS_IO.get():
             return variables
         paths = [directories] if isinstance(directories, (str, Path)) else directories
         for directory in paths:

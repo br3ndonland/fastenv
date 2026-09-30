@@ -81,12 +81,12 @@ The parser deliberately follows fastenv's format:
 
 These parsing details can differ from python-dotenv. Review files that rely on its interpolation or whitespace behavior when migrating.
 
-`parse_dotenv` is also available without Pydantic:
+`parse_dotenv` is also available without Pydantic. It returns key-value pairs. Convert them to a dictionary to keep the last value for each key:
 
 ```py
 import fastenv
 
-values = fastenv.parse_dotenv("PORT=8000 LABEL='local service'")
+values = dict(fastenv.parse_dotenv("PORT=8000 LABEL='local service'"))
 assert values == {"PORT": "8000", "LABEL": "local service"}
 ```
 

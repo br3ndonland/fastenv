@@ -15,7 +15,7 @@ from typing import Any, ClassVar, Literal, Self
 from pydantic import BaseModel, ConfigDict
 
 from .pydantic_settings_sources import (
-    _DEFER_SETTINGS_IO,  # pyright: ignore[reportPrivateUsage]
+    DEFER_SETTINGS_IO,
     DefaultSettingsSource,
     DotEnvSettingsSource,
     EnvSettingsSource,
@@ -221,11 +221,11 @@ class BaseSettings(BaseModel):
         )
         # A custom async source hook may construct another settings model.
         # An explicit synchronous constructor retains its normal file behavior.
-        token = _DEFER_SETTINGS_IO.set(False)
+        token = DEFER_SETTINGS_IO.set(False)
         try:
             sources = settings_cls._settings_sources(values, options)
         finally:
-            _DEFER_SETTINGS_IO.reset(token)
+            DEFER_SETTINGS_IO.reset(token)
         state = _SettingsState(settings_cls)
         for source in sources:
             state.prepare(source)
@@ -249,11 +249,11 @@ class BaseSettings(BaseModel):
         override their async ``load`` method.
         """
         options = cls._settings_options(values)
-        token = _DEFER_SETTINGS_IO.set(True)
+        token = DEFER_SETTINGS_IO.set(True)
         try:
             sources = cls._settings_sources(values, options)
         finally:
-            _DEFER_SETTINGS_IO.reset(token)
+            DEFER_SETTINGS_IO.reset(token)
         state = _SettingsState(cls)
         for source in sources:
             state.prepare(source)

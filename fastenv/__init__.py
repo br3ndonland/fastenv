@@ -15,7 +15,6 @@ from .dotenv import (
     dump_dotenv,
     find_dotenv,
     load_dotenv,
-    parse_dotenv,
 )
 
 try:
@@ -46,6 +45,8 @@ try:
 except ModuleNotFoundError as e:  # pragma: no cover
     if e.name != "starlette":
         raise
+
+from .utilities import parse_dotenv
 
 __all__ = (
     "BaseSettings",
