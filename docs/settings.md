@@ -4,9 +4,180 @@ icon: lucide/settings
 
 # Application settings
 
+## Pydantic integration
+
+fastenv provides Pydantic settings models using its existing dotenv parser. It is an original implementation based on the public pydantic-settings 2.15.0 API, with [intentional differences](comparisons.md#differences-from-pydantic-settings). Neither pydantic-settings nor python-dotenv is a runtime dependency.
+
+Install the optional integration into your project's virtual environment:
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install 'fastenv[settings]'
+```
+
+Change settings imports to `fastenv`. Continue importing models, fields, aliases, validators, and types from `pydantic`:
+
+```py
+import anyio
+from pydantic import BaseModel
+
+from fastenv import BaseSettings, SettingsConfigDict
+
+
+class Database(BaseModel):
+    host: str = "localhost"
+    port: int = 5432
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="SERVICE_",
+        env_file=(".env", ".env.local"),
+        env_nested_delimiter="__",
+    )
+    debug: bool = False
+    database: Database = Database()
+
+
+async def main() -> None:
+    settings = await Settings.load()
+    print(settings.model_dump())
+
+
+anyio.run(main)
+```
+
+For example, `SERVICE_DEBUG=true` becomes a boolean. `SERVICE_DATABASE__PORT=6543` overrides the nested port. A JSON object in `SERVICE_DATABASE` can supply several nested values, and individual nested variables override its matching members.
+
+### Sources and priority
+
+The default order, from highest to lowest priority, is:
+
+1. Constructor arguments.
+2. Process environment variables.
+3. Dotenv files, with later files overriding earlier files.
+4. Secret files, with later directories overriding earlier directories.
+5. Model defaults.
+
+Mappings from different sources are merged recursively. Pydantic validates the merged input and applies field defaults. Default values are validated too. Unknown environment variables are ignored. Unknown constructor and dotenv values are rejected unless `extra="ignore"` or `extra="allow"` is configured.
+
+Per-instance options use the same leading underscore as pydantic-settings. For example, `await Settings.load(_env_file="production.env")` selects another file, and `await Settings.load(_env_file=None)` disables dotenv loading. `await Settings.load(_env_prefix="OTHER_")` changes the prefix for that instance.
+
+The environment and dotenv sources support case sensitivity, aliases, `AliasChoices`, `AliasPath`, prefix targets, nested delimiters and maximum splits, empty-value filtering, null markers, enum names, and JSON decoding. `NoDecode` and `ForceDecode` can be used as `Annotated` metadata. Model configuration can also be supplied through class keywords such as `class Settings(BaseSettings, env_prefix="SERVICE_")`.
+
+### Dotenv parsing and environment isolation
+
+Settings loading never changes `os.environ`. Files are parsed with `fastenv.parse_dotenv`, the same parser used by `fastenv.DotEnv`. This allows independent settings instances to use different files safely, including concurrent loads.
+
+The parser deliberately follows fastenv's format:
+
+- Shell tokenization handles quotes, comments, and whitespace-separated assignments.
+- Keys preserve their spelling for case-sensitive settings lookup.
+- Variables such as `${HOME}` remain literal text. There is no variable interpolation.
+- Bare names without `=` are ignored. An assignment with no value produces an empty string.
+- Leading and trailing whitespace and quote characters are stripped according to existing fastenv behavior.
+- Invalid shell quoting raises an error.
+
+These parsing details can differ from python-dotenv. Review files that rely on its interpolation or whitespace behavior when migrating.
+
+`parse_dotenv` is also available without Pydantic. It returns key-value pairs. Convert them to a dictionary to keep the last value for each key:
+
+```py
+import fastenv
+
+values = dict(fastenv.parse_dotenv("PORT=8000 LABEL='local service'"))
+assert values == {"PORT": "8000", "LABEL": "local service"}
+```
+
+`DotEnv`, `load_dotenv`, and `dotenv_values` retain their existing environment mutation behavior. Use `await Settings.load()` to read settings files asynchronously through AnyIO, then validate the collected values:
+
+```py
+settings = await Settings.load()
+```
+
+This includes dotenv, JSON, TOML, pyproject files, and secret directories. Sources are processed in priority order so custom sources can inspect values from earlier sources. Parsing and Pydantic validation run after the file contents have been read. The synchronous `Settings(...)` constructor remains available for compatibility with pydantic-settings.
+
+### Custom and file sources
+
+Override `settings_customise_sources` to add, reorder, or remove sources. The first returned source has the highest priority. A source can be a callable returning a dictionary, or a subclass of `PydanticBaseSettingsSource` with `get_field_value` and `__call__` implementations. Source instances expose `current_state` and `settings_sources_data` while they are being evaluated.
+
+`Settings.load()` also accepts async callable sources. A custom source class can implement `async def load(self)` to await its I/O and return a dictionary. The default source `load()` calls `__call__`, which supports synchronous in-memory sources. Custom sources that read files or use the network should implement asynchronous loading and avoid I/O in their constructors.
+
+```py
+from fastenv import BaseSettings, TomlConfigSettingsSource
+
+
+class Settings(BaseSettings):
+    port: int = 8000
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        return (
+            init_settings,
+            env_settings,
+            TomlConfigSettingsSource(settings_cls, toml_file="service.toml"),
+            dotenv_settings,
+            file_secret_settings,
+        )
+```
+
+File sources are opt-in through this hook. Setting `toml_file` or `json_file` alone does not insert another source and emits a warning.
+
+| Source | Configuration |
+| --- | --- |
+| `JsonConfigSettingsSource` | `json_file`, `json_file_encoding` |
+| `TomlConfigSettingsSource` | `toml_file`, `toml_table_header` |
+| `PyprojectTomlConfigSettingsSource` | `pyproject_toml_depth`, `pyproject_toml_table_header` |
+| `SecretsSettingsSource` | `secrets_dir`, environment prefix and case settings |
+| `NestedSecretsSettingsSource` | Secret directories, nested separators or subdirectories, prefix, case, size and missing-directory policies |
+
+JSON and TOML use Python's standard library. YAML is [intentionally unsupported](comparisons.md#differences-from-pydantic-settings). The default pyproject section is `[tool.pydantic-settings]`, preserving the migration contract. Set `pyproject_toml_table_header=("tool", "fastenv")` to use `[tool.fastenv]` instead.
+
+For dotenv files stored in S3-compatible object storage, use fastenv's [asynchronous object storage client](cloud-object-storage.md#downloading-files) to download a file before loading its path with `await Settings.load(_env_file=...)`. The client is available through `fastenv[cloud]` and does not depend on Boto3. Built-in cloud secret services are outside this integration's scope. See the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings).
+
+### Application command-line arguments
+
+fastenv does not generate or run command-line applications or provide pydantic-settings CLI APIs. Parse arguments in your application with Click or Python's standard-library `argparse`, then pass only explicitly supplied values to `Settings(**overrides)`:
+
+```py
+import argparse
+
+from fastenv import BaseSettings
+
+
+class Settings(BaseSettings):
+    port: int = 8000
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--port", type=int, default=argparse.SUPPRESS)
+overrides = vars(parser.parse_args())
+settings = Settings(**overrides)
+```
+
+`argparse.SUPPRESS` keeps omitted options out of the mapping, allowing environment variables, files, and model defaults to supply their values. When using Click, likewise include only parameters explicitly supplied by the user. Return this mapping from a [custom source](#custom-and-file-sources) when a different priority is needed.
+
+### Compatibility and verification
+
+The compatibility target is the released **pydantic-settings 2.15.0** public API for environment variables, local files, secret directories, and custom sources, imported through `fastenv`. CLI APIs, YAML, cloud providers, and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, and exact error text are not compatibility contracts. The fastenv package version remains available as `fastenv.__version__`.
+
+The implementation was written from public documentation, signatures, and independently authored behavioral comparisons during development. No pydantic-settings implementation or tests were copied.
+
+Ongoing regression checks live in the regular test suite and run through the project's [pytest workflow](contributing.md#testing-with-pytest), without installing pydantic-settings or python-dotenv. They cover settings validation, source priority, aliases, nested values, file loading, and optional dependency isolation. These tests exercise a defined set of behaviors and are not proof of exhaustive equivalence for all Pydantic types and settings configurations.
+
+Background: [fastenv discussion 21](https://github.com/br3ndonland/fastenv/discussions/21), [pydantic-settings](https://github.com/pydantic/pydantic-settings), and the [Pydantic settings documentation](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/).
+
 ## Starlette integration
 
-`fastenv.StarletteConfig` extends [Starlette's `Config`](https://www.starlette.io/config/) with asynchronous loading of multiple dotenv files and TOML settings, plus configurable file error handling. It inherits Starlette's settings lookup, type casting, defaults, and environment prefixes.
+`fastenv.StarletteConfig` extends [Starlette's `Config`](https://www.starlette.dev/config/) with asynchronous loading of multiple dotenv files and TOML settings, plus configurable file error handling. It inherits Starlette's settings lookup, type casting, defaults, and environment prefixes.
 
 Install the optional integration into your project's virtual environment:
 
@@ -53,7 +224,7 @@ from fastenv.settings.starlette_config import Config
 
 Starlette is an optional dependency. Install `fastenv[starlette]` before importing this class. The rest of fastenv remains usable without Starlette installed.
 
-## Sources and precedence
+### Sources and precedence
 
 The asynchronous `StarletteConfig.load()` class method creates a config instance and reads the requested files using AnyIO. It accepts `env_file`, `environ`, `env_prefix`, and `encoding` as positional or keyword arguments. The `toml_file`, `toml_table`, and `raise_exceptions` arguments are keyword-only.
 
@@ -96,7 +267,7 @@ PORT = config("PORT", cast=int, default=8000)
 
 Loading these files does not modify `os.environ` or a supplied `environ` mapping. File values belong to the config instance. This differs from [`fastenv.load_dotenv`](dotenv.md#loading-a-env-file), which sets environment variables.
 
-## TOML settings
+### TOML settings
 
 The integration uses Python's standard library `tomllib`, available in Python 3.11 and later. By default, it reads the `[project]` table, so application metadata can come from your existing `pyproject.toml`:
 
@@ -161,7 +332,7 @@ DATABASE = config("DATABASE")
 
 Environment and dotenv values remain strings, so use `cast` when a setting needs a consistent type across sources.
 
-## Starlette behavior
+### Starlette behavior
 
 The integration inherits Starlette's handling of Boolean strings, such as `"false"`, and accepts callable casts such as `Secret` and `CommaSeparatedStrings`. Missing settings without a default raise `KeyError`, and invalid casts raise `ValueError`.
 
@@ -182,7 +353,7 @@ SECRET_KEY = config("SECRET_KEY", cast=Secret)
 
 With the default `starlette.config.environ` mapping, Starlette's protection against modifying environment variables after they have been read still applies. See [the Starlette comparison](comparisons.md#one-way-configuration-preference) for more detail.
 
-## File errors
+### File errors
 
 Missing, unreadable, or invalid input files are logged and raise an exception by default. To allow optional files, pass `raise_exceptions=False`. A failed source is skipped, while successfully loaded sources remain available:
 
@@ -205,7 +376,7 @@ DEBUG = config("DEBUG", cast=bool, default=False)
 
 This option only controls source loading errors. Missing required settings and invalid casts still raise exceptions when settings are read.
 
-## Application startup
+### Application startup
 
 Await `StarletteConfig.load()` once during application startup to avoid reading files on each request. File I/O uses AnyIO, and setting lookups on the returned instance are synchronous. For example, load settings in a Starlette lifespan function and expose them through request state:
 

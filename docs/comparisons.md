@@ -31,7 +31,9 @@ See the [`os` module docs](https://docs.python.org/3/library/os.html) and the [d
 
 ### Settings configuration
 
-_pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/usage/settings/). Settings class attributes are automatically read from environment variables, and the full power of _pydantic_ data parsing/validation can be applied.
+Pydantic 2 provides settings management through the separate [pydantic-settings package](https://github.com/pydantic/pydantic-settings). Its `BaseSettings` model reads typed settings from environment variables and other sources, then uses Pydantic for validation.
+
+The optional [Pydantic integration](settings.md#pydantic-integration) follows the supported parts of this public API with fastenv dotenv parsing and no dependency on python-dotenv. Its scope includes environment variables, local configuration files, secret directories, and custom sources, with the [differences described below](#differences-from-pydantic-settings).
 
 <!-- prettier-ignore -->
 !!!example "Simple _pydantic_ settings model"
@@ -39,7 +41,7 @@ _pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/u
     ```py
     import os
 
-    from pydantic import BaseSettings
+    from fastenv import BaseSettings
 
     os.environ["BOOLEAN_SETTING"] = "false"
     os.environ["INTEGER_SETTING"] = "123"
@@ -52,14 +54,46 @@ _pydantic_ offers a [`BaseSettings` model](https://pydantic-docs.helpmanual.io/u
         string_setting: str = "default_value"
 
 
-    print(SimpleSettings().dict())
+    print(SimpleSettings().model_dump())
     # {"boolean_setting": False, "integer_setting": 123, "string_setting": "example_value"}
     ```
 
 ### File I/O
 
-- In addition to reading environment variables that have already been set, _pydantic_ can load environment variables from _.env_ files. However, it depends on python-dotenv to load _.env_ files, so it inherits the limitations described in the [python-dotenv section](#python-dotenv).
-- If no _.env_ file is found at the path provided, _pydantic_ will fail silently, rather than raising a `FileNotFoundError`. This can lead to issues if applications depend on environment variables that _pydantic_ fails to load.
+- fastenv adds `await Settings.load()` to read built-in file sources asynchronously through AnyIO before validation. The synchronous `Settings(...)` constructor remains available for compatibility with pydantic-settings.
+- pydantic-settings loads dotenv files with python-dotenv. The fastenv integration uses its own parser instead and leaves the process environment unchanged.
+- Both settings implementations ignore missing dotenv files. Fields without defaults still require a value from another source. By comparison, `fastenv.load_dotenv` raises `FileNotFoundError` by default.
+
+### Command-line interfaces
+
+Pydantic Settings includes command-line support because CLI arguments can be another source of application settings. Its [documentation identifies two use cases](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/#command-line-support):
+
+1. Override fields in Pydantic models with command-line arguments.
+2. Define command-line applications using Pydantic models.
+
+The first use case lets an application reuse its settings model's fields, types, and descriptions to generate options and help text. For example, `--database.host localhost` can override one field while a configuration file and environment variables provide the remaining database settings. The inputs are combined before model validation, so a required field need not come from the command line if another source supplies it. Avoiding duplicate model declarations and validating merged partial inputs were explicit motivations in the [original discussion](https://github.com/pydantic/pydantic/issues/756#issuecomment-656931731).
+
+The implementation developed through several proposals:
+
+- **2019-2020**. [pydantic/pydantic#756](https://github.com/pydantic/pydantic/issues/756) proposed lightweight argument parsing using familiar Pydantic models. Its author [closed the proposal in January 2020](https://github.com/pydantic/pydantic/issues/756#issuecomment-576427504) after finding that Typer covered most practical CLI needs, suggesting Pydantic integration there instead.
+- **January-June 2024**. [pydantic/pydantic-settings#209](https://github.com/pydantic/pydantic-settings/issues/209) proposed completing the set of settings inputs with files, environment variables, and CLI arguments. Maintainers favored a separate settings source, disabled by default, with [named options as an initial scope](https://github.com/pydantic/pydantic-settings/issues/209#issuecomment-1900844866). [PR #214](https://github.com/pydantic/pydantic-settings/pull/214), merged in June 2024, added `CliSettingsSource`, including nested fields, collections, generated help, positional arguments, and subcommands.
+- **September 2024**. [PR #389](https://github.com/pydantic/pydantic-settings/pull/389) added `CliApp` to run application commands. During review, a maintainer [raised concerns about the amount of CLI code and future maintenance](https://github.com/pydantic/pydantic-settings/pull/389#issuecomment-2345487916). The author pointed to user requests and proposed limiting further feature growth.
+
+[Click](https://click.palletsprojects.com/) offers another way to build CLI applications. In April 2025, [pydantic/pydantic-settings#584](https://github.com/pydantic/pydantic-settings/issues/584) proposed generating Click options and arguments from settings models and passing model instances to command functions. A maintainer [declined the integration](https://github.com/pydantic/pydantic-settings/issues/584#issuecomment-2804333407), citing uncertain added value and the implementation and maintenance work, while leaving open reconsideration if more users wanted it. This decision concerned automatic integration. Applications can still combine their own Click commands with Pydantic settings models.
+
+fastenv keeps its integration focused on loading and validating settings. Generating parsers and executing commands would add a separate CLI API to maintain. Applications can use Click or Python's standard-library `argparse`, then [pass explicitly supplied options](settings.md#application-command-line-arguments) to `Settings(**overrides)` or a custom source. Omitting unspecified options preserves environment and file values. The tradeoff is that fastenv does not generate a CLI from the model or provide Pydantic Settings' CLI APIs.
+
+### Differences from pydantic-settings
+
+fastenv intentionally differs from pydantic-settings in these areas:
+
+- **Imports and dependencies**. Import settings APIs from `fastenv` and install `fastenv[settings]` for Pydantic support. This extra does not depend on pydantic-settings or python-dotenv.
+- **Command-line interfaces**. fastenv does not expose pydantic-settings CLI APIs such as `CliApp`, `CliSettingsSource`, CLI annotations, or `cli_*` configuration and `_cli_*` constructor options. See the [CLI comparison](#command-line-interfaces) for the use cases, implementation history, and rationale for keeping argument parsing in applications.
+- **YAML configuration**. fastenv does not support YAML settings files or provide `YamlConfigSettingsSource`, the `yaml_file`, `yaml_file_encoding`, or `yaml_config_section` options, or a YAML dependency extra. This avoids installing a separate YAML parser. Use dotenv, JSON, or TOML files instead. JSON and TOML parsing use Python's standard library.
+- **Dotenv syntax**. Files use [fastenv's parser](settings.md#dotenv-parsing-and-environment-isolation), including shell tokenization, whitespace-separated assignments, and literal variable references such as `${HOME}`. There is no variable interpolation. Bare names without `=` are ignored, and invalid shell quoting raises an error. Whitespace and quote handling can differ from python-dotenv.
+- **Cloud secret services**. pydantic-settings supports [AWS Secrets Manager](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/#aws-secrets-manager), [AWS Systems Manager Parameter Store](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/#aws-systems-manager-parameter-store), Azure Key Vault, and Google Cloud Secret Manager. fastenv does not provide these integrations or their SDK dependencies. `AWSSecretsManagerSettingsSource`, `AzureKeyVaultSettingsSource`, `GoogleSecretManagerSettingsSource`, and `SecretVersion` are intentionally absent from fastenv.
+- **Cloud object storage**. `fastenv[cloud]` provides its own asynchronous client for dotenv files in S3-compatible object storage, including AWS S3, Backblaze B2, and Cloudflare R2. It [avoids Boto3](cloud-object-storage.md#overview). Download a dotenv file before loading its path with `Settings(_env_file=...)`. Object storage support does not include SSM Parameter Store or cloud secret services.
+- **Compatibility scope**. The reference release is pydantic-settings 2.15.0 for environment variables, local files, secret directories, and custom sources. Private methods, module paths, and exact error messages are outside the compatibility contract. `fastenv.__version__` reports the fastenv version. Behavioral probes check the supported API without requiring every upstream export.
 
 ## python-decouple
 
@@ -173,7 +207,7 @@ The above effect can be accomplished with fastenv in a single call, `await faste
 
 ### Settings configuration
 
-Starlette offers a [config module](https://www.starlette.io/config/) for working with environment variables and settings, which takes inspiration from [python-decouple](https://github.com/henriquebastos/python-decouple). Settings are created by calling a Starlette `Config` instance. Constant notation is suggested for settings (`UPPERCASE_WITH_UNDERSCORES`).
+Starlette offers a [config module](https://www.starlette.dev/config/) for working with environment variables and settings, which takes inspiration from [python-decouple](https://github.com/henriquebastos/python-decouple). Settings are created by calling a Starlette `Config` instance. Constant notation is suggested for settings (`UPPERCASE_WITH_UNDERSCORES`).
 
 <!-- prettier-ignore -->
 !!!example
@@ -210,7 +244,7 @@ Type-casting provides improvements over some aspects of the standard library. Fo
 
 ### One-way configuration preference
 
-Starlette has an opinionated one-way configuration preference (environment variables -> Starlette `Config` instance). To avoid modifying environment variables after they have been loaded into a Starlette `Config` instance, [Starlette provides its own mapping onto `os.environ`](https://www.starlette.io/config/#reading-or-modifying-the-environment) (`starlette.config.environ`), which will raise an exception on attempts to change an environment variable that has already been loaded into a corresponding setting on a `Config` instance.
+Starlette has an opinionated one-way configuration preference (environment variables -> Starlette `Config` instance). To avoid modifying environment variables after they have been loaded into a Starlette `Config` instance, [Starlette provides its own mapping onto `os.environ`](https://www.starlette.dev/config/#reading-or-modifying-the-environment) (`starlette.config.environ`), which will raise an exception on attempts to change an environment variable that has already been loaded into a corresponding setting on a `Config` instance.
 
 While it is useful to have `starlette.config.environ` synchronized with `os.environ`, the downside is that `starlette.config.environ` contains local environment variables loaded from `os.environ`, and therefore wouldn't typically be dumped to a file.
 
@@ -258,7 +292,7 @@ It is also important to note that the one-way preference will only be enforced w
 
 ### Comparing fastenv and Starlette
 
-Install `fastenv[starlette]` to use [`fastenv.StarletteConfig`](settings.md), a subclass of Starlette's `Config`. It preserves Starlette's settings lookup, type casting, defaults, and environment prefixes while adding asynchronous loading of multiple dotenv files and TOML settings.
+Install `fastenv[starlette]` to use [`fastenv.StarletteConfig`](settings.md#starlette-integration), a subclass of Starlette's `Config`. It preserves Starlette's settings lookup, type casting, defaults, and environment prefixes while adding asynchronous loading of multiple dotenv files and TOML settings.
 
 - Both classes prefer existing environment variables over file values and leave the environment unchanged when loading files.
 - `fastenv.StarletteConfig.load()` accepts a list or tuple of dotenv paths, with later files overriding earlier files.
