@@ -7,20 +7,10 @@ from typing import TYPE_CHECKING
 
 import anyio
 
-from fastenv.utilities import logger, parse_dotenv_args
-from fastenv.utilities import parse_dotenv as parse_dotenv_pairs
+from fastenv.utilities import logger, parse_dotenv, parse_dotenv_args
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-
-
-def parse_dotenv(*contents: str, case_sensitive: bool = False) -> dict[str, str]:
-    """Parse dotenv strings without changing the process environment.
-
-    This shares the parser used by `DotEnv` and `StarletteConfig`. Later
-    assignments win. Keys are uppercased unless `case_sensitive=True`.
-    """
-    return dict(parse_dotenv_pairs(*contents, case_sensitive=case_sensitive))
 
 
 class DotEnv(MutableMapping[str, str]):
@@ -84,7 +74,7 @@ class DotEnv(MutableMapping[str, str]):
         return tuple(a.upper() for a in parsed_args if "=" not in a)
 
     def _parse_args_to_set(self, *args: str) -> tuple[tuple[str, str], ...]:
-        return parse_dotenv_pairs(*args)
+        return parse_dotenv(*args)
 
     def _parse_kwargs(self, **kwargs: str) -> dict[str, str]:
         return {

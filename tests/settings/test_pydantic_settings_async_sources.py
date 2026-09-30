@@ -16,7 +16,7 @@ from pydantic import AliasChoices, BaseModel, Field
 from pydantic.fields import FieldInfo
 
 from fastenv.settings.pydantic_settings_sources import (
-    _DEFER_SETTINGS_IO,
+    DEFER_SETTINGS_IO,
     DotEnvSettingsSource,
     InitSettingsSource,
     SecretsSettingsSource,
@@ -62,13 +62,13 @@ class TestAsyncDotenvSource:
 
         monkeypatch.setattr(Path, "read_text", read_text)
         monkeypatch.setattr(Path, "stat", stat)
-        token = _DEFER_SETTINGS_IO.set(True)
+        token = DEFER_SETTINGS_IO.set(True)
         try:
             source = DotEnvSettingsSource(
                 SourceSettings, env_file=[first, tmp_path / "missing", second]
             )
         finally:
-            _DEFER_SETTINGS_IO.reset(token)
+            DEFER_SETTINGS_IO.reset(token)
         assert not read_started.is_set()
 
         async def keep_running() -> None:
@@ -111,7 +111,7 @@ class TestAsyncDotenvSource:
             "APP_COUNT=9 APP_TOKEN=caf\xe9 APP_ITEMS=1,2 APP_UNKNOWN=value OTHER=ignored",
             encoding="latin-1",
         )
-        token = _DEFER_SETTINGS_IO.set(True)
+        token = DEFER_SETTINGS_IO.set(True)
         try:
             source = CommaSeparatedSource(
                 SourceSettings,
@@ -121,7 +121,7 @@ class TestAsyncDotenvSource:
                 dotenv_filtering=filtering,
             )
         finally:
-            _DEFER_SETTINGS_IO.reset(token)
+            DEFER_SETTINGS_IO.reset(token)
         assert await source.load() == {
             "count": "9",
             "token": "caf\xe9",

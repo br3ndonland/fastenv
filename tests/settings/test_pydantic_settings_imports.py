@@ -48,7 +48,7 @@ class TestSettingsImports:
 
             assert callable(fastenv.DotEnv)
             assert callable(fastenv.load_dotenv)
-            assert fastenv.parse_dotenv("VALUE=example") == {"VALUE": "example"}
+            assert fastenv.parse_dotenv("VALUE=example") == (("VALUE", "example"),)
             assert not hasattr(fastenv, "BaseSettings")
             assert not hasattr(fastenv, "StarletteConfig")
             assert not hasattr(fastenv.settings, "BaseSettings")

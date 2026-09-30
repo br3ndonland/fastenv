@@ -16,7 +16,7 @@ from pydantic.fields import FieldInfo
 from fastenv import BaseSettings, SettingsConfigDict, SettingsError
 from fastenv.settings.pydantic_settings import SettingsSource
 from fastenv.settings.pydantic_settings_sources import (
-    _DEFER_SETTINGS_IO,  # pyright: ignore[reportPrivateUsage]
+    DEFER_SETTINGS_IO,
     DotEnvSettingsSource,
     PydanticBaseSettingsSource,
 )
@@ -121,13 +121,13 @@ class TestAsyncSettingsLoading:
             count: int
 
             def __init__(self, **values: Any) -> None:
-                assert not _DEFER_SETTINGS_IO.get()
+                assert not DEFER_SETTINGS_IO.get()
                 calls.append("construct")
                 super().__init__(**values)
 
             @model_validator(mode="after")
             def record_validation(self) -> Self:
-                assert not _DEFER_SETTINGS_IO.get()
+                assert not DEFER_SETTINGS_IO.get()
                 calls.append("validate")
                 return self
 
@@ -156,7 +156,7 @@ class TestAsyncSettingsLoading:
 
         with pytest.raises(ValidationError):
             _ = await Invalid.load(count="invalid")
-        assert not _DEFER_SETTINGS_IO.get()
+        assert not DEFER_SETTINGS_IO.get()
 
     async def test_async_fields_do_not_collide_with_factory_parameters(self) -> None:
         """Allow a field named cls when loading settings asynchronously."""
@@ -202,7 +202,7 @@ class TestAsyncSettingsSources:
         events: list[str] = []
 
         async def remote() -> dict[str, Any]:
-            assert not _DEFER_SETTINGS_IO.get()
+            assert not DEFER_SETTINGS_IO.get()
             events.append("remote-start")
             await anyio.lowlevel.checkpoint()
             events.append("remote-end")
@@ -243,7 +243,7 @@ class TestAsyncSettingsSources:
             def settings_customise_sources(
                 cls, settings_cls: type[BaseSettings], *_args: Any, **sources: Any
             ) -> tuple[SettingsSource, ...]:
-                assert _DEFER_SETTINGS_IO.get()
+                assert DEFER_SETTINGS_IO.get()
                 computed = Computed(settings_cls)
                 assert computed.get_field_value(
                     settings_cls.model_fields["count"], "count"
@@ -285,13 +285,13 @@ class TestAsyncSettingsSources:
             def settings_customise_sources(
                 cls, settings_cls: type[BaseSettings], *_args: Any, **sources: Any
             ) -> tuple[SettingsSource, ...]:
-                assert _DEFER_SETTINGS_IO.get()
+                assert DEFER_SETTINGS_IO.get()
                 nested = Nested()
-                assert _DEFER_SETTINGS_IO.get()
+                assert DEFER_SETTINGS_IO.get()
                 return (nested.model_dump,)
 
         assert (await Settings.load()).value == "nested"
-        assert not _DEFER_SETTINGS_IO.get()
+        assert not DEFER_SETTINGS_IO.get()
 
 
 class TestAsyncSettingsConstruction:
@@ -439,12 +439,12 @@ class TestAsyncSettingsIsolation:
             def settings_customise_sources(
                 cls, settings_cls: type[BaseSettings], *_args: Any, **sources: Any
             ) -> tuple[SettingsSource, ...]:
-                assert _DEFER_SETTINGS_IO.get()
+                assert DEFER_SETTINGS_IO.get()
                 raise RuntimeError("source construction failed")
 
         with pytest.raises(RuntimeError, match="construction failed"):
             _ = await Broken.load()
-        assert not _DEFER_SETTINGS_IO.get()
+        assert not DEFER_SETTINGS_IO.get()
 
         dotenv = tmp_path / "config.env"
         _ = dotenv.write_text("VALUE=loaded")
@@ -459,13 +459,13 @@ class TestAsyncSettingsIsolation:
         cancelled = anyio.Event()
 
         async def suspended() -> dict[str, Any]:
-            assert not _DEFER_SETTINGS_IO.get()
+            assert not DEFER_SETTINGS_IO.get()
             started.set()
             try:
                 while True:
                     await anyio.lowlevel.checkpoint()
             finally:
-                assert not _DEFER_SETTINGS_IO.get()
+                assert not DEFER_SETTINGS_IO.get()
                 cancelled.set()
 
         class Settings(BaseSettings):
@@ -486,7 +486,7 @@ class TestAsyncSettingsIsolation:
             await started.wait()
             cancellation.cancel()
         assert cancelled.is_set()
-        assert not _DEFER_SETTINGS_IO.get()
+        assert not DEFER_SETTINGS_IO.get()
         dotenv = tmp_path / "config.env"
         _ = dotenv.write_text("VALUE=loaded")
         assert DotEnvSettingsSource(BaseSettings, env_file=dotenv).env_vars == {
@@ -522,7 +522,7 @@ class TestAsyncSettingsIsolation:
         async def load(index: int, file: Path) -> None:
             cls = Settings if index % 2 else Other
             actual[index] = (await cls.load(_env_file=file)).value
-            assert not _DEFER_SETTINGS_IO.get()
+            assert not DEFER_SETTINGS_IO.get()
 
         async with anyio.create_task_group() as tasks:
             for index, file in enumerate(files):

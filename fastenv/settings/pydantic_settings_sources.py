@@ -26,7 +26,7 @@ from pydantic import AliasChoices, AliasPath, BaseModel, Json
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from fastenv.dotenv import parse_dotenv
+from fastenv.utilities import parse_dotenv
 
 
 class SettingsError(ValueError):
@@ -66,7 +66,7 @@ class EnvNoneType(str):
 
 
 ENV_FILE_SENTINEL = Path("")
-_DEFER_SETTINGS_IO: ContextVar[bool] = ContextVar(
+DEFER_SETTINGS_IO: ContextVar[bool] = ContextVar(
     "fastenv_defer_settings_io", default=False
 )
 
@@ -694,7 +694,7 @@ class DotEnvSettingsSource(EnvSettingsSource):
 
     def _read_env_file(self, file_path: Path) -> dict[str, Any]:
         contents = file_path.read_text(encoding=self.env_file_encoding)
-        return self._parse_env_vars(parse_dotenv(contents, case_sensitive=True))
+        return self._parse_env_vars(dict(parse_dotenv(contents, case_sensitive=True)))
 
     def _read_env_files(self) -> dict[str, Any]:
         if self.env_file is None:
@@ -712,7 +712,7 @@ class DotEnvSettingsSource(EnvSettingsSource):
         return result
 
     def _load_env_vars(self) -> dict[str, Any]:
-        if _DEFER_SETTINGS_IO.get():
+        if DEFER_SETTINGS_IO.get():
             return {}
         return self._read_env_files()
 
@@ -730,7 +730,7 @@ class DotEnvSettingsSource(EnvSettingsSource):
                     contents = await path.read_text(encoding=self.env_file_encoding)
                     self.env_vars.update(
                         self._parse_env_vars(
-                            parse_dotenv(contents, case_sensitive=True)
+                            dict(parse_dotenv(contents, case_sensitive=True))
                         )
                     )
         return self()

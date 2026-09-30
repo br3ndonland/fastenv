@@ -423,14 +423,15 @@ class TestSettingsEnvironmentIsolation:
     def test_parser_is_pure_and_preserves_fastenv_semantics(self) -> None:
         """Parse fastenv syntax without expanding references or changing the environment."""
         before = dict(os.environ)
-        assert parse_dotenv('export Mixed="hello world" EMPTY= # comment\nBARE') == {
-            "MIXED": "hello world",
-            "EMPTY": "",
-        }
-        assert parse_dotenv("Mixed=one", "Mixed=two", case_sensitive=True) == {
-            "Mixed": "two"
-        }
-        assert parse_dotenv("REF='${LITERAL}'") == {"REF": "${LITERAL}"}
+        assert parse_dotenv('export Mixed="hello world" EMPTY= # comment\nBARE') == (
+            ("MIXED", "hello world"),
+            ("EMPTY", ""),
+        )
+        assert parse_dotenv("Mixed=one", "Mixed=two", case_sensitive=True) == (
+            ("Mixed", "one"),
+            ("Mixed", "two"),
+        )
+        assert parse_dotenv("REF='${LITERAL}'") == (("REF", "${LITERAL}"),)
         assert dict(os.environ) == before
 
     def test_concurrent_loads_leave_environment_unchanged(self, tmp_path: Path) -> None:
