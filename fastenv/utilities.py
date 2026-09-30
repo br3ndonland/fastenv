@@ -26,15 +26,14 @@ def parse_dotenv(
     *args: str, case_sensitive: bool = False
 ) -> tuple[tuple[str, str], ...]:
     """Parse dotenv strings without modifying the process environment."""
-    pairs: list[tuple[str, str]] = []
-    for arg in parse_dotenv_args(*args):
-        if "=" in arg:
-            key, value = arg.split("=", 1)
-            key = key.strip(" \n\"'")
-            pairs.append(
-                (key if case_sensitive else key.upper(), value.strip(" \n\"'"))
-            )
-    return tuple(pairs)
+    return tuple(
+        (
+            (split_arg[0] if case_sensitive else split_arg[0].upper()).strip(" \n\"'"),
+            split_arg[1].strip(" \n\"'"),
+        )
+        for arg in parse_dotenv_args(*args)
+        if len(split_arg := arg.split(sep="=", maxsplit=1)) == 2
+    )
 
 
 async def read_toml_file(
