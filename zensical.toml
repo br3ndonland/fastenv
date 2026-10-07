@@ -4,6 +4,7 @@ nav = [
   "index.md",
   "environment.md",
   "dotenv.md",
+  "settings.md",
   "cloud-object-storage.md",
   "comparisons.md",
   "changelog.md",

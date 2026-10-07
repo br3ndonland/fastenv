@@ -36,6 +36,9 @@ Repository = "https://github.com/br3ndonland/fastenv"
 cloud = [
   "httpxyz>=0.30,<1",
 ]
+starlette = [
+  "starlette>=0.37.2,<2",
+]
 
 [dependency-groups]
 checks = [
@@ -85,6 +88,7 @@ dependency-groups = [
 ]
 features = [
   "cloud",
+  "starlette",
 ]
 
 [tool.hatch.envs.default]
@@ -96,6 +100,7 @@ dependency-groups = [
 ]
 features = [
   "cloud",
+  "starlette",
 ]
 
 [tool.hatch.envs.default.scripts]
