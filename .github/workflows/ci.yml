@@ -33,7 +33,7 @@ jobs:
     env:
       HATCH_ENV_TYPE_VIRTUAL_PATH: ".venv"
       HATCH_ENV: "ci"
-      HATCH_VERSION: ">=1.17,<1.18"
+      HATCH_VERSION: ">=1.18,<1.19"
       PIPX_VERSION: ">=1.17,<1.18"
     steps:
       - uses: actions/checkout@v6
