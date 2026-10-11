@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class Config(starlette.config.Config):
+class StarletteConfig(starlette.config.Config):
     """Starlette settings with multiple dotenv files and TOML metadata.
 
     Environment variables take priority over dotenv files, which take priority

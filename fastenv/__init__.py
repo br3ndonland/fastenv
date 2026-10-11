@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover
 from .dotenv import DotEnv, dotenv_values, dump_dotenv, find_dotenv, load_dotenv
 
 try:
-    from .settings.starlette_config import Config as StarletteConfig
+    from .settings.starlette_config import StarletteConfig
 except ModuleNotFoundError as e:  # pragma: no cover
     if e.name != "starlette":
         raise
