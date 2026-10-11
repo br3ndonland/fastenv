@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from functools import partial
 from typing import TYPE_CHECKING, TypeVar, overload
 
 import anyio
@@ -19,9 +20,10 @@ class StarletteConfig(starlette.config.Config):
     """Starlette settings with multiple dotenv files and TOML metadata.
 
     Environment variables take priority over dotenv files, which take priority
-    over TOML values. Later dotenv files override earlier ones. Use ``load`` to
-    read files asynchronously without modifying the environment, then retrieve
-    settings synchronously. By default, file errors are raised. Set
+    over TOML values. Later dotenv files override earlier ones. Pass files to the
+    constructor in synchronous code, or await ``load`` to create an instance
+    asynchronously. Neither option modifies the environment. Retrieve settings
+    synchronously. By default, file errors are raised. Set
     ``raise_exceptions=False`` to log and skip failed sources.
     """
 
@@ -30,11 +32,35 @@ class StarletteConfig(starlette.config.Config):
 
     def __init__(
         self,
-        *,
+        env_file: Sequence[os.PathLike[str] | str]
+        | os.PathLike[str]
+        | str
+        | None = None,
         environ: Mapping[str, str] = starlette.config.environ,
         env_prefix: str = "",
+        encoding: str = "utf-8",
+        *,
+        toml_file: os.PathLike[str] | str | None = None,
+        toml_table: str = "project",
+        raise_exceptions: bool = True,
     ) -> None:
+        """Load files with AnyIO before returning, or use only the environment.
+
+        File loading requires a thread without a running event loop. In async
+        code, use ``await StarletteConfig.load(...)`` instead.
+        """
         super().__init__(environ=environ, env_prefix=env_prefix)
+        if env_file is not None or toml_file is not None:
+            anyio.run(
+                partial(
+                    self._load_files,
+                    env_file,
+                    encoding=encoding,
+                    toml_file=toml_file,
+                    toml_table=toml_table,
+                    raise_exceptions=raise_exceptions,
+                )
+            )
 
     @classmethod
     async def load(
@@ -53,9 +79,31 @@ class StarletteConfig(starlette.config.Config):
     ) -> Self:
         """Load dotenv and TOML files asynchronously into a new config instance."""
         config = cls(environ=environ, env_prefix=env_prefix)
+        await config._load_files(
+            env_file,
+            encoding=encoding,
+            toml_file=toml_file,
+            toml_table=toml_table,
+            raise_exceptions=raise_exceptions,
+        )
+        return config
+
+    async def _load_files(
+        self,
+        env_file: Sequence[os.PathLike[str] | str]
+        | os.PathLike[str]
+        | str
+        | None = None,
+        *,
+        encoding: str = "utf-8",
+        toml_file: os.PathLike[str] | str | None = None,
+        toml_table: str = "project",
+        raise_exceptions: bool = True,
+    ) -> None:
+        """Read TOML and dotenv sources in order for both loading entry points."""
         if toml_file is not None:
             try:
-                config.file_values.update(
+                self.file_values.update(
                     await read_toml_file(toml_file, table=toml_table)
                 )
             except (OSError, ValueError, LookupError, TypeError) as e:
@@ -75,14 +123,13 @@ class StarletteConfig(starlette.config.Config):
             try:
                 path = anyio.Path(file)
                 content = await path.read_text(encoding=encoding)
-                config.file_values.update(parse_dotenv(content))
+                self.file_values.update(parse_dotenv(content))
             except (OSError, ValueError, LookupError, TypeError) as e:
                 logger.error(
                     f"fastenv error reading {file}: {e.__class__.__qualname__} {e}"
                 )
                 if raise_exceptions:
                     raise
-        return config
 
     @overload
     def __call__(

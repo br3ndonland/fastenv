@@ -72,16 +72,71 @@ assert not hasattr(fastenv, "StarletteConfig")
             isolated_config("FASTENV_CONFIG_TEST_VALUE", default="default") == "default"
         )
 
-    def test_starlette_config_constructor_rejects_file_arguments(
+    def test_starlette_config_constructor_loads_multiple_sources(
         self, tmp_path: Path
     ) -> None:
-        """Assert that file arguments require the async loader."""
-        with pytest.raises(TypeError):
-            _ = StarletteConfig(tmp_path / ".env")  # pyright: ignore[reportCallIssue]
-        with pytest.raises(TypeError):
-            _ = StarletteConfig(env_file=tmp_path / ".env")  # pyright: ignore[reportCallIssue]
-        with pytest.raises(TypeError):
-            _ = StarletteConfig(toml_file=tmp_path / "pyproject.toml")  # pyright: ignore[reportCallIssue]
+        """Load ordered dotenv files and TOML before the constructor returns."""
+        first = tmp_path / ".env"
+        second = tmp_path / ".env.local"
+        toml_file = tmp_path / "settings.toml"
+        _ = first.write_text("APP_PORT=8000 APP_NAME=base APP_DEBUG=false\n")
+        _ = second.write_text("APP_PORT=9000 APP_NAME=local\n")
+        _ = toml_file.write_text("[settings]\napp_port = 7000\napp_count = 3\n")
+        environ = {"APP_NAME": "environment"}
+        process_environ = dict(os.environ)
+        config = StarletteConfig(
+            [str(first), anyio.Path(second)],
+            environ,
+            "APP_",
+            toml_file=toml_file,
+            toml_table="settings",
+        )
+        assert config("NAME") == "environment"
+        assert config("PORT", cast=int) == 9000
+        assert config("DEBUG", cast=bool) is False
+        assert config("COUNT") == 3
+        assert environ == {"APP_NAME": "environment"}
+        assert dict(os.environ) == process_environ
+
+    def test_starlette_config_constructor_encoding(self, tmp_path: Path) -> None:
+        """Accept one dotenv path and Starlette's positional encoding argument."""
+        env_file = tmp_path / ".env"
+        _ = env_file.write_bytes(b"APP_MESSAGE=ol\xe1\n")
+        config = StarletteConfig(env_file, {}, "APP_", "latin-1")
+        assert config("MESSAGE") == "ol\xe1"
+
+    @pytest.mark.parametrize("suppress", (False, True))
+    @pytest.mark.parametrize("source", ("dotenv", "toml"))
+    def test_starlette_config_constructor_file_errors(
+        self, tmp_path: Path, suppress: bool, source: str
+    ) -> None:
+        """Apply strict and suppressed file errors during synchronous construction."""
+        missing = tmp_path / "missing"
+        if suppress:
+            config = StarletteConfig(
+                missing if source == "dotenv" else None,
+                environ={},
+                toml_file=missing if source == "toml" else None,
+                raise_exceptions=False,
+            )
+            assert config("MISSING", default="default") == "default"
+        else:
+            with pytest.raises(FileNotFoundError):
+                _ = StarletteConfig(
+                    missing if source == "dotenv" else None,
+                    environ={},
+                    toml_file=missing if source == "toml" else None,
+                )
+
+    @pytest.mark.anyio
+    async def test_starlette_config_constructor_in_running_event_loop(
+        self, tmp_path: Path
+    ) -> None:
+        """Allow environment-only construction but reject nested event loops."""
+        config = StarletteConfig(environ={"VALUE": "environment"})
+        assert config("VALUE") == "environment"
+        with pytest.raises(RuntimeError, match="Already running"):
+            _ = StarletteConfig(tmp_path / ".env", raise_exceptions=False)
 
     @pytest.mark.anyio
     async def test_starlette_config_load_preserves_subclass(
