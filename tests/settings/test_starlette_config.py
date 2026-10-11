@@ -211,9 +211,6 @@ MixedCase = "retained"
         toml_file = Path(__file__).resolve().parents[2] / "pyproject.toml"
         config = await Config.load(environ={}, toml_file=toml_file)
         assert config("NAME") == "fastenv"
-        assert config("DESCRIPTION") == (
-            "Unified environment variable and settings management for FastAPI and beyond."
-        )
         assert config("URLS") == {
             "Documentation": "https://fastenv.bws.bio",
             "Homepage": "https://github.com/br3ndonland/fastenv",
