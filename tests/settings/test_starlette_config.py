@@ -112,10 +112,12 @@ assert not hasattr(fastenv, "StarletteConfig")
         """Apply strict and suppressed file errors during synchronous construction."""
         missing = tmp_path / "missing"
         if suppress:
-            config = StarletteConfig(
-                missing, environ={}, toml_file=missing, raise_exceptions=False
+            assert (
+                StarletteConfig(
+                    missing, environ={}, toml_file=missing, raise_exceptions=False
+                )("MISSING", default="default")
+                == "default"
             )
-            assert config("MISSING", default="default") == "default"
         else:
             with pytest.raises(FileNotFoundError):
                 _ = StarletteConfig(missing, environ={}, toml_file=missing)
