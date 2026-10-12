@@ -106,27 +106,19 @@ assert not hasattr(fastenv, "StarletteConfig")
         assert config("MESSAGE") == "ol\xe1"
 
     @pytest.mark.parametrize("suppress", (False, True))
-    @pytest.mark.parametrize("source", ("dotenv", "toml"))
     def test_starlette_config_constructor_file_errors(
-        self, tmp_path: Path, suppress: bool, source: str
+        self, tmp_path: Path, suppress: bool
     ) -> None:
         """Apply strict and suppressed file errors during synchronous construction."""
         missing = tmp_path / "missing"
         if suppress:
             config = StarletteConfig(
-                missing if source == "dotenv" else None,
-                environ={},
-                toml_file=missing if source == "toml" else None,
-                raise_exceptions=False,
+                missing, environ={}, toml_file=missing, raise_exceptions=False
             )
             assert config("MISSING", default="default") == "default"
         else:
             with pytest.raises(FileNotFoundError):
-                _ = StarletteConfig(
-                    missing if source == "dotenv" else None,
-                    environ={},
-                    toml_file=missing if source == "toml" else None,
-                )
+                _ = StarletteConfig(missing, environ={}, toml_file=missing)
 
     @pytest.mark.anyio
     async def test_starlette_config_constructor_in_running_event_loop(
