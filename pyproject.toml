@@ -127,7 +127,7 @@ dependency-groups = [
 path = "fastenv/__init__.py"
 
 [tool.pytest]
-addopts = ["-q"]
+addopts = ["-v"]
 minversion = "9.0"
 testpaths = ["tests"]
 
