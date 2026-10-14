@@ -60,7 +60,7 @@ Files can be loaded with `await fastenv.load_dotenv()`. File I/O is implemented 
 
     The fastenv package uses [AnyIO](https://anyio.readthedocs.io/en/stable/index.html) for its asynchronous functions. AnyIO uses similar syntax to `asyncio`, such as `anyio.run()` instead of `asyncio.run()`, but offers many additional features.
 
-    If you're working with async-enabled web server tools like [Uvicorn](https://www.uvicorn.org/), [Starlette](https://www.starlette.io/), and [FastAPI](https://fastapi.tiangolo.com/), you don't need to include the `anyio.run()` part. It will be handled for you automatically when you start your server.
+    If you're working with async-enabled web server tools like [Uvicorn](https://www.uvicorn.org/), [Starlette](https://www.starlette.dev/), and [FastAPI](https://fastapi.tiangolo.com/), you don't need to include the `anyio.run()` part. It will be handled for you automatically when you start your server.
 
     See the [Trio docs](https://trio.readthedocs.io/en/stable/reference-io.html#asynchronous-filesystem-i-o) for an informative justification of asynchronous file I/O.
 
