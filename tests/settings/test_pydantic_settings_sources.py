@@ -280,9 +280,8 @@ class TestEnvironmentSource:
 
         from fastenv import IncompleteFieldDefinitionWarning
 
-        settings = create_model(
-            "UnresolvedSettings", pending=(ForwardRef("LaterModel"), ...)
-        )
+        pending_annotation: Any = ForwardRef("LaterModel")
+        settings = create_model("UnresolvedSettings", pending=(pending_annotation, ...))
         with pytest.warns(
             IncompleteFieldDefinitionWarning, match="pending.*forward reference"
         ):
