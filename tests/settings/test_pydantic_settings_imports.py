@@ -89,10 +89,10 @@ class TestSettingsImports:
             """
             import fastenv
             import fastenv.settings
-            from fastenv.settings.starlette_config import Config
+            from fastenv.settings.starlette_config import StarletteConfig
 
-            assert fastenv.StarletteConfig is Config
-            assert Config(environ={"COUNT": "3"})("COUNT", cast=int) == 3
+            assert fastenv.StarletteConfig is StarletteConfig
+            assert StarletteConfig(environ={"COUNT": "3"})("COUNT", cast=int) == 3
             assert not hasattr(fastenv, "BaseSettings")
             assert "pydantic" not in sys.modules
             assert "pydantic_core" not in sys.modules
@@ -106,14 +106,14 @@ class TestSettingsImports:
             """
             import fastenv
             from fastenv import BaseSettings
-            from fastenv.settings.starlette_config import Config
+            from fastenv.settings.starlette_config import StarletteConfig
 
             class Settings(BaseSettings):
                 count: int = 0
 
             assert Settings(count="5").count == 5
-            assert fastenv.StarletteConfig is Config
-            assert Config(environ={"COUNT": "4"})("COUNT", cast=int) == 4
+            assert fastenv.StarletteConfig is StarletteConfig
+            assert StarletteConfig(environ={"COUNT": "4"})("COUNT", cast=int) == 4
             """,
         )
 

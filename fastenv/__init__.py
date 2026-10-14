@@ -41,7 +41,7 @@ except ModuleNotFoundError as e:  # pragma: no cover
         raise
 
 try:
-    from .settings.starlette_config import Config as StarletteConfig
+    from .settings.starlette_config import StarletteConfig
 except ModuleNotFoundError as e:  # pragma: no cover
     if e.name != "starlette":
         raise
