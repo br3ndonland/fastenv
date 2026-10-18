@@ -27,7 +27,7 @@ See the [`os` module docs](https://docs.python.org/3/library/os.html) and the [d
 - Initially, the source code wasn't consistently type-annotated ([sloria/environs#186](https://github.com/sloria/environs/issues/186)), but based on its [PEP 561](https://www.python.org/dev/peps/pep-0561/) marker file, it appears to be type-annotated now.
 - Depends on python-dotenv ([sloria/environs#196](https://github.com/sloria/environs/issues/196)), so it inherits the limitations described in the [python-dotenv section](#python-dotenv).
 
-## _pydantic_
+## Pydantic
 
 ### Settings configuration
 
@@ -36,7 +36,7 @@ Pydantic 2 provides settings management through the separate [pydantic-settings 
 The optional [Pydantic integration](settings.md#pydantic-integration) follows the supported parts of this public API with fastenv dotenv parsing and no dependency on python-dotenv. Its scope includes environment variables, local configuration files, secret directories, and custom sources, with the [differences described below](#differences-from-pydantic-settings).
 
 <!-- prettier-ignore -->
-!!!example "Simple _pydantic_ settings model"
+!!!example "Simple Pydantic settings model"
 
     ```py
     import os
