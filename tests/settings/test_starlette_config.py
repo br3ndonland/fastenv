@@ -7,7 +7,7 @@ import sys
 import threading
 import tomllib
 from pathlib import Path
-from typing import assert_type, cast
+from typing import TYPE_CHECKING, assert_type, cast
 
 import anyio
 import pytest
@@ -16,6 +16,9 @@ from starlette.datastructures import CommaSeparatedStrings, Secret
 
 from fastenv.settings.starlette_config import StarletteConfig
 from fastenv.utilities import read_toml_file
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 class TestStarletteConfigConstruction:
@@ -388,10 +391,11 @@ only_toml = "toml"
             _ = config("COUNT", cast=bool)
 
     @pytest.mark.anyio
-    async def test_starlette_config_environ_read_protection(
-        self, tmp_path: Path
+    async def test_starlette_config_environ_read_behavior(
+        self, tmp_path: Path, mocker: MockerFixture
     ) -> None:
-        """Prevent environment changes after a setting has been read.
+        """Assert that `fastenv.StarletteConfig` retains the same environment variable
+        read behavior as Starlette `Config`.
 
         As described in the comparisons docs, Starlette has an opinionated one-way
         configuration preference (environment variables -> Starlette `Config` instance).
@@ -401,52 +405,41 @@ only_toml = "toml"
         attempts to change an environment variable that has already been loaded into a
         corresponding setting on a `Config` instance.
 
+        This protection only applies to `starlette.config.environ`. Updates to
+        `os.environ` bypass the protection, and future calls to the `Config` instance
+        may then read updated values from `os.environ` depending on config precedence.
+
         While it is useful to have `starlette.config.environ` synchronized with
         `os.environ`, the downside is that `starlette.config.environ` contains local
         environment variables loaded from `os.environ`, and therefore wouldn't typically
         be dumped to a file.
-
-        It is also important to note that the one-way preference will only be enforced
-        when using `starlette.environ`. If a variable is changed using `os.environ`, it
-        will be updated correspondingly in `starlette.environ`, but no exception will be
-        raised, and the `Config` instance value will not be updated.
 
         This is mostly a test of Starlette's behavior rather than fastenv's behavior,
         and therefore could be considered unnecessary. However, as this behavior is
         described in the fastenv docs, it is helpful to have a test in this project
         to ensure the docs continue to accurately represent Starlette's behavior.
         """
+        mocker.patch.dict(os.environ, clear=True)
         env_file = tmp_path / ".env"
-        _ = env_file.write_text("FROM_FILE=file\n")
-        environ = starlette.config.Environ({"FROM_ENV": "environment"})
+        _ = env_file.write_text("FOO_VARIABLE=file\nFROM_FILE=file\n")
+        environ = starlette.config.Environ(os.environ)
+        environ["FOO_VARIABLE"] = "bar"
         config = await StarletteConfig.load(env_file, environ=environ)
-        assert config("FROM_ENV") == "environment"
+        assert config("FOO_VARIABLE", cast=str, default="baz") == "bar"
         assert config("FROM_FILE") == "file"
         with pytest.raises(starlette.config.EnvironError):
-            environ["FROM_ENV"] = "changed"
+            environ["FOO_VARIABLE"] = "foo"
         with pytest.raises(starlette.config.EnvironError):
-            del environ["FROM_ENV"]
+            del environ["FOO_VARIABLE"]
         with pytest.raises(starlette.config.EnvironError):
             environ["FROM_FILE"] = "changed"
-        environ["UNREAD"] = "allowed"
-        assert environ["UNREAD"] == "allowed"
-
-    @pytest.mark.anyio
-    async def test_starlette_config_reads_live_environ_mapping(
-        self, tmp_path: Path
-    ) -> None:
-        """Read current environment values and fall back to files after deletion."""
-        env_file = tmp_path / ".env"
-        _ = env_file.write_text("VALUE=file\n")
-        environ = {"VALUE": "initial"}
-        config = await StarletteConfig.load(env_file, environ=environ)
-        assert config("VALUE") == "initial"
-        environ["VALUE"] = "updated"
-        assert config("VALUE") == "updated"
-        environ["VALUE"] = ""
-        assert config("VALUE", default="fallback") == ""
-        del environ["VALUE"]
-        assert config("VALUE") == "file"
+        os.environ["FOO_VARIABLE"] = "foo"
+        assert environ["FOO_VARIABLE"] == "foo"
+        assert config("FOO_VARIABLE", cast=str, default="baz") == "foo"
+        os.environ["FOO_VARIABLE"] = ""
+        assert config("FOO_VARIABLE", default="baz") == ""
+        del os.environ["FOO_VARIABLE"]
+        assert config("FOO_VARIABLE") == "file"
 
 
 class TestStarletteConfigFileErrors:
