@@ -31,7 +31,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[LifespanState]:
     """Configure app lifespan.
 
     https://fastapi.tiangolo.com/advanced/events/
-    https://www.starlette.dev/lifespan/
+    https://starlette.dev/lifespan/
     """
     settings = await Settings.load()
     lifespan_state: LifespanState = {"settings": settings}

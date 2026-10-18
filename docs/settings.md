@@ -177,7 +177,7 @@ Background: [fastenv discussion 21](https://github.com/br3ndonland/fastenv/discu
 
 ## Starlette integration
 
-`fastenv.StarletteConfig` builds on [Starlette's `Config`](https://www.starlette.io/config/). You get the same setting lookups, type casting, defaults, and environment prefixes, plus support for multiple dotenv files and TOML settings.
+`fastenv.StarletteConfig` builds on [Starlette's `Config`](https://starlette.dev/config/). You get the same setting lookups, type casting, defaults, and environment prefixes, plus support for multiple dotenv files and TOML settings.
 
 Install the integration in your project's virtual environment:
 
