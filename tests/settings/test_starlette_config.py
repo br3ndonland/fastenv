@@ -391,7 +391,31 @@ only_toml = "toml"
     async def test_starlette_config_environ_read_protection(
         self, tmp_path: Path
     ) -> None:
-        """Prevent environment changes after a setting has been read."""
+        """Prevent environment changes after a setting has been read.
+
+        As described in the comparisons docs, Starlette has an opinionated one-way
+        configuration preference (environment variables -> Starlette `Config` instance).
+        To avoid modifying environment variables after they have been loaded into a
+        Starlette `Config` instance, Starlette provides its own mapping onto
+        `os.environ` (`starlette.config.environ`), which will raise an exception on
+        attempts to change an environment variable that has already been loaded into a
+        corresponding setting on a `Config` instance.
+
+        While it is useful to have `starlette.config.environ` synchronized with
+        `os.environ`, the downside is that `starlette.config.environ` contains local
+        environment variables loaded from `os.environ`, and therefore wouldn't typically
+        be dumped to a file.
+
+        It is also important to note that the one-way preference will only be enforced
+        when using `starlette.environ`. If a variable is changed using `os.environ`, it
+        will be updated correspondingly in `starlette.environ`, but no exception will be
+        raised, and the `Config` instance value will not be updated.
+
+        This is mostly a test of Starlette's behavior rather than fastenv's behavior,
+        and therefore could be considered unnecessary. However, as this behavior is
+        described in the fastenv docs, it is helpful to have a test in this project
+        to ensure the docs continue to accurately represent Starlette's behavior.
+        """
         env_file = tmp_path / ".env"
         _ = env_file.write_text("FROM_FILE=file\n")
         environ = starlette.config.Environ({"FROM_ENV": "environment"})
