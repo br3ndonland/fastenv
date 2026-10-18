@@ -173,7 +173,7 @@ The above effect can be accomplished with fastenv in a single call, `await faste
 
 ### Settings configuration
 
-Starlette offers a [config module](https://www.starlette.io/config/) for working with environment variables and settings, which takes inspiration from [python-decouple](https://github.com/henriquebastos/python-decouple). Settings are created by calling a Starlette `Config` instance.
+Starlette offers a [config module](https://starlette.dev/config/) for working with environment variables and settings, which takes inspiration from [python-decouple](https://github.com/henriquebastos/python-decouple). Settings are created by calling a Starlette `Config` instance.
 
 <!-- prettier-ignore -->
 !!!example
@@ -210,7 +210,7 @@ Type-casting provides improvements over some aspects of the standard library. Fo
 
 ### One-way configuration preference
 
-Starlette has an opinionated one-way configuration preference (environment variables -> Starlette `Config` instance). To avoid modifying environment variables after they have been loaded into a Starlette `Config` instance, [Starlette provides its own mapping onto `os.environ`](https://www.starlette.io/config/#reading-or-modifying-the-environment) (`starlette.config.environ`), which will raise an exception on attempts to change an environment variable that has already been loaded into a corresponding setting on a `Config` instance.
+Starlette has an opinionated one-way configuration preference (environment variables -> Starlette `Config` instance). To avoid modifying environment variables after they have been loaded into a Starlette `Config` instance, [Starlette provides its own mapping onto `os.environ`](https://starlette.dev/config/#reading-or-modifying-the-environment) (`starlette.config.environ`), which will raise an exception on attempts to change an environment variable that has already been loaded into a corresponding setting on a `Config` instance.
 
 This protection only applies to `starlette.config.environ`. Updates to `os.environ` bypass the protection, and future calls to the `Config` instance may then read updated values from `os.environ` depending on config precedence.
 

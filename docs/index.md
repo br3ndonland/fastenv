@@ -16,7 +16,7 @@ This project aims to:
 - [x] **Implement asynchronous file I/O**. Reading and writing files can be done asynchronously with packages like [AnyIO](https://github.com/agronholm/anyio).
 - [x] **Implement asynchronous object storage integration**. Dotenv files are commonly kept in cloud object storage, but environment variable management packages typically don't integrate with object storage clients. Additional logic is therefore required to download _.env_ files from object storage prior to loading environment variables. This project aims to integrate with S3-compatible object storage, with a focus on downloading and uploading file objects.
 - [x] **Read settings from TOML**. [It's all about _pyproject.toml_ now](https://snarky.ca/what-the-heck-is-pyproject-toml/). The Python community has pushed [PEP 517](https://www.python.org/dev/peps/pep-0517/) build tooling and [PEP 518](https://www.python.org/dev/peps/pep-0518/) build requirements forward, and [even `setuptools` has come around](https://setuptools.readthedocs.io/en/latest/build_meta.html). [PEP 621](https://www.python.org/dev/peps/pep-0621/) defined how to store package metadata and dependencies in _pyproject.toml_. The [Starlette integration](settings.md#toml-settings) makes this metadata available as application settings.
-- [ ] **Unify settings management for FastAPI**. [Uvicorn](https://www.uvicorn.org/), [Starlette](https://www.starlette.io/config/), and _[pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)_ each have their own ways of loading environment variables and configuring application settings. This means that, when [configuring a FastAPI application](https://fastapi.tiangolo.com/advanced/settings/), there are at least three different settings management tools available, each with their own pros and cons. It would be helpful to address the limitations of each of these options, potentially providing a similar, improved API for each one. The [Starlette integration](settings.md) is available as a first step.
+- [ ] **Unify settings management for FastAPI**. [Uvicorn](https://www.uvicorn.org/), [Starlette](https://starlette.dev/config/), and _[pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)_ each have their own ways of loading environment variables and configuring application settings. This means that, when [configuring a FastAPI application](https://fastapi.tiangolo.com/advanced/settings/), there are at least three different settings management tools available, each with their own pros and cons. It would be helpful to address the limitations of each of these options, potentially providing a similar, improved API for each one. The [Starlette integration](settings.md) is available as a first step.
 
 The source code is 100% type-annotated and unit-tested.
 
@@ -79,7 +79,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[LifespanState]:
     """Configure app lifespan.
 
     https://fastapi.tiangolo.com/advanced/events/
-    https://www.starlette.io/lifespan/
+    https://starlette.dev/lifespan/
     """
     settings = await fastenv.load_dotenv(".env")
     lifespan_state: LifespanState = {"settings": settings}
