@@ -33,7 +33,7 @@ See the [`os` module docs](https://docs.python.org/3/library/os.html) and the [d
 
 Pydantic 2 provides settings management through the separate [pydantic-settings package](https://github.com/pydantic/pydantic-settings). Its `BaseSettings` model reads typed settings from environment variables and other sources, then uses Pydantic for validation.
 
-The optional [Pydantic integration](settings.md#pydantic-integration) follows the supported parts of this public API with fastenv dotenv parsing and no dependency on python-dotenv. Its scope includes environment variables, local configuration files, secret directories, and custom sources, with the [differences described below](#differences-from-pydantic-settings).
+The fastenv [Pydantic integration](settings.md#pydantic-integration) offers a similar API as pydantic-settings, but with fastenv replacing python-dotenv. The [differences from pydantic-settings](#differences-from-pydantic-settings) are described below.
 
 <!-- prettier-ignore -->
 !!!example "Simple Pydantic settings model"
