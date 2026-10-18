@@ -207,7 +207,7 @@ The above effect can be accomplished with fastenv in a single call, `await faste
 
 ### Settings configuration
 
-Starlette offers a [config module](https://www.starlette.dev/config/) for working with environment variables and settings, which takes inspiration from [python-decouple](https://github.com/henriquebastos/python-decouple). Settings are created by calling a Starlette `Config` instance. Constant notation is suggested for settings (`UPPERCASE_WITH_UNDERSCORES`).
+Starlette offers a [config module](https://www.starlette.io/config/) for working with environment variables and settings, which takes inspiration from [python-decouple](https://github.com/henriquebastos/python-decouple). Settings are created by calling a Starlette `Config` instance.
 
 <!-- prettier-ignore -->
 !!!example
@@ -216,10 +216,10 @@ Starlette offers a [config module](https://www.starlette.dev/config/) for workin
     import starlette.config
 
     config = starlette.config.Config()
-    FOO_CONSTANT = config("FOO_VARIABLE", cast=str, default="baz")
+    config("FOO_VARIABLE", cast=str, default="baz")
     ```
 
-Starlette will look for an environment variable `FOO_VARIABLE`. For example, setting `FOO_VARIABLE=bar` in the environment will result in `FOO_CONSTANT = "bar"`. If the environment variable is unset, the result will be `FOO_CONSTANT = "baz"`. The `cast` keyword argument allows use of Starlette type-casting.
+Starlette will look for an environment variable `FOO_VARIABLE`. For example, setting `FOO_VARIABLE=bar` in the environment makes this lookup return `"bar"`. If the environment variable is unset, the lookup returns `"baz"`. The `cast` keyword argument allows use of Starlette type-casting.
 
 ### Type-casting
 
@@ -246,9 +246,9 @@ Type-casting provides improvements over some aspects of the standard library. Fo
 
 Starlette has an opinionated one-way configuration preference (environment variables -> Starlette `Config` instance). To avoid modifying environment variables after they have been loaded into a Starlette `Config` instance, [Starlette provides its own mapping onto `os.environ`](https://www.starlette.dev/config/#reading-or-modifying-the-environment) (`starlette.config.environ`), which will raise an exception on attempts to change an environment variable that has already been loaded into a corresponding setting on a `Config` instance.
 
-While it is useful to have `starlette.config.environ` synchronized with `os.environ`, the downside is that `starlette.config.environ` contains local environment variables loaded from `os.environ`, and therefore wouldn't typically be dumped to a file.
+This protection only applies to `starlette.config.environ`. Updates to `os.environ` bypass the protection, and future calls to the `Config` instance may then read updated values from `os.environ` depending on config precedence.
 
-It is also important to note that the one-way preference will only be enforced when using `starlette.environ`. If a variable is changed using `os.environ`, it will be updated correspondingly in `starlette.environ`, but no exception will be raised, and the `Config` instance value will not be updated.
+While it is useful to have `starlette.config.environ` synchronized with `os.environ`, the downside is that `starlette.config.environ` contains local environment variables loaded from `os.environ`, and therefore wouldn't typically be dumped to a file.
 
 <!-- prettier-ignore -->
 !!!example "Environment variables with `starlette.config`"
@@ -266,8 +266,7 @@ It is also important to note that the one-way preference will only be enforced w
     os.environ.get("FOO_VARIABLE")
     # 'bar'
     config = starlette.config.Config()
-    FOO_CONSTANT = config("FOO_VARIABLE", cast=str, default="baz")
-    FOO_CONSTANT
+    config("FOO_VARIABLE", cast=str, default="baz")
     # 'bar'
     starlette.config.environ["FOO_VARIABLE"] = "foo"
     # Traceback (most recent call last):
@@ -280,8 +279,8 @@ It is also important to note that the one-way preference will only be enforced w
     # 'foo'
     starlette.config.environ["FOO_VARIABLE"]
     # 'foo'
-    FOO_CONSTANT
-    # 'bar'
+    config("FOO_VARIABLE", cast=str, default="baz")
+    # 'foo'
     ```
 
 ### File I/O
