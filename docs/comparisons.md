@@ -173,7 +173,7 @@ The above effect can be accomplished with fastenv in a single call, `await faste
 
 ### Settings configuration
 
-Starlette offers a [config module](https://www.starlette.io/config/) for working with environment variables and settings, which takes inspiration from [python-decouple](https://github.com/henriquebastos/python-decouple). Settings are created by calling a Starlette `Config` instance. Constant notation is suggested for settings (`UPPERCASE_WITH_UNDERSCORES`).
+Starlette offers a [config module](https://starlette.dev/config/) for working with environment variables and settings, which takes inspiration from [python-decouple](https://github.com/henriquebastos/python-decouple). Settings are created by calling a Starlette `Config` instance.
 
 <!-- prettier-ignore -->
 !!!example
@@ -182,10 +182,10 @@ Starlette offers a [config module](https://www.starlette.io/config/) for working
     import starlette.config
 
     config = starlette.config.Config()
-    FOO_CONSTANT = config("FOO_VARIABLE", cast=str, default="baz")
+    config("FOO_VARIABLE", cast=str, default="baz")
     ```
 
-Starlette will look for an environment variable `FOO_VARIABLE`. For example, setting `FOO_VARIABLE=bar` in the environment will result in `FOO_CONSTANT = "bar"`. If the environment variable is unset, the result will be `FOO_CONSTANT = "baz"`. The `cast` keyword argument allows use of Starlette type-casting.
+Starlette will look for an environment variable `FOO_VARIABLE`. For example, setting `FOO_VARIABLE=bar` in the environment makes this lookup return `"bar"`. If the environment variable is unset, the lookup returns `"baz"`. The `cast` keyword argument allows use of Starlette type-casting.
 
 ### Type-casting
 
@@ -210,11 +210,11 @@ Type-casting provides improvements over some aspects of the standard library. Fo
 
 ### One-way configuration preference
 
-Starlette has an opinionated one-way configuration preference (environment variables -> Starlette `Config` instance). To avoid modifying environment variables after they have been loaded into a Starlette `Config` instance, [Starlette provides its own mapping onto `os.environ`](https://www.starlette.io/config/#reading-or-modifying-the-environment) (`starlette.config.environ`), which will raise an exception on attempts to change an environment variable that has already been loaded into a corresponding setting on a `Config` instance.
+Starlette has an opinionated one-way configuration preference (environment variables -> Starlette `Config` instance). To avoid modifying environment variables after they have been loaded into a Starlette `Config` instance, [Starlette provides its own mapping onto `os.environ`](https://starlette.dev/config/#reading-or-modifying-the-environment) (`starlette.config.environ`), which will raise an exception on attempts to change an environment variable that has already been loaded into a corresponding setting on a `Config` instance.
+
+This protection only applies to `starlette.config.environ`. Updates to `os.environ` bypass the protection, and future calls to the `Config` instance may then read updated values from `os.environ` depending on config precedence.
 
 While it is useful to have `starlette.config.environ` synchronized with `os.environ`, the downside is that `starlette.config.environ` contains local environment variables loaded from `os.environ`, and therefore wouldn't typically be dumped to a file.
-
-It is also important to note that the one-way preference will only be enforced when using `starlette.environ`. If a variable is changed using `os.environ`, it will be updated correspondingly in `starlette.environ`, but no exception will be raised, and the `Config` instance value will not be updated.
 
 <!-- prettier-ignore -->
 !!!example "Environment variables with `starlette.config`"
@@ -232,8 +232,7 @@ It is also important to note that the one-way preference will only be enforced w
     os.environ.get("FOO_VARIABLE")
     # 'bar'
     config = starlette.config.Config()
-    FOO_CONSTANT = config("FOO_VARIABLE", cast=str, default="baz")
-    FOO_CONSTANT
+    config("FOO_VARIABLE", cast=str, default="baz")
     # 'bar'
     starlette.config.environ["FOO_VARIABLE"] = "foo"
     # Traceback (most recent call last):
@@ -246,8 +245,8 @@ It is also important to note that the one-way preference will only be enforced w
     # 'foo'
     starlette.config.environ["FOO_VARIABLE"]
     # 'foo'
-    FOO_CONSTANT
-    # 'bar'
+    config("FOO_VARIABLE", cast=str, default="baz")
+    # 'foo'
     ```
 
 ### File I/O
@@ -255,6 +254,17 @@ It is also important to note that the one-way preference will only be enforced w
 - Starlette `Config` accepts an `env_file` keyword argument, which should point to a _.env_ file on disk. It loads the file with the synchronous `open()` built-in function.
 - If no _.env_ file is found at the path provided by `Config(env_file)`, Starlette will raise a warning instead of a `FileNotFoundError` ([encode/starlette#2422](https://github.com/encode/starlette/pull/2422), [encode/starlette#2446](https://github.com/encode/starlette/discussions/2446), [encode/starlette#2485](https://github.com/encode/starlette/pull/2485)). This can lead to issues if applications depend on environment variables that Starlette fails to load.
 - Starlette `Config` does not support multiple _.env_ files ([encode/starlette#432](https://github.com/encode/starlette/issues/432)).
+
+### Comparing fastenv and Starlette
+
+Install `fastenv[starlette]` to use [`fastenv.StarletteConfig`](settings.md), a subclass of Starlette's `Config`. It preserves Starlette's settings lookup, type casting, defaults, and environment prefixes while adding synchronous and asynchronous loading of multiple dotenv files and TOML settings.
+
+- Both classes prefer existing environment variables over file values and leave the environment unchanged when loading files.
+- `fastenv.StarletteConfig` accepts a list or tuple of dotenv paths, with later files overriding earlier files.
+- `fastenv.StarletteConfig` can load a TOML table as a fallback beneath environment variables and dotenv files, preserving native TOML values.
+- `fastenv.StarletteConfig` logs file errors and raises them by default. Set `raise_exceptions=False` to skip failed sources and retain successfully loaded sources.
+- Pass files to `fastenv.StarletteConfig(...)` in synchronous code, or use `await fastenv.StarletteConfig.load(...)` inside an existing event loop. Both use the same AnyIO file reader and return an instance with synchronous settings lookups.
+- Without file arguments, `fastenv.StarletteConfig()` reads settings from the environment and performs no file I/O.
 
 ### The future of `starlette.config`
 
