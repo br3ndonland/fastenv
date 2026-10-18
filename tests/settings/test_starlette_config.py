@@ -264,10 +264,10 @@ MixedCase = "retained"
         }
 
     @pytest.mark.anyio
-    async def test_starlette_config_falsey_toml_values(
+    async def test_starlette_config_falsy_toml_values(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Preserve falsey TOML values instead of replacing them with defaults."""
+        """Preserve falsy TOML values instead of replacing them with defaults."""
         toml_file = tmp_path / "pyproject.toml"
         _ = toml_file.write_text(
             """[project]
