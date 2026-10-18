@@ -108,6 +108,7 @@
     "stdlib",
     "subpackages",
     "theskumar",
+    "typer",
     "typeshed",
     "unittests",
     "uvicorn",
