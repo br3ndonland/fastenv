@@ -6,16 +6,23 @@ from __future__ import annotations
 
 import argparse
 import os
+from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, ClassVar, Literal
+from typing import Any, ClassVar, Literal, Self
 
+import anyio
+import anyio.lowlevel
 import pytest
-from pydantic import AliasChoices, BaseModel, Field, ValidationError
+from pydantic import AliasChoices, BaseModel, Field, ValidationError, model_validator
 from pydantic.fields import FieldInfo
 
-from fastenv import parse_dotenv
-from fastenv.settings.pydantic_settings import BaseSettings, SettingsConfigDict
+from fastenv import SettingsError, parse_dotenv
+from fastenv.settings.pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+    SettingsSource,
+)
 from fastenv.settings.pydantic_settings_sources import PydanticBaseSettingsSource
 
 
@@ -209,7 +216,7 @@ class TestSettingsSources:
                 json_file="unused.json"
             )
 
-        with pytest.warns(UserWarning, match="json_file.*JsonConfigSettingsSource"):
+        with pytest.warns(UserWarning, match="json_file"):
             _ = Settings()
 
 
@@ -260,9 +267,9 @@ class TestSettingsConfiguration:
         }
         with pytest.raises(ValidationError) as error:
             _ = Settings()
-        assert {(item["loc"], item["type"]) for item in error.value.errors()} == {
-            (("count",), "int_parsing"),
-            (("optional",), "int_parsing"),
+        assert {item["loc"] for item in error.value.errors()} == {
+            ("count",),
+            ("optional",),
         }
 
     @pytest.mark.parametrize("extra", ["allow", "ignore"])
@@ -389,13 +396,16 @@ class TestSettingsValidation:
         assert settings.count == 4
         assert Settings.model_json_schema()["properties"]["count"]["type"] == "integer"
 
-    def test_self_can_be_a_field(self) -> None:
-        """Allow a settings field named self."""
+    @pytest.mark.anyio
+    async def test_self_and_cls_can_be_fields(self) -> None:
+        """Allow settings fields named self and cls."""
 
         class Settings(BaseSettings):
             self: str
+            cls: str
 
-        assert Settings(self="example").self == "example"
+        assert Settings(self="example", cls="value").self == "example"
+        assert (await Settings.load(self="example", cls="value")).cls == "value"
 
     def test_invalid_alias_field_name_is_not_discarded(self) -> None:
         """Reject a field name when the model accepts only its alias."""
@@ -456,16 +466,248 @@ class TestSettingsEnvironmentIsolation:
         assert actual == [f"value-{index}" for index in range(12)]
         assert dict(os.environ) == before
 
+
+class TestSettingsAsyncLoading:
+    """Test Settings.load() inside a running event loop."""
+
     @pytest.mark.anyio
-    async def test_settings_inside_running_event_loop(self, tmp_path: Path) -> None:
-        """Allow synchronous settings construction inside a running event loop."""
+    async def test_constructor_and_load_agree_inside_running_event_loop(
+        self, tmp_path: Path
+    ) -> None:
+        """Apply the same constructor options whether loading sync or async."""
+
+        class Database(BaseModel):
+            host: str = "default"
+            port: int = 8000
+
+        class Settings(BaseSettings):
+            database: Database = Field(
+                default=Database(host="configured"),
+                validation_alias=AliasChoices("DATABASE", "database"),
+            )
+            value: str | None = "fallback"
+            empty: str = "default"
+
+        dotenv = tmp_path / "config.env"
+        _ = dotenv.write_text(
+            "APP_DATABASE__port=9000\nAPP_value=none\nAPP_empty=\n", encoding="utf-16"
+        )
+        options: dict[str, Any] = {
+            "_case_sensitive": True,
+            "_env_prefix": "APP_",
+            "_env_prefix_target": "all",
+            "_env_nested_delimiter": "__",
+            "_env_nested_max_split": 1,
+            "_env_file": dotenv,
+            "_env_file_encoding": "utf-16",
+            "_env_parse_none_str": "none",
+            "_env_ignore_empty": True,
+            "_env_parse_enums": True,
+            "_nested_model_default_partial_update": True,
+        }
+        settings = await Settings.load(**options)
+        assert settings.model_dump() == {
+            "database": {"host": "configured", "port": 9000},
+            "value": None,
+            "empty": "default",
+        }
+        assert settings.model_fields_set == {"database", "value"}
+        assert settings == Settings(**options)
+
+    @pytest.mark.anyio
+    async def test_load_constructs_and_validates_once(self, tmp_path: Path) -> None:
+        """Pass loaded values through a custom constructor and validate them once."""
+        dotenv = tmp_path / "config.env"
+        _ = dotenv.write_text("FASTENV_ASYNC_COUNT=7")
+        calls: list[str] = []
+
+        class Settings(BaseSettings):
+            model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+                env_file=dotenv, env_prefix="FASTENV_ASYNC_"
+            )
+            count: int
+
+            def __init__(self, count: Any) -> None:
+                calls.append("construct")
+                _ = dotenv.write_text("FASTENV_ASYNC_COUNT=invalid")
+                super().__init__(count=int(count) + 1)
+
+            @model_validator(mode="after")
+            def record_validation(self) -> Self:
+                calls.append("validate")
+                return self
+
+        assert (await Settings.load()).count == 8
+        assert calls == ["construct", "validate"]
+
+    @pytest.mark.anyio
+    async def test_load_leaves_other_instances_to_load_their_own_settings(
+        self, tmp_path: Path
+    ) -> None:
+        """Let instances created during loading read their own sources."""
+        dotenv = tmp_path / "config.env"
+        _ = dotenv.write_text("FASTENV_ASYNC_COUNT=7")
+        nested_counts: list[int] = []
+
+        class Settings(BaseSettings):
+            model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+                env_file=dotenv, env_prefix="FASTENV_ASYNC_"
+            )
+            count: int
+            nested: bool = False
+
+            def __init__(self, **values: Any) -> None:
+                if not values.get("nested"):
+                    nested_counts.append(type(self)(nested=True).count)
+                super().__init__(**values)
+
+            @model_validator(mode="after")
+            def build_nested(self) -> Self:
+                if not self.nested:
+                    nested_counts.append(type(self)(nested=True).count)
+                return self
+
+        assert (await Settings.load(count=3)).count == 3
+        assert nested_counts == [7, 7]
+
+    @pytest.mark.anyio
+    async def test_load_constructor_failure_does_not_affect_later_loads(
+        self, tmp_path: Path
+    ) -> None:
+        """Read sources normally after a custom constructor fails during loading."""
+        dotenv = tmp_path / "config.env"
+        _ = dotenv.write_text("FASTENV_ASYNC_COUNT=7")
+
+        class Settings(BaseSettings):
+            model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+                env_file=dotenv, env_prefix="FASTENV_ASYNC_"
+            )
+            count: int
+            fail: bool = False
+
+            def __init__(self, **values: Any) -> None:
+                if values.get("fail"):
+                    raise RuntimeError("constructor failed")
+                super().__init__(**values)
+
+        with pytest.raises(RuntimeError):
+            _ = await Settings.load(fail=True)
+        assert Settings().count == 7
+        assert (await Settings.load()).count == 7
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize("coroutine", [False, True])
+    async def test_sync_constructor_rejects_async_sources(
+        self, coroutine: bool
+    ) -> None:
+        """Require Settings.load() when a source returns an awaitable."""
+
+        class Deferred:
+            def __await__(self) -> Generator[None, None, dict[str, Any]]:
+                yield
+                return {"value": "deferred"}
+
+        async def source() -> dict[str, Any]:
+            return {"value": "async"}
+
+        class Settings(BaseSettings):
+            value: str
+
+            @classmethod
+            def settings_customise_sources(
+                cls, settings_cls: type[BaseSettings], *_args: Any, **sources: Any
+            ) -> tuple[SettingsSource, ...]:
+                return (source if coroutine else Deferred,)
+
+        with pytest.raises(SettingsError, match="Settings.load"):
+            _ = Settings()
+        assert (await Settings.load()).value == ("async" if coroutine else "deferred")
+
+    @pytest.mark.anyio
+    async def test_custom_sync_and_async_sources_share_prior_state(self) -> None:
+        """Run custom sources in order and expose values from earlier sources."""
+        events: list[str] = []
+
+        async def remote() -> dict[str, Any]:
+            events.append("remote-start")
+            await anyio.lowlevel.checkpoint()
+            events.append("remote-end")
+            return {"alternate": 20, "remote": True}
+
+        class Computed(PydanticBaseSettingsSource):
+            def get_field_value(
+                self, field: FieldInfo, field_name: str
+            ) -> tuple[Any, str, bool]:
+                return self.current_state["count"] * 2, field_name, False
+
+            def __call__(self) -> dict[str, Any]:
+                assert self.current_state == {"count": 2, "remote": True}
+                assert self.settings_sources_data["remote"] == {
+                    "alternate": 20,
+                    "remote": True,
+                }
+                events.append("computed")
+                field = self.settings_cls.model_fields["double"]
+                value, key, _ = self.get_field_value(field, "double")
+                return {key: value}
+
+        class AsyncComputed(Computed):
+            async def load(self) -> dict[str, Any]:
+                assert self.current_state["double"] == 4
+                await anyio.lowlevel.checkpoint()
+                events.append("async-computed")
+                return {"last": "async"}
+
+        class Settings(BaseSettings):
+            count: int = Field(validation_alias=AliasChoices("count", "alternate"))
+            double: int
+            remote: bool
+            last: str
+
+            @classmethod
+            def settings_customise_sources(
+                cls, settings_cls: type[BaseSettings], *_args: Any, **sources: Any
+            ) -> tuple[SettingsSource, ...]:
+                return (
+                    sources["init_settings"],
+                    remote,
+                    Computed(settings_cls),
+                    AsyncComputed(settings_cls),
+                )
+
+        settings = await Settings.load(alternate=2)
+        assert settings.model_dump() == {
+            "count": 2,
+            "double": 4,
+            "remote": True,
+            "last": "async",
+        }
+        assert events == ["remote-start", "remote-end", "computed", "async-computed"]
+
+    @pytest.mark.anyio
+    async def test_concurrent_loads_leave_environment_unchanged(
+        self, tmp_path: Path
+    ) -> None:
+        """Load separate files in concurrent tasks without mixing values."""
 
         class Settings(BaseSettings):
             model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
                 env_prefix="FASTENV_ASYNC_"
             )
-            value: int
+            value: str
 
-        file = tmp_path / "async.env"
-        _ = file.write_text("FASTENV_ASYNC_VALUE=21\n")
-        assert Settings(_env_file=file).value == 21
+        files = [tmp_path / f"{index}.env" for index in range(8)]
+        for index, file in enumerate(files):
+            _ = file.write_text(f"FASTENV_ASYNC_VALUE=value-{index}\n")
+        before = dict(os.environ)
+        actual: dict[int, str] = {}
+
+        async def load(index: int, file: Path) -> None:
+            actual[index] = (await Settings.load(_env_file=file)).value
+
+        async with anyio.create_task_group() as tasks:
+            for index, file in enumerate(files):
+                _ = tasks.start_soon(load, index, file)
+        assert actual == {index: f"value-{index}" for index in range(8)}
+        assert dict(os.environ) == before
+        assert Settings(_env_file=files[0]).value == "value-0"

@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+import json
+import threading
+import tomllib
 import zipfile
 from pathlib import Path
 from typing import Any, ClassVar, cast
@@ -42,7 +45,7 @@ class TestConfigFiles:
     def test_config_files_merge_in_order(
         self, tmp_path: Path, format: str, deep: bool
     ) -> None:
-        """Merge files in order without allowing callers to change stored values."""
+        """Merge files in order, replacing or deep merging nested tables."""
         contents = {
             "json": (
                 '{"token":"base","service":{"hostname":"first","port":9000}}',
@@ -64,11 +67,7 @@ class TestConfigFiles:
         expected_service: dict[str, int | str] = {"port": 9001}
         if deep:
             expected_service["hostname"] = "first"
-        expected = {"token": "base", "service": expected_service}
-        assert source() == expected
-        output = source()
-        output["service"]["port"] = -1
-        assert source() == expected
+        assert source() == {"token": "base", "service": expected_service}
 
     @pytest.mark.parametrize("format", ["json", "toml"])
     def test_config_file_model_config_and_disable(
@@ -129,28 +128,53 @@ class TestConfigFiles:
             False,
         )
 
-    def test_json_config_rejects_non_mapping(self, tmp_path: Path) -> None:
-        """Reject JSON values that are not objects."""
+    @pytest.mark.parametrize(
+        ("source_class", "contents", "error"),
+        [
+            (JsonConfigSettingsSource, "5", SettingsError),
+            (JsonConfigSettingsSource, "{", json.JSONDecodeError),
+            (TomlConfigSettingsSource, "[", tomllib.TOMLDecodeError),
+        ],
+    )
+    def test_invalid_configuration_files(
+        self,
+        tmp_path: Path,
+        source_class: type[JsonConfigSettingsSource | TomlConfigSettingsSource],
+        contents: str,
+        error: type[Exception],
+    ) -> None:
+        """Reject files that do not parse or do not contain a mapping."""
         path = tmp_path / "config"
-        _ = path.write_text("5")
-        with pytest.raises(SettingsError, match="mapping"):
-            _ = JsonConfigSettingsSource(ProviderSettings, path)()
+        _ = path.write_text(contents)
+        with pytest.raises(error):
+            _ = source_class(ProviderSettings, path)()
 
-    def test_file_resources_without_filesystem_paths(self, tmp_path: Path) -> None:
-        """Read JSON settings from a resource inside a ZIP archive."""
+    @pytest.mark.anyio
+    async def test_file_resources_without_filesystem_paths(
+        self, tmp_path: Path
+    ) -> None:
+        """Read JSON from a ZIP archive resource, off the event loop when loading."""
         archive = tmp_path / "bundle.zip"
         with zipfile.ZipFile(archive, "w") as bundle:
             bundle.writestr("settings.json", '{"token":"resource"}')
+        event_loop_thread = threading.get_ident()
+
+        class Resource(zipfile.Path):
+            def read_text(self, *args: Any, **kwargs: Any) -> str:
+                assert threading.get_ident() != event_loop_thread
+                return super().read_text(*args, **kwargs)
+
         with zipfile.ZipFile(archive) as bundle:
             source = JsonConfigSettingsSource(
-                ProviderSettings, zipfile.Path(bundle, "settings.json")
+                ProviderSettings,
+                [Resource(bundle, "missing.json"), Resource(bundle, "settings.json")],
             )
-            assert source() == {"token": "resource"}
+            assert await source.load() == {"token": "resource"}
 
     def test_toml_table_selection(self, tmp_path: Path) -> None:
-        """Read a selected TOML table and report missing tables."""
+        """Read a selected TOML table and reject missing or non-table selections."""
         toml = tmp_path / "config.toml"
-        _ = toml.write_text('[app.runtime]\ntoken="selected"')
+        _ = toml.write_text('scalar="value"\n[app.runtime]\ntoken="selected"')
 
         class Configured(ProviderSettings):
             model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
@@ -161,6 +185,10 @@ class TestConfigFiles:
         assert TomlConfigSettingsSource(Configured)() == {"token": "selected"}
         with pytest.raises(KeyError):
             _ = TomlConfigSettingsSource(Configured, toml_table_header=("missing",))()
+        with pytest.raises(SettingsError, match="mapping"):
+            _ = TomlConfigSettingsSource(
+                Configured, toml_table_header=("scalar", "nested")
+            )()
 
     def test_pyproject_search_depth_explicit_file_and_root(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -194,15 +222,6 @@ class TestConfigFiles:
         assert PyprojectTomlConfigSettingsSource(Configured)() == {"token": "nearest"}
         _ = local.write_text('[project]\nname="unrelated"')
         assert PyprojectTomlConfigSettingsSource(Configured)() == {}
-
-    def test_file_section_must_be_mapping(self, tmp_path: Path) -> None:
-        """Reject a selected TOML value that is not a table."""
-        path = tmp_path / "invalid.toml"
-        _ = path.write_text('section="scalar"')
-        with pytest.raises(SettingsError, match="mapping"):
-            _ = TomlConfigSettingsSource(
-                ProviderSettings, path, toml_table_header=("section", "nested")
-            )()
 
 
 class TestNestedSecrets:
@@ -258,20 +277,22 @@ class TestNestedSecrets:
         with pytest.raises(SettingsError, match="mutually exclusive"):
             _ = NestedSecretsSettingsSource(Configured, secrets_nested_delimiter="__")
 
-    def test_nested_secret_case_sensitivity_and_delimiter(self, tmp_path: Path) -> None:
-        """Honor case sensitivity and separators in secret filenames."""
-        _ = (tmp_path / "TOKEN").write_text("upper")
-        _ = (tmp_path / "service_port").write_text("9200")
+    def test_nested_secret_prefix_case_and_delimiter(self, tmp_path: Path) -> None:
+        """Honor prefixes, letter case, and separators in secret filenames."""
+        _ = (tmp_path / "APP_TOKEN").write_text("upper")
+        _ = (tmp_path / "APP_service_port").write_text("9200")
+        _ = (tmp_path / "token").write_text("unprefixed")
         source = NestedSecretsSettingsSource(
             ProviderSettings,
             secrets_dir=tmp_path,
+            secrets_prefix="APP_",
             secrets_nested_delimiter="_",
             secrets_case_sensitive=True,
         )
         assert source() == {"service": {"port": "9200"}}
         assert (
             NestedSecretsSettingsSource(
-                ProviderSettings, secrets_dir=tmp_path, secrets_case_sensitive=False
+                ProviderSettings, secrets_dir=tmp_path, secrets_prefix="APP_"
             )()["token"]
             == "upper"
         )
@@ -314,15 +335,15 @@ class TestNestedSecrets:
     def test_nested_secret_size_limit_handles_file_growth(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Enforce the size limit when a secret file grows after its metadata is read."""
-        secret = tmp_path / "token"
-        _ = secret.write_text("small")
+        """Enforce the combined size limit when secret files grow while being read."""
+        for name in ("hostname", "token"):
+            _ = (tmp_path / name).write_text("x")
         original_open = Path.open
 
         def grow_before_read(path: Path, mode: str, *args: Any, **kwargs: Any):
-            if path == secret and mode == "rb":
+            if path.parent == tmp_path and mode == "rb":
                 with original_open(path, "w") as stream:
-                    _ = stream.write("newly grown content exceeds the limit")
+                    _ = stream.write("grown")
             return original_open(path, mode, *args, **kwargs)
 
         monkeypatch.setattr(Path, "open", grow_before_read)

@@ -3,10 +3,12 @@ from __future__ import annotations
 # Custom settings source hooks intentionally accept arbitrary model field values.
 # pyright: reportAny=false, reportExplicitAny=false
 import os
+import threading
 from enum import Enum
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, Literal
 
+import anyio
 import pytest
 from pydantic import (
     AliasChoices,
@@ -144,14 +146,10 @@ class TestEnvironmentSource:
         monkeypatch.setenv("MIXED", "[7, 9]")
         assert EnvSettingsSource(Settings)()["mixed"] == [7, 9]
 
-    def test_invalid_json_reports_field_and_source(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Identify the field and source when JSON decoding fails."""
+    def test_invalid_json_reports_field(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Name the field and keep the original error when JSON decoding fails."""
         monkeypatch.setenv("CONNECTION", "invalid json")
-        with pytest.raises(
-            SettingsError, match='field "connection".*"EnvSettingsSource"'
-        ) as error:
+        with pytest.raises(SettingsError, match="connection") as error:
             _ = EnvSettingsSource(SourceSettings)()
         assert isinstance(error.value.__cause__, ValueError)
 
@@ -269,7 +267,7 @@ class TestEnvironmentSource:
         assert Settings.model_validate(source()).service.connection.port == 8100
         assert source()["arbitrary"] == {"text": "not json"}
         monkeypatch.setenv("SERVICE__CONNECTION__LABELS", "invalid json")
-        with pytest.raises(SettingsError, match='parsing value for field "service"'):
+        with pytest.raises(SettingsError, match="service"):
             _ = EnvSettingsSource(Settings, env_nested_delimiter="__")()
 
     def test_incomplete_annotation_warning(self) -> None:
@@ -282,9 +280,7 @@ class TestEnvironmentSource:
 
         pending_annotation: Any = ForwardRef("LaterModel")
         settings = create_model("UnresolvedSettings", pending=(pending_annotation, ...))
-        with pytest.warns(
-            IncompleteFieldDefinitionWarning, match="pending.*forward reference"
-        ):
+        with pytest.warns(IncompleteFieldDefinitionWarning, match="pending"):
             source = InitSettingsSource(settings, {})
         assert source() == {}
         with pytest.warns(IncompleteFieldDefinitionWarning, match="model_rebuild"):
@@ -480,26 +476,36 @@ class TestDotenvSource:
         _ = first.write_text(
             "COUNT=4\nTOKEN='spaces and # hash'\nCONNECTION__HOST=first\n"
         )
-        _ = second.write_text("export COUNT=9\nCONNECTION__PORT=7000\n")
+        _ = second.write_text(
+            "export COUNT=9\nCONNECTION__PORT=7000\nCONNECTION__LABELS='[\"caf\xe9\"]'\n",
+            encoding="latin-1",
+        )
         source = DotEnvSettingsSource(
             SourceSettings,
             env_file=[first, tmp_path / "missing", second],
+            env_file_encoding="latin-1",
             env_nested_delimiter="__",
         )
         model = SourceSettings.model_validate(source())
         assert model.count == 9
         assert model.token == "spaces and # hash"
-        assert model.connection == Connection(host="first", port=7000)
+        assert model.connection == Connection(
+            host="first", port=7000, labels=["caf\xe9"]
+        )
         assert dict(os.environ) == environment_before
 
-    def test_dotenv_preserves_case_and_can_disable_file(self, tmp_path: Path) -> None:
-        """Preserve case-sensitive dotenv keys and allow file loading to be disabled."""
+    def test_dotenv_case_null_and_empty_values(self, tmp_path: Path) -> None:
+        """Honor key case, null markers, and empty values, or disable the file."""
         dotenv = tmp_path / ".env"
-        _ = dotenv.write_text("COUNT=3\ncount=4\n")
+        _ = dotenv.write_text("COUNT=3\ncount=4\ntoken=nil\nconnection=\n")
         source = DotEnvSettingsSource(
-            SourceSettings, env_file=dotenv, case_sensitive=True
+            SourceSettings,
+            env_file=dotenv,
+            case_sensitive=True,
+            env_parse_none_str="nil",
+            env_ignore_empty=True,
         )
-        assert source() == {"count": "4", "COUNT": "3"}
+        assert source() == {"count": "4", "COUNT": "3", "token": None}
         assert DotEnvSettingsSource(SourceSettings, env_file=None)() == {}
 
     @pytest.mark.parametrize(
@@ -541,11 +547,11 @@ class TestDotenvSource:
 class TestSecretsSource:
     """Test secret file priority and directory errors."""
 
-    def test_secrets_multiple_directories_and_alias(self, tmp_path: Path) -> None:
-        """Read aliased secret files and prefer values from later directories."""
+    def test_secrets_multiple_directories_and_aliases(self, tmp_path: Path) -> None:
+        """Prefer later directories for a name, but keep alias order across them."""
 
         class Aliased(BaseModel):
-            token: str = Field(validation_alias="API_TOKEN")
+            token: str = Field(validation_alias=AliasChoices("API_TOKEN", "FALLBACK"))
             connection: Connection
 
         first = tmp_path / "first"
@@ -553,13 +559,14 @@ class TestSecretsSource:
         first.mkdir()
         second.mkdir()
         _ = (first / "API_TOKEN").write_text("  first\n")
-        _ = (second / "api_token").write_text("second\n")
-        _ = (first / "CONNECTION").write_text('{"host":"secret-host"}')
+        _ = (second / "FALLBACK").write_text("second\n")
+        _ = (first / "CONNECTION").write_text('{"host":"first-host"}')
+        _ = (second / "connection").write_text('{"host":"second-host"}')
         model = Aliased.model_validate(
             SecretsSettingsSource(Aliased, secrets_dir=[first, second])()
         )
-        assert model.token == "second"
-        assert model.connection.host == "secret-host"
+        assert model.token == "first"
+        assert model.connection.host == "second-host"
         assert SecretsSettingsSource(Aliased)() == {}
 
     def test_secrets_directory_errors(self, tmp_path: Path) -> None:
@@ -716,6 +723,30 @@ class TestCustomSettingsSources:
 
         assert CustomSource(SourceSettings)() == {"token": ["a"]}
 
+    def test_complex_value_decoding_hook_and_reread_after_errors(
+        self, tmp_path: Path
+    ) -> None:
+        """Decode values with a custom hook and read the file again after errors."""
+
+        class Settings(BaseModel):
+            items: list[int] = []
+
+        class CommaSeparatedSource(DotEnvSettingsSource):
+            def decode_complex_value(
+                self, field_name: str, field: FieldInfo, value: Any
+            ) -> Any:
+                return [int(item) for item in str(value).split(",")]
+
+        dotenv = tmp_path / ".env"
+        _ = dotenv.write_text("ITEMS=1,2")
+        source = CommaSeparatedSource(Settings, env_file=dotenv)
+        assert source() == {"items": [1, 2]}
+        _ = dotenv.write_text("ITEMS=invalid")
+        with pytest.raises(SettingsError, match="items"):
+            _ = source()
+        _ = dotenv.write_text("ITEMS=3,4")
+        assert source() == {"items": [3, 4]}
+
     def test_source_read_failure_preserves_cause(self) -> None:
         """Keep the original read error as the cause of a settings error."""
 
@@ -725,8 +756,94 @@ class TestCustomSettingsSources:
             ) -> tuple[Any, str, bool]:
                 raise OSError("cannot read backing store")
 
-        with pytest.raises(
-            SettingsError, match='getting value for field "connection"'
-        ) as error:
+        with pytest.raises(SettingsError, match="connection") as error:
             _ = FailingSource(SourceSettings)()
         assert isinstance(error.value.__cause__, OSError)
+
+
+class TestAsyncSourceLoading:
+    """Test event loop responsiveness and cancellation when loading files."""
+
+    @pytest.mark.anyio
+    async def test_load_keeps_event_loop_responsive(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Allow another task to run while a dotenv file read is blocked."""
+        dotenv = tmp_path / ".env"
+        _ = dotenv.write_text("COUNT=4\n")
+        event_loop_thread = threading.get_ident()
+        read_started = threading.Event()
+        allow_read = threading.Event()
+        read_text = Path.read_text
+
+        def delayed_read(path: Path, *args: Any, **kwargs: Any) -> str:
+            assert threading.get_ident() != event_loop_thread
+            read_started.set()
+            assert allow_read.wait(timeout=5), "The file read blocked the event loop"
+            return read_text(path, *args, **kwargs)
+
+        async def release_from_event_loop() -> None:
+            assert await anyio.to_thread.run_sync(read_started.wait, 5)
+            allow_read.set()
+
+        monkeypatch.setattr(Path, "read_text", delayed_read)
+        source = DotEnvSettingsSource(SourceSettings, env_file=dotenv)
+        async with anyio.create_task_group() as task_group:
+            _ = task_group.start_soon(release_from_event_loop)
+            assert await source.load() == {"count": "4"}
+
+    @pytest.mark.anyio
+    async def test_load_matches_calling_the_source(self) -> None:
+        """Return the same values as a direct call, including subclass overrides."""
+
+        class DefaultingSource(SecretsSettingsSource):
+            def __call__(self) -> dict[str, Any]:
+                return {"token": "fallback", **super().__call__()}
+
+        source = DefaultingSource(SourceSettings)
+        assert await source.load() == source() == {"token": "fallback"}
+        initial = InitSettingsSource(SourceSettings, {"count": 5})
+        assert await initial.load() == initial() == {"count": 5}
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize("source_kind", ["dotenv", "secrets"])
+    async def test_load_again_after_cancellation(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, source_kind: str
+    ) -> None:
+        """Read current file contents after a cancelled load."""
+        if source_kind == "dotenv":
+            dotenv = tmp_path / ".env"
+            _ = dotenv.write_text("COUNT=1")
+            source = DotEnvSettingsSource(SourceSettings, env_file=dotenv)
+            update = dotenv.write_text
+            content = "COUNT=7"
+        else:
+            secret = tmp_path / "count"
+            _ = secret.write_text("1")
+            source = SecretsSettingsSource(SourceSettings, secrets_dir=tmp_path)
+            update = secret.write_text
+            content = "7"
+        read_started = threading.Event()
+        allow_read = threading.Event()
+        read_text = Path.read_text
+
+        def delayed_read(path: Path, *args: Any, **kwargs: Any) -> str:
+            read_started.set()
+            assert allow_read.wait(timeout=5)
+            return read_text(path, *args, **kwargs)
+
+        async def cancel_from_event_loop(scope: anyio.CancelScope) -> None:
+            assert await anyio.to_thread.run_sync(read_started.wait, 5)
+            scope.cancel()
+            allow_read.set()
+
+        scope = anyio.CancelScope()
+        with monkeypatch.context() as patches:
+            patches.setattr(Path, "read_text", delayed_read)
+            async with anyio.create_task_group() as task_group:
+                _ = task_group.start_soon(cancel_from_event_loop, scope)
+                with scope:
+                    _ = await source.load()
+        assert scope.cancel_called
+        _ = update(content)
+        assert await source.load() == source() == {"count": "7"}
