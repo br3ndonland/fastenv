@@ -16,7 +16,6 @@ from pydantic import AliasChoices, BaseModel, Field
 from pydantic.fields import FieldInfo
 
 from fastenv.settings.pydantic_settings_sources import (
-    DEFER_SETTINGS_IO,
     DotEnvSettingsSource,
     InitSettingsSource,
     SecretsSettingsSource,
@@ -62,13 +61,9 @@ class TestAsyncDotenvSource:
 
         monkeypatch.setattr(Path, "read_text", read_text)
         monkeypatch.setattr(Path, "stat", stat)
-        token = DEFER_SETTINGS_IO.set(True)
-        try:
-            source = DotEnvSettingsSource(
-                SourceSettings, env_file=[first, tmp_path / "missing", second]
-            )
-        finally:
-            DEFER_SETTINGS_IO.reset(token)
+        source = DotEnvSettingsSource(
+            SourceSettings, env_file=[first, tmp_path / "missing", second]
+        )
         assert not read_started.is_set()
 
         async def keep_running() -> None:
@@ -111,17 +106,13 @@ class TestAsyncDotenvSource:
             "APP_COUNT=9 APP_TOKEN=caf\xe9 APP_ITEMS=1,2 APP_UNKNOWN=value OTHER=ignored",
             encoding="latin-1",
         )
-        token = DEFER_SETTINGS_IO.set(True)
-        try:
-            source = CommaSeparatedSource(
-                SourceSettings,
-                env_file=file,
-                env_file_encoding="latin-1",
-                env_prefix="APP_",
-                dotenv_filtering=filtering,
-            )
-        finally:
-            DEFER_SETTINGS_IO.reset(token)
+        source = CommaSeparatedSource(
+            SourceSettings,
+            env_file=file,
+            env_file_encoding="latin-1",
+            env_prefix="APP_",
+            dotenv_filtering=filtering,
+        )
         assert await source.load() == {
             "count": "9",
             "token": "caf\xe9",
@@ -253,10 +244,10 @@ class TestAsyncSecretsSource:
         assert await source.load() == source() == {"token": "fallback"}
 
     @pytest.mark.anyio
-    async def test_secrets_async_read_errors_are_wrapped(
+    async def test_secrets_async_read_errors_allow_retry(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Report secret read failures with their cause and allow a later retry."""
+        """Raise secret read failures and allow a later retry."""
         _ = (tmp_path / "count").write_text("2")
 
         def denied(path: Path, *args: Any, **kwargs: Any) -> str:
@@ -266,11 +257,8 @@ class TestAsyncSecretsSource:
         source = SecretsSettingsSource(SourceSettings, tmp_path)
         with monkeypatch.context() as patches:
             patches.setattr(Path, "read_text", denied)
-            with pytest.raises(
-                SettingsError, match='error getting value for field "count"'
-            ) as error:
+            with pytest.raises(PermissionError):
                 _ = await source.load()
-        assert isinstance(error.value.__cause__, PermissionError)
         assert await source.load() == {"count": "2"}
 
     @pytest.mark.anyio
@@ -328,26 +316,28 @@ class TestAsyncSourceLoading:
             _ = blocked.write_text("[2]")
             source = SecretsSettingsSource(SourceSettings, secrets_dir=tmp_path)
 
-        blocked_read = anyio.Event()
+        blocked_read = threading.Event()
+        release_read = threading.Event()
         cancellation = anyio.CancelScope()
-        original_read_text = anyio.Path.read_text
+        original_read_text = Path.read_text
 
-        async def read_text(path: anyio.Path, *args: Any, **kwargs: Any) -> str:
-            if Path(path) == blocked:
+        def read_text(path: Path, *args: Any, **kwargs: Any) -> str:
+            if path == blocked:
                 blocked_read.set()
-                await anyio.sleep_forever()
-            return await original_read_text(path, *args, **kwargs)
+                assert release_read.wait(timeout=3)
+            return original_read_text(path, *args, **kwargs)
 
         async def load_until_cancelled() -> None:
             with cancellation:
                 _ = await source.load()
 
         with monkeypatch.context() as patches:
-            patches.setattr(anyio.Path, "read_text", read_text)
+            patches.setattr(Path, "read_text", read_text)
             async with anyio.create_task_group() as tasks:
                 _ = tasks.start_soon(load_until_cancelled)
-                await blocked_read.wait()
+                _ = await anyio.to_thread.run_sync(blocked_read.wait)
                 cancellation.cancel()
+                release_read.set()
 
         assert cancellation.cancel_called
         _ = first.write_text("COUNT=7" if source_kind == "dotenv" else "7")

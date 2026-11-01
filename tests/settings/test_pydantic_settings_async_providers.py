@@ -11,7 +11,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar
 
-import anyio
 import pytest
 from pydantic import BaseModel
 
@@ -22,11 +21,7 @@ from fastenv.settings.pydantic_settings_providers import (
     PyprojectTomlConfigSettingsSource,
     TomlConfigSettingsSource,
 )
-from fastenv.settings.pydantic_settings_sources import (
-    DEFER_SETTINGS_IO,
-    PydanticBaseSettingsSource,
-    SettingsError,
-)
+from fastenv.settings.pydantic_settings_sources import SettingsError
 
 pytestmark = pytest.mark.anyio
 
@@ -41,20 +36,8 @@ class ProviderSettings(BaseSettings):
     token: str = "default"
 
 
-def _deferred(
-    factory: Callable[[], PydanticBaseSettingsSource],
-) -> PydanticBaseSettingsSource:
-    token = DEFER_SETTINGS_IO.set(True)
-    try:
-        return factory()
-    finally:
-        DEFER_SETTINGS_IO.reset(token)
-
-
 def _guard_filesystem(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Allow filesystem calls only in AnyIO workers, including during setup."""
-    # Import AnyIO's file helpers before guarding reads from settings sources.
-    _ = anyio.Path
+    """Allow filesystem calls only in AnyIO worker threads."""
     event_loop_thread = threading.get_ident()
 
     def guarded(method: Callable[..., Any]) -> Callable[..., Any]:
@@ -65,8 +48,6 @@ def _guard_filesystem(monkeypatch: pytest.MonkeyPatch) -> None:
         return check
 
     for method_name in (
-        "cwd",
-        "expanduser",
         "exists",
         "is_dir",
         "is_file",
@@ -106,12 +87,10 @@ class TestAsyncConfigFiles:
         }[format]
         with monkeypatch.context() as guarded:
             _guard_filesystem(guarded)
-            source = _deferred(
-                lambda: source_class(
-                    ProviderSettings,
-                    [tmp_path / "missing", files[0], tmp_path, files[1]],
-                    deep_merge=deep,
-                )
+            source = source_class(
+                ProviderSettings,
+                [tmp_path / "missing", files[0], tmp_path, files[1]],
+                deep_merge=deep,
             )
             output = await source.load()
         expected_service: dict[str, int | str] = {"port": 9001}
@@ -134,9 +113,7 @@ class TestAsyncConfigFiles:
 
         with monkeypatch.context() as guarded:
             _guard_filesystem(guarded)
-            source = _deferred(
-                lambda: Customized(ProviderSettings, path, json_file_encoding="utf-16")
-            )
+            source = Customized(ProviderSettings, path, json_file_encoding="utf-16")
             assert await source.load() == {"token": "CAF\u00c9"}
 
     async def test_async_resource_reads_use_worker_thread(self, tmp_path: Path) -> None:
@@ -156,14 +133,12 @@ class TestAsyncConfigFiles:
                 return super().read_text(*args, **kwargs)
 
         with zipfile.ZipFile(archive) as bundle:
-            source = _deferred(
-                lambda: JsonConfigSettingsSource(
-                    ProviderSettings,
-                    [
-                        Resource(bundle, "missing.json"),
-                        Resource(bundle, "settings.json"),
-                    ],
-                )
+            source = JsonConfigSettingsSource(
+                ProviderSettings,
+                [
+                    Resource(bundle, "missing.json"),
+                    Resource(bundle, "settings.json"),
+                ],
             )
             assert await source.load() == {"token": "resource"}
 
@@ -175,9 +150,7 @@ class TestAsyncConfigFiles:
         source_class: type[JsonConfigSettingsSource | TomlConfigSettingsSource],
     ) -> None:
         """Return no values when configuration files are disabled."""
-        assert (
-            await _deferred(lambda: source_class(ProviderSettings, None)).load() == {}
-        )
+        assert await source_class(ProviderSettings, None).load() == {}
 
     @pytest.mark.parametrize(
         ("source_class", "contents", "error"),
@@ -197,7 +170,7 @@ class TestAsyncConfigFiles:
         """Raise the expected error for invalid configuration file contents."""
         path = tmp_path / "invalid"
         _ = path.write_text(contents)
-        source = _deferred(lambda: source_class(ProviderSettings, path))
+        source = source_class(ProviderSettings, path)
         with pytest.raises(error):
             _ = await source.load()
 
@@ -210,10 +183,8 @@ class TestAsyncConfigFiles:
         """Read the selected TOML table and reject missing or non-table values."""
         path = tmp_path / "config.toml"
         _ = path.write_text('scalar="value"\n[app.runtime]\ntoken="selected"')
-        source = _deferred(
-            lambda: TomlConfigSettingsSource(
-                ProviderSettings, path, toml_table_header=header
-            )
+        source = TomlConfigSettingsSource(
+            ProviderSettings, path, toml_table_header=header
         )
         if header == ("missing",):
             with pytest.raises(KeyError):
@@ -246,15 +217,9 @@ class TestAsyncConfigFiles:
 
         with monkeypatch.context() as guarded:
             _guard_filesystem(guarded)
-            limited = _deferred(
-                lambda: PyprojectTomlConfigSettingsSource(ProviderSettings)
-            )
-            parent = _deferred(
-                lambda: PyprojectTomlConfigSettingsSource(ParentSettings)
-            )
-            root = _deferred(
-                lambda: PyprojectTomlConfigSettingsSource(RootSettings, project)
-            )
+            limited = PyprojectTomlConfigSettingsSource(ProviderSettings)
+            parent = PyprojectTomlConfigSettingsSource(ParentSettings)
+            root = PyprojectTomlConfigSettingsSource(RootSettings, project)
             assert await limited.load() == {}
             assert await parent.load() == {"token": "parent"}
             assert (await root.load())["token"] == "root"
@@ -283,12 +248,10 @@ class TestAsyncNestedSecrets:
         monkeypatch.setenv("TOKEN", "must-not-load")
         with monkeypatch.context() as guarded:
             _guard_filesystem(guarded)
-            source = _deferred(
-                lambda: NestedSecretsSettingsSource(
-                    ProviderSettings,
-                    secrets_dir=[first, last],
-                    secrets_nested_subdir=True,
-                )
+            source = NestedSecretsSettingsSource(
+                ProviderSettings,
+                secrets_dir=[first, last],
+                secrets_nested_subdir=True,
             )
             assert await source.load() == {
                 "service": {"hostname": "secrets", "port": "9001"},
@@ -301,34 +264,25 @@ class TestAsyncNestedSecrets:
         """Match secret prefixes, letter case, and nested field separators."""
         _ = (tmp_path / "APP_TOKEN").write_text("secret")
         _ = (tmp_path / "APP_service_port").write_text("9002")
-        source = _deferred(
-            lambda: NestedSecretsSettingsSource(
-                ProviderSettings,
-                secrets_dir=tmp_path,
-                secrets_prefix="APP_",
-                secrets_case_sensitive=True,
-                secrets_nested_delimiter="_",
-            )
+        source = NestedSecretsSettingsSource(
+            ProviderSettings,
+            secrets_dir=tmp_path,
+            secrets_prefix="APP_",
+            secrets_case_sensitive=True,
+            secrets_nested_delimiter="_",
         )
         assert await source.load() == {"service": {"port": "9002"}}
-        assert (
-            await _deferred(
-                lambda: NestedSecretsSettingsSource(ProviderSettings)
-            ).load()
-            == {}
-        )
+        assert await NestedSecretsSettingsSource(ProviderSettings).load() == {}
 
     @pytest.mark.parametrize("policy", ["ok", "warn", "error"])
     async def test_async_nested_secret_missing_directory(
         self, tmp_path: Path, policy: Any
     ) -> None:
         """Ignore, warn about, or reject missing secret directories as configured."""
-        source = _deferred(
-            lambda: NestedSecretsSettingsSource(
-                ProviderSettings,
-                secrets_dir=tmp_path / "missing",
-                secrets_dir_missing=policy,
-            )
+        source = NestedSecretsSettingsSource(
+            ProviderSettings,
+            secrets_dir=tmp_path / "missing",
+            secrets_dir_missing=policy,
         )
         if policy == "error":
             with pytest.raises(SettingsError, match="does not exist"):
@@ -346,15 +300,13 @@ class TestAsyncNestedSecrets:
         """Reject non-directory secret paths and files exceeding the size limit."""
         path = tmp_path / "token"
         _ = path.write_text("large")
-        invalid_directory = _deferred(
-            lambda: NestedSecretsSettingsSource(ProviderSettings, secrets_dir=path)
+        invalid_directory = NestedSecretsSettingsSource(
+            ProviderSettings, secrets_dir=path
         )
         with pytest.raises(SettingsError, match="not a directory"):
             _ = await invalid_directory.load()
-        oversized = _deferred(
-            lambda: NestedSecretsSettingsSource(
-                ProviderSettings, secrets_dir=tmp_path, secrets_dir_max_size=4
-            )
+        oversized = NestedSecretsSettingsSource(
+            ProviderSettings, secrets_dir=tmp_path, secrets_dir_max_size=4
         )
         with pytest.raises(SettingsError, match="maximum size"):
             _ = await oversized.load()
@@ -375,15 +327,8 @@ class TestAsyncNestedSecrets:
             return original_open(path, mode, *args, **kwargs)
 
         monkeypatch.setattr(Path, "open", grow_before_read)
+        source = NestedSecretsSettingsSource(
+            ProviderSettings, secrets_dir=tmp_path, secrets_dir_max_size=8
+        )
         with pytest.raises(SettingsError, match="maximum size"):
-            if asynchronous:
-                source = _deferred(
-                    lambda: NestedSecretsSettingsSource(
-                        ProviderSettings, secrets_dir=tmp_path, secrets_dir_max_size=8
-                    )
-                )
-                _ = await source.load()
-            else:
-                _ = NestedSecretsSettingsSource(
-                    ProviderSettings, secrets_dir=tmp_path, secrets_dir_max_size=8
-                )
+            _ = await source.load() if asynchronous else source()

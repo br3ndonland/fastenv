@@ -134,7 +134,7 @@ class TestConfigFiles:
         path = tmp_path / "config"
         _ = path.write_text("5")
         with pytest.raises(SettingsError, match="mapping"):
-            _ = JsonConfigSettingsSource(ProviderSettings, path)
+            _ = JsonConfigSettingsSource(ProviderSettings, path)()
 
     def test_file_resources_without_filesystem_paths(self, tmp_path: Path) -> None:
         """Read JSON settings from a resource inside a ZIP archive."""
@@ -160,7 +160,7 @@ class TestConfigFiles:
 
         assert TomlConfigSettingsSource(Configured)() == {"token": "selected"}
         with pytest.raises(KeyError):
-            _ = TomlConfigSettingsSource(Configured, toml_table_header=("missing",))
+            _ = TomlConfigSettingsSource(Configured, toml_table_header=("missing",))()
 
     def test_pyproject_search_depth_explicit_file_and_root(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -202,7 +202,7 @@ class TestConfigFiles:
         with pytest.raises(SettingsError, match="mapping"):
             _ = TomlConfigSettingsSource(
                 ProviderSettings, path, toml_table_header=("section", "nested")
-            )
+            )()
 
 
 class TestNestedSecrets:
@@ -287,19 +287,19 @@ class TestNestedSecrets:
             == {}
         )
         with pytest.warns(UserWarning, match="does not exist"):
-            _ = NestedSecretsSettingsSource(ProviderSettings, secrets_dir=missing)
+            _ = NestedSecretsSettingsSource(ProviderSettings, secrets_dir=missing)()
         with pytest.raises(SettingsError, match="does not exist"):
             _ = NestedSecretsSettingsSource(
                 ProviderSettings, secrets_dir=missing, secrets_dir_missing="error"
-            )
+            )()
         secret = tmp_path / "token"
         _ = secret.write_text("large")
         with pytest.raises(SettingsError, match="maximum size"):
             _ = NestedSecretsSettingsSource(
                 ProviderSettings, secrets_dir=tmp_path, secrets_dir_max_size=4
-            )
+            )()
         with pytest.raises(SettingsError, match="not a directory"):
-            _ = NestedSecretsSettingsSource(ProviderSettings, secrets_dir=secret)
+            _ = NestedSecretsSettingsSource(ProviderSettings, secrets_dir=secret)()
 
     def test_nested_secret_rejects_invalid_missing_directory_policy(self) -> None:
         """Reject an unknown policy for missing secret directories."""
@@ -329,4 +329,4 @@ class TestNestedSecrets:
         with pytest.raises(SettingsError, match="maximum size"):
             _ = NestedSecretsSettingsSource(
                 ProviderSettings, secrets_dir=tmp_path, secrets_dir_max_size=8
-            )
+            )()

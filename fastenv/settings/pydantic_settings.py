@@ -15,7 +15,6 @@ from typing import Any, ClassVar, Literal, Self
 from pydantic import BaseModel, ConfigDict
 
 from .pydantic_settings_sources import (
-    DEFER_SETTINGS_IO,
     DefaultSettingsSource,
     DotEnvSettingsSource,
     EnvSettingsSource,
@@ -219,15 +218,8 @@ class BaseSettings(BaseModel):
                 "_secrets_dir": _secrets_dir,
             }
         )
-        # A custom async source hook may construct another settings model.
-        # An explicit synchronous constructor retains its normal file behavior.
-        token = DEFER_SETTINGS_IO.set(False)
-        try:
-            sources = settings_cls._settings_sources(values, options)
-        finally:
-            DEFER_SETTINGS_IO.reset(token)
         state = _SettingsState(settings_cls)
-        for source in sources:
+        for source in settings_cls._settings_sources(values, options):
             state.prepare(source)
             data = source()
             if inspect.isawaitable(data):
@@ -245,17 +237,12 @@ class BaseSettings(BaseModel):
 
         Accept the same field values and source overrides as the constructor.
         Sources run in priority order so custom sources can inspect prior values.
-        File sources use async I/O. Custom sources may return an awaitable or
-        override their async ``load`` method.
+        File sources read in worker threads. Custom sources may return an
+        awaitable or override their async ``load`` method.
         """
         options = cls._settings_options(values)
-        token = DEFER_SETTINGS_IO.set(True)
-        try:
-            sources = cls._settings_sources(values, options)
-        finally:
-            DEFER_SETTINGS_IO.reset(token)
         state = _SettingsState(cls)
-        for source in sources:
+        for source in cls._settings_sources(values, options):
             state.prepare(source)
             data = (
                 await source.load()

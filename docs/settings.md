@@ -90,7 +90,7 @@ values = dict(fastenv.parse_dotenv("PORT=8000 LABEL='local service'"))
 assert values == {"PORT": "8000", "LABEL": "local service"}
 ```
 
-`DotEnv`, `load_dotenv`, and `dotenv_values` retain their existing environment mutation behavior. Use `await Settings.load()` to read settings files asynchronously through AnyIO, then validate the collected values:
+`DotEnv`, `load_dotenv`, and `dotenv_values` retain their existing environment mutation behavior. Use `await Settings.load()` to read settings files in AnyIO worker threads without blocking the event loop, then validate the collected values:
 
 ```py
 settings = await Settings.load()
@@ -102,7 +102,7 @@ This includes dotenv, JSON, TOML, pyproject files, and secret directories. Sourc
 
 Override `settings_customise_sources` to add, reorder, or remove sources. The first returned source has the highest priority. A source can be a callable returning a dictionary, or a subclass of `PydanticBaseSettingsSource` with `get_field_value` and `__call__` implementations. Source instances expose `current_state` and `settings_sources_data` while they are being evaluated.
 
-`Settings.load()` also accepts async callable sources. A custom source class can implement `async def load(self)` to await its I/O and return a dictionary. The default source `load()` calls `__call__`, which supports synchronous in-memory sources. Custom sources that read files or use the network should implement asynchronous loading and avoid I/O in their constructors.
+`Settings.load()` also accepts async callable sources. A custom source class can implement `async def load(self)` to await its I/O and return a dictionary. The default source `load()` calls `__call__`, which supports synchronous in-memory sources. The built-in file sources read their files each time they are called or loaded, never in their constructors, so you can construct them anywhere and reload them later. Custom sources that read files or use the network should follow the same pattern.
 
 ```py
 from fastenv import BaseSettings, TomlConfigSettingsSource
