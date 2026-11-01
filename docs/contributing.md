@@ -74,7 +74,7 @@ export HATCH_ENV_TYPE_VIRTUAL_PATH=.venv  # install virtualenvs into .venv
 
 #### Integration testing instructions
 
-Integration tests will be skipped if cloud credentials are not present. Running integration tests locally will take some additional setup.
+Most integration tests are skipped if cloud credentials are not present. The authorization-error integration test uses example credentials and an example bucket by default, but still requires network access to AWS. Running the other integration tests locally will take some additional setup.
 
 ##### Make buckets on each supported cloud platform
 

@@ -141,8 +141,10 @@ def object_storage_config_incorrect() -> (
 
     This particular configuration is provided for testing authorization errors.
     """
-    bucket_host = os.getenv("AWS_S3_BUCKET_HOST")
-    bucket_region = os.getenv("AWS_S3_REGION", "us-east-2")
+    bucket_region = os.getenv("AWS_S3_REGION") or "us-east-2"
+    bucket_host = os.getenv("AWS_S3_BUCKET_HOST") or (
+        f"fastenv-auth-test-{secrets.token_hex(8)}.s3.{bucket_region}.amazonaws.com"
+    )
     return fastenv.cloud.object_storage.ObjectStorageConfig(
         access_key="AKIAIOSFODNN7EXAMPLE",
         secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE",
