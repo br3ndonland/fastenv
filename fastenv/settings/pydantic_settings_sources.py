@@ -422,7 +422,10 @@ class PydanticBaseEnvSettingsSource(PydanticBaseSettingsSource, ABC):
         """Read this source's variables, keyed by matched name."""
 
     def _option(self, name: str, value: Any, default: Any = None) -> Any:
-        return self.config.get(name, default) if value is None else value
+        """Prefer the argument, then the model config, then the default."""
+        if value is None:
+            value = self.config.get(name)
+        return default if value is None else value
 
     def _case(self, name: str) -> str:
         return name if self.case_sensitive else name.lower()
@@ -841,63 +844,42 @@ class NestedSecretsSettingsSource(EnvSettingsSource):
         else:
             wrapped = None
             settings_cls = file_secret_settings
-        config: dict[str, Any] = dict(settings_cls.model_config)
-        self.secrets_dir: SecretPaths = (
-            secrets_dir
-            if secrets_dir is not None
-            else getattr(wrapped, "secrets_dir", config.get("secrets_dir"))
+        if secrets_dir is None:
+            secrets_dir = getattr(wrapped, "secrets_dir", None)
+        if case_sensitive is None:
+            case_sensitive = getattr(wrapped, "case_sensitive", None)
+        if env_prefix is None:
+            env_prefix = getattr(wrapped, "env_prefix", None)
+        super().__init__(
+            settings_cls, case_sensitive=case_sensitive, env_prefix=env_prefix
         )
-        self.secrets_dir_missing: str = secrets_dir_missing or config.get(
-            "secrets_dir_missing", "warn"
+        self.case_sensitive: bool = self._option(
+            "secrets_case_sensitive", secrets_case_sensitive, self.case_sensitive
+        )
+        self.env_prefix: str = self._option(
+            "secrets_prefix", secrets_prefix, self.env_prefix
+        )
+        self.secrets_dir: SecretPaths = self._option("secrets_dir", secrets_dir)
+        self.secrets_dir_missing: str = self._option(
+            "secrets_dir_missing", secrets_dir_missing, "warn"
         )
         if self.secrets_dir_missing not in ("ok", "warn", "error"):
             raise SettingsError("secrets_dir_missing must be 'ok', 'warn', or 'error'")
-        self.secrets_dir_max_size: int = (
-            secrets_dir_max_size
-            if secrets_dir_max_size is not None
-            else config.get("secrets_dir_max_size", SECRETS_DIR_MAX_SIZE)
+        self.secrets_dir_max_size: int = self._option(
+            "secrets_dir_max_size", secrets_dir_max_size, SECRETS_DIR_MAX_SIZE
         )
-        self.secrets_nested_subdir: bool = (
-            secrets_nested_subdir
-            if secrets_nested_subdir is not None
-            else config.get("secrets_nested_subdir", False)
+        self.secrets_nested_subdir: bool = self._option(
+            "secrets_nested_subdir", secrets_nested_subdir, False
         )
-        delimiter = (
-            secrets_nested_delimiter
-            if secrets_nested_delimiter is not None
-            else config.get("secrets_nested_delimiter")
-        )
+        delimiter = self._option("secrets_nested_delimiter", secrets_nested_delimiter)
         if self.secrets_nested_subdir:
             if delimiter is not None:
                 raise SettingsError(
                     "secrets_nested_subdir and secrets_nested_delimiter are mutually exclusive"
                 )
             delimiter = os.sep
-        elif delimiter is None:
-            delimiter = config.get("env_nested_delimiter")
-        sensitive = secrets_case_sensitive
-        if sensitive is None:
-            sensitive = config.get("secrets_case_sensitive")
-        if sensitive is None:
-            sensitive = (
-                case_sensitive
-                if case_sensitive is not None
-                else getattr(wrapped, "case_sensitive", config.get("case_sensitive"))
-            )
-        prefix = secrets_prefix
-        if prefix is None:
-            prefix = config.get("secrets_prefix")
-        if prefix is None:
-            prefix = (
-                env_prefix
-                if env_prefix is not None
-                else getattr(wrapped, "env_prefix", config.get("env_prefix"))
-            )
-        super().__init__(
-            settings_cls,
-            case_sensitive=sensitive,
-            env_prefix=prefix,
-            env_nested_delimiter=delimiter,
+        self.env_nested_delimiter: str | None = self._option(
+            "env_nested_delimiter", delimiter
         )
 
     def _load_env_vars(self) -> dict[str, Any]:
