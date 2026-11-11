@@ -7,7 +7,6 @@ import inspect
 import warnings
 from collections.abc import Awaitable, Callable, Sequence
 from contextvars import ContextVar
-from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
 from typing import Any, ClassVar, Literal, Self
@@ -83,14 +82,10 @@ _SOURCE_OVERRIDE_KEYS = (
 )
 
 
-@dataclass
-class _PreparedSettings:
-    settings_cls: type[BaseSettings]
-    instance: BaseSettings | None = None
-
-
-_PREPARED_SETTINGS: ContextVar[_PreparedSettings | None] = ContextVar(
-    "fastenv_prepared_settings", default=None
+# The instance that BaseSettings.load() is constructing. Its sources are already
+# loaded, so its initializer validates the values it receives as they are.
+_LOADED_SETTINGS: ContextVar[BaseSettings | None] = ContextVar(
+    "fastenv_loaded_settings", default=None
 )
 
 
@@ -167,18 +162,6 @@ class BaseSettings(BaseModel):
                 cls.model_config[key] = kwargs.pop(key)
         super().__init_subclass__(**kwargs)
 
-    def __new__(cls, /, *_args: Any, **_kwargs: Any) -> Self:
-        instance = super().__new__(cls)
-        prepared = _PREPARED_SETTINGS.get()
-        # Bind before a custom initializer can construct another instance.
-        if (
-            prepared is not None
-            and prepared.settings_cls is cls
-            and prepared.instance is None
-        ):
-            prepared.instance = instance
-        return instance
-
     def __init__(
         __settings_self__,  # pyright: ignore[reportSelfClsParameterName]
         _case_sensitive: bool | None = None,
@@ -196,10 +179,7 @@ class BaseSettings(BaseModel):
         **values: Any,
     ) -> None:
         settings_cls = type(__settings_self__)
-        prepared = _PREPARED_SETTINGS.get()
-        if prepared is not None and prepared.instance is __settings_self__:
-            # Consume the bypass before validation can construct nested models.
-            _ = _PREPARED_SETTINGS.set(None)
+        if _LOADED_SETTINGS.get() is __settings_self__:
             super().__init__(**values)
             return
         options = settings_cls._settings_options(
@@ -252,12 +232,15 @@ class BaseSettings(BaseModel):
             if inspect.isawaitable(data):
                 data = await data
             state.add(source, data)
-        prepared_token = _PREPARED_SETTINGS.set(_PreparedSettings(cls))
+        # Create the instance before initializing it, so that only this instance
+        # skips its sources. Custom initializers still run on unvalidated inputs.
+        settings = cls.__new__(cls)
+        token = _LOADED_SETTINGS.set(settings)
         try:
-            # Custom constructors receive the ordinary, still unvalidated inputs.
-            return cls(**state.values())
+            settings.__init__(**state.values())
         finally:
-            _PREPARED_SETTINGS.reset(prepared_token)
+            _LOADED_SETTINGS.reset(token)
+        return settings
 
     @classmethod
     def _settings_options(cls, values: dict[str, Any]) -> dict[str, Any]:
