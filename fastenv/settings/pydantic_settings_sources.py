@@ -23,7 +23,7 @@ from pydantic import AliasChoices, AliasPath, BaseModel, Json
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from fastenv.utilities import parse_dotenv
+from fastenv.utilities import logger, parse_dotenv
 
 
 class SettingsError(ValueError):
@@ -735,6 +735,7 @@ class DotEnvSettingsSource(EnvSettingsSource):
             if path.is_file() or path.is_fifo():
                 contents = path.read_text(encoding=self.env_file_encoding or "utf-8")
                 variables = dict(parse_dotenv(contents, case_sensitive=True))
+                logger.info(f"fastenv loaded {len(variables)} variables from {path}")
                 env_vars.update(self._parse_env_vars(variables))
         return env_vars
 
@@ -946,10 +947,12 @@ class _ConfigFileSettingsSource(PydanticBaseSettingsSource, ABC):
             values = self._decode_file(path.read_text(encoding=self._encoding))
             if not isinstance(values, dict):
                 raise SettingsError(f"Configuration file {path} must contain a mapping")
+            values = cast(dict[str, Any], values)
+            logger.info(f"fastenv loaded {len(values)} variables from {path}")
             if self._deep_merge:
-                data = deep_merge(data, cast(dict[str, Any], values))
+                data = deep_merge(data, values)
             else:
-                data.update(cast(dict[str, Any], values))
+                data.update(values)
         return data
 
     @abstractmethod

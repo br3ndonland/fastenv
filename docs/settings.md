@@ -121,6 +121,14 @@ Loading settings never changes `os.environ`. File values belong to the settings 
 
 Secret files are plain files named after a field, each holding a single value, the way Docker and Kubernetes mount secrets. Point `secrets_dir` at the directory, such as `secrets_dir="/run/secrets"`, and a file named `api_key` supplies the `api_key` field.
 
+fastenv logs a line for each dotenv file it reads, and for each [JSON or TOML file](#custom-and-file-sources), so you can see which files were found:
+
+```text
+fastenv loaded 3 variables from .env
+```
+
+Files that don't exist are skipped without a line, and secret files aren't logged. These lines use the `"fastenv"` logger at the `INFO` level, the same as [`fastenv.load_dotenv`](dotenv.md#exceptions-and-logging).
+
 To change an option for one instance, pass it with a leading underscore, as in pydantic-settings:
 
 ```py
