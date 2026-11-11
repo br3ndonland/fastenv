@@ -6,9 +6,11 @@ icon: lucide/settings
 
 ## Pydantic integration
 
-fastenv provides Pydantic settings models using its existing dotenv parser. It is an original implementation based on the public pydantic-settings 2.15.0 API, with [intentional differences](comparisons.md#differences-from-pydantic-settings). Neither pydantic-settings nor python-dotenv is a runtime dependency.
+fastenv provides the settings models you may know from [pydantic-settings](https://github.com/pydantic/pydantic-settings). You describe your settings as a Pydantic model, and fastenv fills it in from environment variables, dotenv files, and secret files. Pydantic then validates the result and converts each value to the type you asked for.
 
-Install the optional integration into your project's virtual environment:
+The API follows pydantic-settings 2.15.0, with fastenv's own dotenv parser in place of python-dotenv and a few [intentional differences](comparisons.md#differences-from-pydantic-settings).
+
+Install the integration in your project's virtual environment:
 
 ```sh
 python3 -m venv .venv
@@ -16,10 +18,21 @@ python3 -m venv .venv
 python -m pip install 'fastenv[settings]'
 ```
 
-Change settings imports to `fastenv`. Continue importing models, fields, aliases, validators, and types from `pydantic`:
+Pydantic is optional. The rest of fastenv works without it installed. The extra installs Pydantic itself, but not pydantic-settings or python-dotenv.
+
+### Getting started
+
+Let's start with a `.env` file:
+
+```sh
+SERVICE_DEBUG=true
+SERVICE_ALLOWED_HOSTS='["localhost", "127.0.0.1"]'
+SERVICE_DATABASE__PORT=6543
+```
+
+Next, describe the settings you expect. Settings classes come from `fastenv`. Models, fields, aliases, validators, and types still come from `pydantic`:
 
 ```py
-import anyio
 from pydantic import BaseModel
 
 from fastenv import BaseSettings, SettingsConfigDict
@@ -33,76 +46,147 @@ class Database(BaseModel):
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="SERVICE_",
-        env_file=(".env", ".env.local"),
+        env_file=".env",
         env_nested_delimiter="__",
     )
     debug: bool = False
+    allowed_hosts: list[str] = ["localhost"]
     database: Database = Database()
+
+
+settings = Settings()
+settings.debug
+# True
+settings.allowed_hosts
+# ['localhost', '127.0.0.1']
+settings.database
+# Database(host='localhost', port=6543)
+```
+
+Every value in the file is a string, and every value on the model has the type you declared. `SERVICE_DEBUG=true` became a Boolean, the JSON array became a list, and `SERVICE_DATABASE__PORT` reached into the nested `Database` model while `host` kept its default.
+
+If a value can't be converted, such as `SERVICE_DEBUG=maybe`, Pydantic raises a `ValidationError` that names the field. You find out at startup, instead of later when the setting is used.
+
+### Two ways to load settings
+
+You can create the model directly, or let an async class method create it for you. Both read the same sources and return the same validated settings.
+
+`Settings()` reads files right away, as it does in pydantic-settings. It works anywhere, including inside an async function, but the event loop has to wait while the files are read.
+
+If you're already inside an async function, use `await Settings.load()`. It reads the files in [AnyIO worker threads](https://anyio.readthedocs.io/en/stable/threads.html), so the event loop stays free:
+
+```py
+import anyio
 
 
 async def main() -> None:
     settings = await Settings.load()
-    print(settings.model_dump())
+    print(settings.database.port)
+    # 6543
 
 
 anyio.run(main)
 ```
 
-For example, `SERVICE_DEBUG=true` becomes a boolean. `SERVICE_DATABASE__PORT=6543` overrides the nested port. A JSON object in `SERVICE_DATABASE` can supply several nested values, and individual nested variables override its matching members.
+`load()` accepts the same arguments as the constructor. A FastAPI or Starlette lifespan function is a good place for it, as shown in the [quickstart](index.md#quickstart).
+
+Files are read each time you create or load settings. To pick up a changed file, load the settings again.
 
 ### Sources and priority
 
-The default order, from highest to lowest priority, is:
+When the same setting shows up in more than one place, the source highest on this list wins:
 
-1. Constructor arguments.
-2. Process environment variables.
+1. Arguments passed to `Settings(...)` or `Settings.load(...)`.
+2. Environment variables.
 3. Dotenv files, with later files overriding earlier files.
 4. Secret files, with later directories overriding earlier directories.
-5. Model defaults.
+5. Defaults on the model.
 
-Mappings from different sources are merged recursively. Pydantic validates the merged input and applies field defaults. Default values are validated too. Unknown environment variables are ignored. Unknown constructor and dotenv values are rejected unless `extra="ignore"` or `extra="allow"` is configured.
+With the `.env` file above, an environment variable beats the file, and an argument beats both:
 
-Per-instance options use the same leading underscore as pydantic-settings. For example, `await Settings.load(_env_file="production.env")` selects another file, and `await Settings.load(_env_file=None)` disables dotenv loading. `await Settings.load(_env_prefix="OTHER_")` changes the prefix for that instance.
+```py
+import os
 
-The environment and dotenv sources support case sensitivity, aliases, `AliasChoices`, `AliasPath`, prefix targets, nested delimiters and maximum splits, empty-value filtering, null markers, enum names, and JSON decoding. `NoDecode` and `ForceDecode` can be used as `Annotated` metadata. Model configuration can also be supplied through class keywords such as `class Settings(BaseSettings, env_prefix="SERVICE_")`.
+os.environ["SERVICE_DATABASE__PORT"] = "7000"
 
-### Dotenv parsing and environment isolation
+Settings().database.port
+# 7000
+Settings(debug=False).debug
+# False
+```
 
-Settings loading never changes `os.environ`. Files are parsed with `fastenv.parse_dotenv`, the same parser used by `fastenv.DotEnv`. This allows independent settings instances to use different files safely, including concurrent loads.
+Nested models are merged across sources, not replaced. In this example, the port comes from the environment while `host` still comes from the model default.
 
-The parser deliberately follows fastenv's format:
+Loading settings never changes `os.environ`. File values belong to the settings instance, so separate instances can read different files, even at the same time. This differs from [`fastenv.load_dotenv`](dotenv.md#loading-a-env-file), which sets environment variables.
 
-- Shell tokenization handles quotes, comments, and whitespace-separated assignments.
-- Keys preserve their spelling for case-sensitive settings lookup.
-- Variables such as `${HOME}` remain literal text. There is no variable interpolation.
-- Bare names without `=` are ignored. An assignment with no value produces an empty string.
-- Leading and trailing whitespace and quote characters are stripped according to existing fastenv behavior.
-- Invalid shell quoting raises an error.
+Secret files are plain files named after a field, each holding a single value, the way Docker and Kubernetes mount secrets. Point `secrets_dir` at the directory, such as `secrets_dir="/run/secrets"`, and a file named `api_key` supplies the `api_key` field.
 
-These parsing details can differ from python-dotenv. Review files that rely on its interpolation or whitespace behavior when migrating.
+To change an option for one instance, pass it with a leading underscore, as in pydantic-settings:
 
-`parse_dotenv` is also available without Pydantic. It returns key-value pairs. Convert them to a dictionary to keep the last value for each key:
+```py
+Settings(_env_file=".env.production")  # read a different file
+Settings(_env_file=None)  # skip dotenv files
+```
+
+One thing to watch for: a name in a dotenv file that doesn't match a field is rejected, just like an unknown argument. If you share your `.env` file with other tools, add `extra="ignore"` to the model config. Unknown environment variables are always ignored.
+
+### Naming settings
+
+By default, a field named `debug` is read from `DEBUG`, in any letter case. These options change where fastenv looks and how it reads what it finds. They apply to environment variables and dotenv files alike:
+
+- `env_prefix` adds a prefix to each name, so `env_prefix="SERVICE_"` reads `SERVICE_DEBUG`.
+- `env_prefix_target` chooses whether the prefix applies to field names (`"variable"`, the default), aliases (`"alias"`), or both (`"all"`).
+- `case_sensitive` matches names exactly when `True`.
+- `env_nested_delimiter` splits names into nested fields, so `"__"` lets `DATABASE__PORT` set `database.port`.
+- `env_nested_max_split` limits how many times a name is split, for nested field names that contain the delimiter.
+- `env_ignore_empty` treats empty values as missing, so the default applies.
+- `env_parse_none_str` names a marker, such as `"null"`, that becomes `None`.
+- `env_parse_enums` accepts enum member names, such as `RED` for `Color.RED`.
+
+Lists, dictionaries, and nested models are decoded from JSON. A JSON object in `SERVICE_DATABASE` can supply several nested values at once, and individual variables such as `SERVICE_DATABASE__PORT` override its members. If you'd like to parse a value yourself in a validator, annotate the field with `NoDecode` to get the raw string. `ForceDecode` does the opposite when `enable_decoding=False` turns decoding off for the model.
+
+To give a field another name, use Pydantic's `validation_alias`. It accepts a single name, an `AliasChoices` with several names to try in order, or an `AliasPath` into a JSON value. Aliases are used as written, without the prefix:
+
+```py
+from pydantic import AliasChoices, Field
+
+from fastenv import BaseSettings
+
+
+class Settings(BaseSettings, env_prefix="SERVICE_"):
+    debug: bool = False
+    port: int = Field(default=8000, validation_alias=AliasChoices("PORT", "HTTP_PORT"))
+```
+
+Here, `debug` is read from `SERVICE_DEBUG` and `port` from `PORT` or `HTTP_PORT`. The example also shows that options can be passed as class keywords instead of `model_config`.
+
+### Dotenv parsing
+
+Dotenv files are parsed with `fastenv.parse_dotenv`, the same parser behind [`fastenv.DotEnv`](environment.md). If you're used to python-dotenv, a few details are different:
+
+- Values are split the way a shell would split them. Quotes, comments, and several assignments on one line all work.
+- Names keep their letter case, which matters if you set `case_sensitive=True`.
+- There's no variable interpolation. `${HOME}` stays as the literal text `${HOME}`.
+- A bare name without `=` is skipped, and `NAME=` gives an empty string.
+- Whitespace and quote characters around a value are stripped.
+- Mismatched quotes raise an error.
+
+If your files rely on python-dotenv's interpolation or whitespace handling, give them a quick review when you migrate.
+
+`parse_dotenv` works on its own too, with or without Pydantic. It returns key-value pairs, so wrap it in `dict()` to keep the last value for each name:
 
 ```py
 import fastenv
 
-values = dict(fastenv.parse_dotenv("PORT=8000 LABEL='local service'"))
-assert values == {"PORT": "8000", "LABEL": "local service"}
+dict(fastenv.parse_dotenv("PORT=8000 LABEL='local service'"))
+# {'PORT': '8000', 'LABEL': 'local service'}
 ```
-
-`DotEnv`, `load_dotenv`, and `dotenv_values` retain their existing environment mutation behavior. Use `await Settings.load()` to read settings files in AnyIO worker threads without blocking the event loop, then validate the collected values:
-
-```py
-settings = await Settings.load()
-```
-
-This includes dotenv, JSON, TOML, pyproject files, and secret directories. Sources are processed in priority order so custom sources can inspect values from earlier sources. Parsing and Pydantic validation run after the file contents have been read. The synchronous `Settings(...)` constructor remains available for compatibility with pydantic-settings.
 
 ### Custom and file sources
 
-Override `settings_customise_sources` to add, reorder, or remove sources. The first returned source has the highest priority. A source can be a callable returning a dictionary, or a subclass of `PydanticBaseSettingsSource` with `get_field_value` and `__call__` implementations. Source instances expose `current_state` and `settings_sources_data` while they are being evaluated.
+The default sources are only a starting point. Override `settings_customise_sources` to add, reorder, or remove them. The first source you return has the highest priority.
 
-`Settings.load()` also accepts async callable sources. A custom source class can implement `async def load(self)` to await its I/O and return a dictionary. The default source `load()` calls `__call__`, which supports synchronous in-memory sources. The built-in file sources read their files each time they are called or loaded, never in their constructors, so you can construct them anywhere and reload them later. Custom sources that read files or use the network should follow the same pattern.
+For example, this reads `service.toml` with a priority between environment variables and dotenv files:
 
 ```py
 from fastenv import BaseSettings, TomlConfigSettingsSource
@@ -129,7 +213,7 @@ class Settings(BaseSettings):
         )
 ```
 
-File sources are opt-in through this hook. Setting `toml_file` or `json_file` alone does not insert another source and emits a warning.
+File sources like this one are opt-in. Setting `toml_file` or `json_file` in the model config isn't enough on its own, and fastenv warns you if the source is missing.
 
 | Source | Configuration |
 | --- | --- |
@@ -139,13 +223,48 @@ File sources are opt-in through this hook. Setting `toml_file` or `json_file` al
 | `SecretsSettingsSource` | `secrets_dir`, environment prefix and case settings |
 | `NestedSecretsSettingsSource` | Secret directories, nested separators or subdirectories, prefix, case, size and missing-directory policies |
 
-JSON and TOML use Python's standard library. YAML is [intentionally unsupported](comparisons.md#differences-from-pydantic-settings). The default pyproject section is `[tool.pydantic-settings]`, preserving the migration contract. Set `pyproject_toml_table_header=("tool", "fastenv")` to use `[tool.fastenv]` instead.
+JSON and TOML are parsed with Python's standard library. YAML is [intentionally unsupported](comparisons.md#differences-from-pydantic-settings). The pyproject source reads `[tool.pydantic-settings]` by default, so projects coming from pydantic-settings keep working. Set `pyproject_toml_table_header=("tool", "fastenv")` to use `[tool.fastenv]` instead.
 
-For dotenv files stored in S3-compatible object storage, use fastenv's [asynchronous object storage client](cloud-object-storage.md#downloading-files) to download a file before loading its path with `await Settings.load(_env_file=...)`. The client is available through `fastenv[cloud]` and does not depend on Boto3. Built-in cloud secret services are outside this integration's scope. See the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings).
+Do you keep dotenv files in S3-compatible object storage? Download the file with fastenv's [object storage client](cloud-object-storage.md#downloading-files), then pass its path to `await Settings.load(_env_file=...)`.
+
+#### Writing your own source
+
+A source can be as simple as a function that returns a dictionary. With `await Settings.load()`, it can be an async function too:
+
+```py
+from typing import Any
+
+from fastenv import BaseSettings
+
+
+async def fetch_remote_settings() -> dict[str, Any]:
+    return {"port": 9000}  # imagine an HTTP request here
+
+
+class Settings(BaseSettings):
+    port: int = 8000
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        return (init_settings, env_settings, fetch_remote_settings)
+```
+
+An async source needs `await Settings.load()`. Calling `Settings()` with one raises `SettingsError`.
+
+For more control, subclass `PydanticBaseSettingsSource` and implement `get_field_value` and `__call__`. If the source has I/O to await, implement `async def load(self)` as well. Otherwise, `load()` calls `__call__` for you. Sources run in priority order, and while one runs, its `current_state` holds the values merged from the sources before it and its `settings_sources_data` holds what each of them returned.
+
+The built-in file sources read their files when they're called or loaded, never when they're constructed, so you can create them anywhere. Sources that read files or use the network should do the same.
 
 ### Application command-line arguments
 
-fastenv does not generate or run command-line applications or provide pydantic-settings CLI APIs. Parse arguments in your application with Click or Python's standard-library `argparse`, then pass only explicitly supplied values to `Settings(**overrides)`:
+fastenv doesn't generate command-line interfaces from settings models. The [comparison with pydantic-settings](comparisons.md#command-line-interfaces) explains why. Parse arguments with Click or Python's standard library `argparse` as usual, then pass the ones the user supplied to `Settings(...)`:
 
 ```py
 import argparse
@@ -163,17 +282,25 @@ overrides = vars(parser.parse_args())
 settings = Settings(**overrides)
 ```
 
-`argparse.SUPPRESS` keeps omitted options out of the mapping, allowing environment variables, files, and model defaults to supply their values. When using Click, likewise include only parameters explicitly supplied by the user. Return this mapping from a [custom source](#custom-and-file-sources) when a different priority is needed.
+`argparse.SUPPRESS` leaves omitted options out of the mapping, so environment variables, files, and model defaults can still supply them. With Click, likewise pass only the options the user set.
 
-### Compatibility and verification
+Arguments passed this way have the highest priority. If you'd like them lower, return the mapping from a [custom source](#writing-your-own-source) instead.
 
-The compatibility target is the released **pydantic-settings 2.15.0** public API for environment variables, local files, secret directories, and custom sources, imported through `fastenv`. CLI APIs, YAML, cloud providers, and parser differences are documented in the [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings). Internal module paths, private methods, and exact error text are not compatibility contracts. The fastenv package version remains available as `fastenv.__version__`.
+### Coming from pydantic-settings
 
-The implementation was written from public documentation, signatures, and independently authored behavioral comparisons during development. No pydantic-settings implementation or tests were copied.
+Already using pydantic-settings? Change `from pydantic_settings import ...` to `from fastenv import ...`, and keep importing everything else from `pydantic`. fastenv follows the public API of **pydantic-settings 2.15.0** for environment variables, local files, secret directories, and custom sources.
 
-Ongoing regression checks live in the regular test suite and run through the project's [pytest workflow](contributing.md#testing-with-pytest), without installing pydantic-settings or python-dotenv. They cover settings validation, source priority, aliases, nested values, file loading, and optional dependency isolation. These tests exercise a defined set of behaviors and are not proof of exhaustive equivalence for all Pydantic types and settings configurations.
+A few things are different on purpose:
 
-Background: [fastenv discussion 21](https://github.com/br3ndonland/fastenv/discussions/21), [pydantic-settings](https://github.com/pydantic/pydantic-settings), and the [Pydantic settings documentation](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/).
+- Dotenv files are read with [fastenv's parser](#dotenv-parsing) instead of python-dotenv.
+- There are no CLI, YAML, or cloud secret service sources.
+- Private methods, internal module paths, and exact error messages may not match.
+
+The [comparison with pydantic-settings](comparisons.md#differences-from-pydantic-settings) covers each difference in detail.
+
+fastenv's settings code is an original implementation, written from the public documentation and signatures. No pydantic-settings code or tests were copied. The [test suite](contributing.md#testing-with-pytest) checks validation, source priority, aliases, nested values, and file loading without pydantic-settings or python-dotenv installed. It can't cover every Pydantic type and option, so try out the settings you rely on when you migrate.
+
+For more background, see [fastenv discussion 21](https://github.com/br3ndonland/fastenv/discussions/21), [pydantic-settings](https://github.com/pydantic/pydantic-settings), and the [Pydantic settings documentation](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/).
 
 ## Starlette integration
 
