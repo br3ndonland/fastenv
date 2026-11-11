@@ -528,7 +528,12 @@ class PydanticBaseEnvSettingsSource(PydanticBaseSettingsSource, ABC):
         return canonicalize_inputs(self.settings_cls, result)
 
     async def load(self) -> dict[str, Any]:
-        """Read variables in a worker thread, then return field inputs."""
+        """Read variables in a worker thread, then return field inputs.
+
+        The synchronous reader is the only reader because settings constructors
+        also have to work inside a running event loop. `StarletteConfig` does the
+        inverse, with a constructor that runs its async reader in a new loop.
+        """
         self._preloaded = await anyio.to_thread.run_sync(self._load_env_vars)
         try:
             return self()
