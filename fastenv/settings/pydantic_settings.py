@@ -8,19 +8,22 @@ import warnings
 from collections.abc import Awaitable, Callable, Sequence
 from contextvars import ContextVar
 from os import PathLike
-from pathlib import Path
 from typing import Any, ClassVar, Literal, Self
 
 from pydantic import BaseModel, ConfigDict
 
 from .pydantic_settings_sources import (
+    DEFAULT_PATH,
     DefaultSettingsSource,
     DotEnvSettingsSource,
     EnvSettingsSource,
     InitSettingsSource,
+    JsonConfigSettingsSource,
     PydanticBaseSettingsSource,
+    PyprojectTomlConfigSettingsSource,
     SecretsSettingsSource,
     SettingsError,
+    TomlConfigSettingsSource,
     canonicalize_inputs,
     deep_merge,
 )
@@ -66,7 +69,6 @@ class SettingsConfigDict(ConfigDict, total=False):
 _SETTINGS_KEYS = (
     SettingsConfigDict.__annotations__.keys() - ConfigDict.__annotations__.keys()
 )
-_ENV_FILE_DEFAULT = Path("")
 _SOURCE_OVERRIDE_KEYS = (
     "case_sensitive",
     "nested_model_default_partial_update",
@@ -168,7 +170,7 @@ class BaseSettings(BaseModel):
         _nested_model_default_partial_update: bool | None = None,
         _env_prefix: str | None = None,
         _env_prefix_target: Literal["variable", "alias", "all"] | None = None,
-        _env_file: PathType | None = _ENV_FILE_DEFAULT,
+        _env_file: PathType | None = DEFAULT_PATH,
         _env_file_encoding: str | None = None,
         _env_ignore_empty: bool | None = None,
         _env_nested_delimiter: str | None = None,
@@ -249,8 +251,8 @@ class BaseSettings(BaseModel):
             override = values.pop(f"_{key}", None)
             if override is not None:
                 options[key] = override
-        env_file = values.pop("_env_file", _ENV_FILE_DEFAULT)
-        if env_file != _ENV_FILE_DEFAULT:
+        env_file = values.pop("_env_file", DEFAULT_PATH)
+        if env_file != DEFAULT_PATH:
             options["env_file"] = env_file
         return options
 
@@ -298,12 +300,6 @@ class BaseSettings(BaseModel):
             dotenv_settings=dotenv,
             file_secret_settings=secrets,
         )
-        from .pydantic_settings_providers import (
-            JsonConfigSettingsSource,
-            PyprojectTomlConfigSettingsSource,
-            TomlConfigSettingsSource,
-        )
-
         for source_cls, keys in (
             (JsonConfigSettingsSource, ("json_file", "json_file_encoding")),
             (TomlConfigSettingsSource, ("toml_file", "toml_table_header")),
