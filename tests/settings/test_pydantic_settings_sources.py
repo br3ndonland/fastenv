@@ -11,7 +11,7 @@ import tomllib
 import zipfile
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, ForwardRef, Literal, cast
+from typing import Annotated, Any, ClassVar, ForwardRef, Literal, cast
 
 import anyio
 import pytest
@@ -27,7 +27,6 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-from fastenv.settings import pydantic_settings_sources
 from fastenv.settings.pydantic_settings import BaseSettings, SettingsConfigDict
 from fastenv.settings.pydantic_settings_sources import (
     DefaultSettingsSource,
@@ -47,9 +46,6 @@ from fastenv.settings.pydantic_settings_sources import (
     canonicalize_inputs,
     deep_merge,
 )
-
-if TYPE_CHECKING:
-    from pytest_mock import MockerFixture
 
 
 @pytest.fixture(autouse=True)
@@ -515,20 +511,20 @@ class TestDotenvSource:
         assert dict(os.environ) == environment_before
 
     def test_dotenv_files_are_logged(
-        self, tmp_path: Path, mocker: MockerFixture
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Log the number of variables loaded from each dotenv file that exists."""
         first = tmp_path / "base.env"
+        missing = tmp_path / "missing.env"
         second = tmp_path / "override.env"
         _ = first.write_text("COUNT=4\nTOKEN=first\n")
         _ = second.write_text("COUNT=9\nTOKEN=second\nCONNECTION__PORT=7000\n")
-        logger = mocker.patch.object(pydantic_settings_sources, "logger", autospec=True)
-        _ = DotEnvSettingsSource(
-            SourceSettings, env_file=[first, tmp_path / "missing", second]
-        )()
-        assert logger.info.call_count == 2
-        logger.info.assert_any_call(f"fastenv loaded 2 variables from {first}")
-        logger.info.assert_any_call(f"fastenv loaded 3 variables from {second}")
+        caplog.set_level("INFO", logger="fastenv")
+        _ = DotEnvSettingsSource(SourceSettings, env_file=[first, missing, second])()
+        assert f"loaded 2 variables from {first}" in caplog.text
+        assert f"loaded 3 variables from {second}" in caplog.text
+        assert str(missing) not in caplog.text
+        assert all(record.levelname == "INFO" for record in caplog.records)
 
     def test_dotenv_case_null_and_empty_values(self, tmp_path: Path) -> None:
         """Honor key case, null markers, and empty values, or disable the file."""
@@ -808,16 +804,19 @@ class TestConfigFileSources:
         assert source_class(Configured, tmp_path)() == {}
 
     def test_config_files_are_logged(
-        self, tmp_path: Path, mocker: MockerFixture
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Log the number of top-level keys loaded from each file that exists."""
         path = tmp_path / "config.json"
+        missing = tmp_path / "missing.json"
         _ = path.write_text(
             '{"token":"configured","service":{"hostname":"first","port":9000}}'
         )
-        logger = mocker.patch.object(pydantic_settings_sources, "logger", autospec=True)
-        _ = JsonConfigSettingsSource(FileSettings, [tmp_path / "missing", path])()
-        logger.info.assert_called_once_with(f"fastenv loaded 2 variables from {path}")
+        caplog.set_level("INFO", logger="fastenv")
+        _ = JsonConfigSettingsSource(FileSettings, [missing, path])()
+        assert f"loaded 2 variables from {path}" in caplog.text
+        assert str(missing) not in caplog.text
+        assert all(record.levelname == "INFO" for record in caplog.records)
 
     def test_json_encoding_alias_and_settings_integration(self, tmp_path: Path) -> None:
         """Load encoded JSON values through aliases and allow constructor overrides."""
