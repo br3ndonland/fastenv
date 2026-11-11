@@ -1,8 +1,10 @@
-from __future__ import annotations
-
 # Source hooks intentionally accept arbitrary Pydantic field values.
 # pyright: reportAny=false, reportExplicitAny=false
+
+from __future__ import annotations
+
 import dataclasses
+import enum
 import json
 import os
 import tomllib
@@ -14,14 +16,7 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import (
-    Annotated,
-    Any,
-    Literal,
-    cast,
-    get_args,
-    get_origin,
-)
+from typing import Annotated, Any, Literal, cast, get_args, get_origin
 
 import anyio
 from pydantic import AliasChoices, AliasPath, BaseModel, Json
@@ -584,10 +579,8 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
         return self._parse_env_vars(os.environ)
 
     def _enum_value(self, value: Any, annotation: Any) -> Any:
-        from enum import Enum
-
         if self.env_parse_enums and isinstance(value, str):
-            if isinstance(annotation, type) and issubclass(annotation, Enum):
+            if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
                 return annotation.__members__.get(value, value)
             for argument in get_args(annotation):
                 parsed = self._enum_value(value, argument)

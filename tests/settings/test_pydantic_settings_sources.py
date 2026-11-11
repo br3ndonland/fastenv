@@ -1,7 +1,9 @@
-from __future__ import annotations
-
 # Custom settings source hooks intentionally accept arbitrary model field values.
 # pyright: reportAny=false, reportExplicitAny=false
+
+from __future__ import annotations
+
+import dataclasses
 import json
 import os
 import threading
@@ -9,7 +11,7 @@ import tomllib
 import zipfile
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, Literal, cast
+from typing import Annotated, Any, ClassVar, ForwardRef, Literal, cast
 
 import anyio
 import pytest
@@ -21,6 +23,7 @@ from pydantic import (
     Field,
     Json,
     ValidationError,
+    create_model,
 )
 from pydantic.fields import FieldInfo
 
@@ -30,6 +33,7 @@ from fastenv.settings.pydantic_settings_sources import (
     DotEnvSettingsSource,
     EnvSettingsSource,
     ForceDecode,
+    IncompleteFieldDefinitionWarning,
     InitSettingsSource,
     JsonConfigSettingsSource,
     NestedSecretsSettingsSource,
@@ -290,12 +294,6 @@ class TestEnvironmentSource:
 
     def test_incomplete_annotation_warning(self) -> None:
         """Warn about unresolved field types and explain how to rebuild the model."""
-        from typing import ForwardRef
-
-        from pydantic import create_model
-
-        from fastenv import IncompleteFieldDefinitionWarning
-
         pending_annotation: Any = ForwardRef("LaterModel")
         settings = create_model("UnresolvedSettings", pending=(pending_annotation, ...))
         with pytest.warns(IncompleteFieldDefinitionWarning, match="pending"):
@@ -1012,9 +1010,8 @@ class TestDefaultSettingsSource:
 
     def test_dataclass_default_partial_update(self) -> None:
         """Support dataclass defaults while preserving supplied dataclass instances."""
-        from dataclasses import dataclass
 
-        @dataclass
+        @dataclasses.dataclass
         class Nested:
             port: int = 9100
 

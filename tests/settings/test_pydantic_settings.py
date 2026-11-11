@@ -23,7 +23,10 @@ from fastenv.settings.pydantic_settings import (
     SettingsConfigDict,
     SettingsSource,
 )
-from fastenv.settings.pydantic_settings_sources import PydanticBaseSettingsSource
+from fastenv.settings.pydantic_settings_sources import (
+    InitSettingsSource,
+    PydanticBaseSettingsSource,
+)
 
 
 class TestSettingsSources:
@@ -196,7 +199,6 @@ class TestSettingsSources:
 
     def test_source_field_lookup_hook(self) -> None:
         """Return a supplied field value through the source lookup method."""
-        from fastenv.settings.pydantic_settings_sources import InitSettingsSource
 
         class Settings(BaseSettings):
             enabled: bool = False

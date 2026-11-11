@@ -4,15 +4,15 @@
 from __future__ import annotations
 
 import inspect
+import os
 import warnings
 from collections.abc import Awaitable, Callable, Sequence
 from contextvars import ContextVar
-from os import PathLike
 from typing import Any, ClassVar, Literal, Self
 
 from pydantic import BaseModel, ConfigDict
 
-from .pydantic_settings_sources import (
+from fastenv.settings.pydantic_settings_sources import (
     DEFAULT_PATH,
     DefaultSettingsSource,
     DotEnvSettingsSource,
@@ -28,7 +28,7 @@ from .pydantic_settings_sources import (
     deep_merge,
 )
 
-PathType = str | PathLike[str] | Sequence[str | PathLike[str]]
+PathType = str | os.PathLike[str] | Sequence[str | os.PathLike[str]]
 SettingsSource = (
     PydanticBaseSettingsSource
     | Callable[[], dict[str, Any] | Awaitable[dict[str, Any]]]
