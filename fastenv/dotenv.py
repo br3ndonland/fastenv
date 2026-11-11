@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import anyio
 
-from fastenv.utilities import logger
+from fastenv.utilities import logger, parse_dotenv, parse_dotenv_args
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -67,24 +67,14 @@ class DotEnv(MutableMapping[str, str]):
         )
 
     def _parse_args(self, *args: str) -> list[str]:
-        if any(not isinstance(arg, str) for arg in args):  # pyright: ignore[reportUnnecessaryIsInstance]
-            raise TypeError("Arguments passed to DotEnv instances should be strings")
-        parsed_args: list[str] = []
-        for arg in args:
-            parsed_args += shlex.split(arg, comments=True, posix=True)
-        return parsed_args
+        return parse_dotenv_args(*args)
 
     def _parse_args_to_get(self, *args: str) -> tuple[str, ...]:
         parsed_args: list[str] = self._parse_args(*args)
         return tuple(a.upper() for a in parsed_args if "=" not in a)
 
     def _parse_args_to_set(self, *args: str) -> tuple[tuple[str, str], ...]:
-        parsed_args: list[str] = self._parse_args(*args)
-        return tuple(
-            (split_arg[0].strip(" \n\"'").upper(), split_arg[1].strip(" \n\"'"))
-            for a in parsed_args
-            if len(split_arg := a.split(sep="=", maxsplit=1)) == 2
-        )
+        return parse_dotenv(*args)
 
     def _parse_kwargs(self, **kwargs: str) -> dict[str, str]:
         return {
