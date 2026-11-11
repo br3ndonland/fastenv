@@ -708,16 +708,6 @@ class DotEnvSettingsSource(EnvSettingsSource):
         env_parse_none_str: str | None = None,
         env_parse_enums: bool | None = None,
     ) -> None:
-        config = settings_cls.model_config
-        self.env_file: Any = (
-            config.get("env_file") if env_file == DEFAULT_PATH else env_file
-        )
-        self.env_file_encoding: str | None = env_file_encoding or config.get(
-            "env_file_encoding"
-        )
-        self.dotenv_filtering: str | None = dotenv_filtering or config.get(
-            "dotenv_filtering"
-        )
         super().__init__(
             settings_cls,
             case_sensitive=case_sensitive,
@@ -728,6 +718,15 @@ class DotEnvSettingsSource(EnvSettingsSource):
             env_ignore_empty=env_ignore_empty,
             env_parse_none_str=env_parse_none_str,
             env_parse_enums=env_parse_enums,
+        )
+        self.env_file: Any = (
+            self.config.get("env_file") if env_file == DEFAULT_PATH else env_file
+        )
+        self.env_file_encoding: str | None = self._option(
+            "env_file_encoding", env_file_encoding
+        )
+        self.dotenv_filtering: str | None = self._option(
+            "dotenv_filtering", dotenv_filtering
         )
 
     def _load_env_vars(self) -> dict[str, Any]:
