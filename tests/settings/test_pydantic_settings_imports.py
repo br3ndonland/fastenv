@@ -134,10 +134,9 @@ class TestSettingsImports:
             from pathlib import Path
             from tempfile import TemporaryDirectory
 
-            from fastenv import (
-                BaseSettings,
+            from fastenv import BaseSettings, SettingsConfigDict
+            from fastenv.settings.pydantic_settings_sources import (
                 JsonConfigSettingsSource,
-                SettingsConfigDict,
                 TomlConfigSettingsSource,
             )
 
@@ -176,27 +175,11 @@ class TestSettingsImports:
         )
 
     def test_public_settings_exports(self) -> None:
-        """Expose Pydantic APIs at the package root and keep the subpackage empty."""
+        """Expose core Pydantic APIs at the package root and keep the subpackage empty."""
         import fastenv
         import fastenv.settings
 
-        for name in (
-            "BaseSettings",
-            "DotEnvSettingsSource",
-            "EnvSettingsSource",
-            "ForceDecode",
-            "IncompleteFieldDefinitionWarning",
-            "InitSettingsSource",
-            "JsonConfigSettingsSource",
-            "NestedSecretsSettingsSource",
-            "NoDecode",
-            "PydanticBaseSettingsSource",
-            "PyprojectTomlConfigSettingsSource",
-            "SecretsSettingsSource",
-            "SettingsConfigDict",
-            "SettingsError",
-            "TomlConfigSettingsSource",
-        ):
+        for name in ("BaseSettings", "SettingsConfigDict", "SettingsError"):
             assert name in fastenv.__all__
             assert callable(getattr(fastenv, name))  # pyright: ignore[reportAny]
             assert not hasattr(fastenv.settings, name)

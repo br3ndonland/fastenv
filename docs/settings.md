@@ -143,7 +143,7 @@ By default, a field named `debug` is read from `DEBUG`, in any letter case. Thes
 - `env_parse_none_str` names a marker, such as `"null"`, that becomes `None`.
 - `env_parse_enums` accepts enum member names, such as `RED` for `Color.RED`.
 
-Lists, dictionaries, and nested models are decoded from JSON. A JSON object in `SERVICE_DATABASE` can supply several nested values at once, and individual variables such as `SERVICE_DATABASE__PORT` override its members. If you'd like to parse a value yourself in a validator, annotate the field with `NoDecode` to get the raw string. `ForceDecode` does the opposite when `enable_decoding=False` turns decoding off for the model.
+Lists, dictionaries, and nested models are decoded from JSON. A JSON object in `SERVICE_DATABASE` can supply several nested values at once, and individual variables such as `SERVICE_DATABASE__PORT` override its members. If you'd like to parse a value yourself in a validator, annotate the field with `NoDecode` to get the raw string. `ForceDecode` does the opposite when `enable_decoding=False` turns decoding off for the model. Both are imported from `fastenv.settings.pydantic_settings_sources`.
 
 To give a field another name, use Pydantic's `validation_alias`. It accepts a single name, an `AliasChoices` with several names to try in order, or an `AliasPath` into a JSON value. Aliases are used as written, without the prefix:
 
@@ -189,7 +189,8 @@ The default sources are only a starting point. Override `settings_customise_sour
 For example, this reads `service.toml` with a priority between environment variables and dotenv files:
 
 ```py
-from fastenv import BaseSettings, TomlConfigSettingsSource
+from fastenv import BaseSettings
+from fastenv.settings.pydantic_settings_sources import TomlConfigSettingsSource
 
 
 class Settings(BaseSettings):
@@ -214,6 +215,8 @@ class Settings(BaseSettings):
 ```
 
 File sources like this one are opt-in. Setting `toml_file` or `json_file` in the model config isn't enough on its own, and fastenv warns you if the source is missing.
+
+Each of these source classes is imported from `fastenv.settings.pydantic_settings_sources`:
 
 | Source | Configuration |
 | --- | --- |
@@ -288,7 +291,7 @@ Arguments passed this way have the highest priority. If you'd like them lower, r
 
 ### Coming from pydantic-settings
 
-Already using pydantic-settings? Change `from pydantic_settings import ...` to `from fastenv import ...`, and keep importing everything else from `pydantic`. fastenv follows the public API of **pydantic-settings 2.15.0** for environment variables, local files, secret directories, and custom sources.
+Already using pydantic-settings? `BaseSettings`, `SettingsConfigDict`, and `SettingsError` come from `fastenv`. Source classes, `NoDecode`, and `ForceDecode` come from `fastenv.settings.pydantic_settings_sources`. Everything else still comes from `pydantic`. fastenv follows the public API of **pydantic-settings 2.15.0** for environment variables, local files, secret directories, and custom sources.
 
 A few things are different on purpose:
 
