@@ -733,7 +733,7 @@ class DotEnvSettingsSource(EnvSettingsSource):
         env_vars: dict[str, Any] = {}
         for path in configured_paths(self.env_file):
             if path.is_file() or path.is_fifo():
-                contents = path.read_text(encoding=self.env_file_encoding)
+                contents = path.read_text(encoding=self.env_file_encoding or "utf-8")
                 variables = dict(parse_dotenv(contents, case_sensitive=True))
                 env_vars.update(self._parse_env_vars(variables))
         return env_vars
@@ -816,7 +816,8 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
                 if not path.is_file():
                     warnings.warn(f'Secret path "{path}" is not a file', stacklevel=2)
                     continue
-                secrets[self._case(path.name)] = path.read_text().strip()
+                contents = path.read_text(encoding="utf-8")
+                secrets[self._case(path.name)] = contents.strip()
         return secrets
 
 
@@ -925,12 +926,12 @@ class _ConfigFileSettingsSource(PydanticBaseSettingsSource, ABC):
         settings_cls: type[BaseModel],
         files: ConfigPaths,
         *,
-        encoding: str | None = "utf-8",
+        encoding: str = "utf-8",
         deep_merge: bool,
     ) -> None:
         super().__init__(settings_cls)
         self._files: ConfigPaths = files
-        self._encoding: str | None = encoding
+        self._encoding: str = encoding
         self._deep_merge: bool = deep_merge
         self._preloaded: dict[str, Any] | None = None
 
@@ -999,7 +1000,7 @@ class JsonConfigSettingsSource(_ConfigFileSettingsSource):
         super().__init__(
             settings_cls,
             self.json_file,
-            encoding=self.json_file_encoding,
+            encoding=self.json_file_encoding or "utf-8",
             deep_merge=deep_merge,
         )
 

@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
+import sys
 from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -220,6 +222,51 @@ class TestSettingsSources:
 
         with pytest.warns(UserWarning, match="json_file"):
             _ = Settings()
+
+    def test_files_are_read_as_utf8_in_other_locales(self, tmp_path: Path) -> None:
+        """Read dotenv, JSON, and secret files as UTF-8 whatever the locale encoding."""
+        for name, contents in (
+            (".env", "FROM_DOTENV=caf\xe9\n"),
+            ("settings.json", '{"from_json": "caf\xe9"}'),
+            ("from_secret", "caf\xe9\n"),
+        ):
+            _ = (tmp_path / name).write_text(contents, encoding="utf-8")
+        script = """
+import locale
+import sys
+from pathlib import Path
+
+from fastenv.settings.pydantic_settings import BaseSettings, SettingsConfigDict
+from fastenv.settings.pydantic_settings_sources import JsonConfigSettingsSource
+
+locale.setlocale(locale.LC_CTYPE, "C")
+directory = Path(sys.argv[1])
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=directory / ".env",
+        json_file=directory / "settings.json",
+        secrets_dir=directory,
+    )
+    from_dotenv: str
+    from_json: str
+    from_secret: str
+
+    @classmethod
+    def settings_customise_sources(cls, settings_cls, **sources):
+        return *sources.values(), JsonConfigSettingsSource(settings_cls)
+
+
+assert set(Settings().model_dump().values()) == {"caf\\xe9"}
+"""
+        result = subprocess.run(
+            [sys.executable, "-X", "utf8=0", "-c", script, str(tmp_path)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
 
 
 class TestSettingsConfiguration:
