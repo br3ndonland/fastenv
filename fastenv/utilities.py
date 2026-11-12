@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from os import PathLike
 
 logger = logging.getLogger("fastenv")
+logger.setLevel(logging.INFO)
 
 
 def parse_dotenv_args(*args: str) -> list[str]:

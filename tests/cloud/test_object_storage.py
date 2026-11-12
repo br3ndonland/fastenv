@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import datetime
+import logging
 import os
 import urllib.parse
 from typing import TYPE_CHECKING, final
@@ -369,7 +370,6 @@ class TestObjectStorageClientUnit:
         and assert that an `AttributeError` is raised.
         """
         mocker.patch.dict(os.environ, clear=True)
-        _ = mocker.patch.object(fastenv.cloud.object_storage, "logger", autospec=True)
         with pytest.raises(AttributeError) as e:
             _ = fastenv.cloud.object_storage.ObjectStorageClient()
         assert "not provided" in str(e.value)
@@ -986,6 +986,7 @@ class TestObjectStorageClientIntegration:
     @pytest.mark.anyio
     async def test_download_to_file_with_object_storage_config(
         self,
+        caplog: pytest.LogCaptureFixture,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         env_file: anyio.Path,
         env_file_object_expected_output: dict[str, str],
@@ -995,11 +996,7 @@ class TestObjectStorageClientIntegration:
         instance, load the file, and assert all expected variables are set.
         """
         mocker.patch.dict(os.environ, clear=True)
-        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         environ = mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(
-            fastenv.cloud.object_storage, "logger", autospec=True
-        )
         transport = httpxyz.AsyncHTTPTransport(retries=5)
         httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
@@ -1007,19 +1004,20 @@ class TestObjectStorageClientIntegration:
         )
         destination = env_file.parent / f".env.{object_storage_config.access_key}"
         env_file_download = await object_storage_client.download(self.key, destination)
-        dotenv = await fastenv.dotenv.load_dotenv(env_file_download)
-        assert dotenv.source == env_file_download
-        for expected_key, expected_value in env_file_object_expected_output.items():
-            assert variable_is_set(dotenv, environ, expected_key, expected_value)
         info_message = (
             f"fastenv loaded {self.key} from {object_storage_config.bucket_host} "
             f"and wrote the contents to {destination}"
         )
-        logger.info.assert_called_once_with(info_message)
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
+        dotenv = await fastenv.dotenv.load_dotenv(env_file_download)
+        assert dotenv.source == env_file_download
+        for expected_key, expected_value in env_file_object_expected_output.items():
+            assert variable_is_set(dotenv, environ, expected_key, expected_value)
 
     @pytest.mark.anyio
     async def test_download_to_string_with_object_storage_config(
         self,
+        caplog: pytest.LogCaptureFixture,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         env_file_object_expected_output: dict[str, str],
         mocker: MockerFixture,
@@ -1029,9 +1027,6 @@ class TestObjectStorageClientIntegration:
         """
         mocker.patch.dict(os.environ, clear=True)
         environ = mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(
-            fastenv.cloud.object_storage, "logger", autospec=True
-        )
         transport = httpxyz.AsyncHTTPTransport(retries=5)
         httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
@@ -1045,11 +1040,12 @@ class TestObjectStorageClientIntegration:
         info_message = (
             f"fastenv loaded {self.key} from {object_storage_config.bucket_host}"
         )
-        logger.info.assert_called_once_with(info_message)
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     async def test_download_error(
         self,
+        caplog: pytest.LogCaptureFixture,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         mocker: MockerFixture,
     ) -> None:
@@ -1060,9 +1056,6 @@ class TestObjectStorageClientIntegration:
         To prevent this test from being flaky, `httpxyz.ReadError` is allowed.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(
-            fastenv.cloud.object_storage, "logger", autospec=True
-        )
         transport = httpxyz.AsyncHTTPTransport(retries=5)
         httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
@@ -1079,14 +1072,15 @@ class TestObjectStorageClientIntegration:
             )
             assert status_code == 404
             assert str(object_storage_config.bucket_name) in str(e.value)
-            assert "fastenv error" in logger.error.call_args.args[0]
-            assert "HTTPStatusError" in logger.error.call_args.args[0]
+            error_message = f"fastenv error: HTTPStatusError {e.value}"
+            assert caplog.record_tuples == [("fastenv", logging.ERROR, error_message)]
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("method", ("POST", "PUT"))
     @pytest.mark.parametrize("server_side_encryption", (None, "AES256"))
     async def test_upload_from_file_with_object_storage_config(
         self,
+        caplog: pytest.LogCaptureFixture,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         object_storage_client_upload_prefix: str,
         env_file: anyio.Path,
@@ -1103,9 +1097,6 @@ class TestObjectStorageClientIntegration:
         ):
             pytest.skip("Cloudflare R2 does not support uploads with POST")
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(
-            fastenv.cloud.object_storage, "logger", autospec=True
-        )
         transport = httpxyz.AsyncHTTPTransport(retries=5)
         httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
@@ -1125,13 +1116,14 @@ class TestObjectStorageClientIntegration:
             f"fastenv loaded {env_file} and wrote the contents to"
             f" {object_storage_config.bucket_host}/{bucket_path}"
         )
-        logger.info.assert_called_once_with(info_message)
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("method", ("POST", "PUT"))
     @pytest.mark.parametrize("server_side_encryption", (None, "AES256"))
     async def test_upload_from_string_with_object_storage_config(
         self,
+        caplog: pytest.LogCaptureFixture,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         object_storage_client_upload_prefix: str,
         env_str: str,
@@ -1148,9 +1140,6 @@ class TestObjectStorageClientIntegration:
         ):
             pytest.skip("Cloudflare R2 does not support uploads with POST")
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(
-            fastenv.cloud.object_storage, "logger", autospec=True
-        )
         transport = httpxyz.AsyncHTTPTransport(retries=5)
         httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
@@ -1170,13 +1159,14 @@ class TestObjectStorageClientIntegration:
             f"fastenv loaded the provided string and wrote the contents to"
             f" {object_storage_config.bucket_host}/{bucket_path}"
         )
-        logger.info.assert_called_once_with(info_message)
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("method", ("POST", "PUT"))
     @pytest.mark.parametrize("server_side_encryption", (None, "AES256"))
     async def test_upload_from_bytes_with_object_storage_config(
         self,
+        caplog: pytest.LogCaptureFixture,
         object_storage_config: fastenv.cloud.object_storage.ObjectStorageConfig,
         object_storage_client_upload_prefix: str,
         env_bytes: bytes,
@@ -1193,9 +1183,6 @@ class TestObjectStorageClientIntegration:
         ):
             pytest.skip("Cloudflare R2 does not support uploads with POST")
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(
-            fastenv.cloud.object_storage, "logger", autospec=True
-        )
         transport = httpxyz.AsyncHTTPTransport(retries=5)
         httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
@@ -1215,11 +1202,12 @@ class TestObjectStorageClientIntegration:
             f"fastenv read the provided bytes and wrote the contents to"
             f" {object_storage_config.bucket_host}/{bucket_path}"
         )
-        logger.info.assert_called_once_with(info_message)
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     async def test_upload_response_from_backblaze_b2(
         self,
+        caplog: pytest.LogCaptureFixture,
         object_storage_config_backblaze_static: (
             fastenv.cloud.object_storage.ObjectStorageConfig
         ),
@@ -1232,9 +1220,6 @@ class TestObjectStorageClientIntegration:
         expected logger message is provided.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(
-            fastenv.cloud.object_storage, "logger", autospec=True
-        )
         transport = httpxyz.AsyncHTTPTransport(retries=5)
         httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
@@ -1260,11 +1245,12 @@ class TestObjectStorageClientIntegration:
             f"fastenv read the provided bytes and wrote the contents to"
             f" {object_storage_config_backblaze_static.bucket_host}/{bucket_path}"
         )
-        logger.info.assert_called_once_with(info_message)
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     async def test_upload_error_incorrect_config(
         self,
+        caplog: pytest.LogCaptureFixture,
         object_storage_config_incorrect: (
             fastenv.cloud.object_storage.ObjectStorageConfig
         ),
@@ -1278,9 +1264,6 @@ class TestObjectStorageClientIntegration:
         To prevent this test from being flaky, `httpxyz.ReadError` is allowed.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(
-            fastenv.cloud.object_storage, "logger", autospec=True
-        )
         transport = httpxyz.AsyncHTTPTransport(retries=5)
         httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
@@ -1296,4 +1279,5 @@ class TestObjectStorageClientIntegration:
                 e.value.response.status_code  # type: ignore[attr-defined]
             )
             assert status_code in {401, 403}
-            assert "HTTPStatusError" in logger.error.call_args.args[0]
+            error_message = f"fastenv error: HTTPStatusError {e.value}"
+            assert caplog.record_tuples == [("fastenv", logging.ERROR, error_message)]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import TYPE_CHECKING
 
@@ -479,38 +480,39 @@ class TestDotEnvMethods:
         assert ".env.nofile" in str(e.value)
 
     @pytest.mark.anyio
-    async def test_load_dotenv_no_file_with_raise(self, mocker: MockerFixture) -> None:
+    async def test_load_dotenv_no_file_with_raise(
+        self, caplog: pytest.LogCaptureFixture, mocker: MockerFixture
+    ) -> None:
         """Assert that calling `load_dotenv` with `find_source=True` and the
         name of a source file that does not exist raises `FileNotFoundError`.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         with pytest.raises(FileNotFoundError) as e:
             _ = await fastenv.dotenv.load_dotenv(".env.nofile", find_source=True)
         assert ".env.nofile" in str(e.value)
-        logger.error.assert_called_once_with(
-            "fastenv error: FileNotFoundError Could not find .env.nofile"
-        )
+        error_message = "fastenv error: FileNotFoundError Could not find .env.nofile"
+        assert caplog.record_tuples == [("fastenv", logging.ERROR, error_message)]
 
     @pytest.mark.anyio
-    async def test_load_dotenv_no_file_no_raise(self, mocker: MockerFixture) -> None:
+    async def test_load_dotenv_no_file_no_raise(
+        self, caplog: pytest.LogCaptureFixture, mocker: MockerFixture
+    ) -> None:
         """Assert that calling `load_dotenv` with `find_source=True`,
         `raise_exceptions=False`, and the name of a source file that
         does not exist returns an empty `DotEnv` instance.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(
             ".env.nofile", find_source=True, raise_exceptions=False
         )
         assert len(dotenv) == 0
-        logger.error.assert_called_once_with(
-            "fastenv error: FileNotFoundError Could not find .env.nofile"
-        )
+        error_message = "fastenv error: FileNotFoundError Could not find .env.nofile"
+        assert caplog.record_tuples == [("fastenv", logging.ERROR, error_message)]
 
     @pytest.mark.anyio
     async def test_load_dotenv_file(
         self,
+        caplog: pytest.LogCaptureFixture,
         dotenv_args: tuple[tuple[str, str, str], ...],
         env_file: anyio.Path,
         mocker: MockerFixture,
@@ -519,15 +521,13 @@ class TestDotEnvMethods:
         returns a `DotEnv` instance with all expected variables set.
         """
         environ = mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(env_file)
         for _, output_key, output_value in dotenv_args:
             assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == env_file
-        logger.info.assert_called_once_with(
-            f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
-        )
+        info_message = f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("sort_dotenv", (False, True))
@@ -541,7 +541,6 @@ class TestDotEnvMethods:
         sorted if `sort_dotenv=True`, or unsorted if `sort_dotenv=False`.
         """
         mocker.patch.dict(os.environ, clear=True)
-        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(
             env_file_unsorted, sort_dotenv=sort_dotenv
         )
@@ -550,26 +549,28 @@ class TestDotEnvMethods:
 
     @pytest.mark.anyio
     async def test_load_dotenv_empty_file(
-        self, env_file_empty: anyio.Path, mocker: MockerFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
+        env_file_empty: anyio.Path,
+        mocker: MockerFixture,
     ) -> None:
         """Assert that calling `load_dotenv` with a correct path
         to an empty file returns an empty `DotEnv` instance.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(env_file_empty, raise_exceptions=True)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
         assert dotenv.source == env_file_empty
         assert isinstance(dotenv.source, anyio.Path)
         assert await dotenv.source.is_file()
         assert len(dotenv) == 0
-        logger.info.assert_called_once_with(
-            f"fastenv loaded 0 variables from {env_file_empty}"
-        )
+        info_message = f"fastenv loaded 0 variables from {env_file_empty}"
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     async def test_load_dotenv_files_in_same_dir(
         self,
+        caplog: pytest.LogCaptureFixture,
         env_files_in_same_dir: list[anyio.Path],
         env_files_output: tuple[tuple[str, str], ...],
         mocker: MockerFixture,
@@ -579,7 +580,6 @@ class TestDotEnvMethods:
         insertion order, and returns a `DotEnv` instance with all expected values.
         """
         environ = mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = await fastenv.dotenv.load_dotenv(*env_files_in_same_dir)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
         for output_key, output_value in env_files_output:
@@ -588,13 +588,13 @@ class TestDotEnvMethods:
         for env_file in env_files_in_same_dir:
             assert isinstance(env_file, anyio.Path)
             assert await env_file.is_file()
-        logger.info.assert_called_once_with(
-            f"fastenv loaded 15 variables from {env_files_in_same_dir}"
-        )
+        info_message = f"fastenv loaded 15 variables from {env_files_in_same_dir}"
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     async def test_load_dotenv_file_in_sub_dir(
         self,
+        caplog: pytest.LogCaptureFixture,
         dotenv_args: tuple[tuple[str, str, str], ...],
         env_file: anyio.Path,
         env_file_child_dir: anyio.Path,
@@ -605,7 +605,6 @@ class TestDotEnvMethods:
         and returns a `DotEnv` instance with all expected values.
         """
         environ = mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         os.chdir(env_file_child_dir)
         dotenv = await fastenv.dotenv.load_dotenv(env_file.name, find_source=True)
         assert isinstance(dotenv, fastenv.dotenv.DotEnv)
@@ -613,13 +612,13 @@ class TestDotEnvMethods:
             assert variable_is_set(dotenv, environ, output_key, output_value)
         assert len(dotenv) == len(dotenv_args)
         assert dotenv.source == env_file
-        logger.info.assert_called_once_with(
-            f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
-        )
+        info_message = f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     async def test_load_dotenv_files_in_sub_dirs(
         self,
+        caplog: pytest.LogCaptureFixture,
         env_file_child_dir: anyio.Path,
         env_files_in_child_dirs: list[anyio.Path],
         env_files_output: tuple[tuple[str, str], ...],
@@ -631,7 +630,6 @@ class TestDotEnvMethods:
         returns a `DotEnv` instance with all expected values.
         """
         environ = mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         filenames = tuple(file.name for file in env_files_in_child_dirs)
         os.chdir(env_file_child_dir)
         dotenv = await fastenv.dotenv.load_dotenv(*filenames, find_source=True)
@@ -639,13 +637,13 @@ class TestDotEnvMethods:
         for output_key, output_value in env_files_output:
             assert variable_is_set(dotenv, environ, output_key, output_value)
         assert dotenv.source == env_files_in_child_dirs
-        logger.info.assert_called_once_with(
-            f"fastenv loaded 6 variables from {env_files_in_child_dirs}"
-        )
+        info_message = f"fastenv loaded 6 variables from {env_files_in_child_dirs}"
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     async def test_load_dotenv_files_in_other_dirs_no_find(
         self,
+        caplog: pytest.LogCaptureFixture,
         env_file_child_dir: anyio.Path,
         env_files_in_child_dirs: list[anyio.Path],
         mocker: MockerFixture,
@@ -654,15 +652,14 @@ class TestDotEnvMethods:
         in multiple directories and `find_source=False` raises `FileNotFoundError`.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         for env_file in env_files_in_child_dirs:
             assert await env_file.is_file()
         filenames = tuple(file.name for file in env_files_in_child_dirs)
         os.chdir(env_file_child_dir)
         with pytest.raises(FileNotFoundError) as e:
             _ = await fastenv.dotenv.load_dotenv(*filenames, find_source=False)
-        assert "FileNotFoundError" in logger.error.call_args.args[0]
-        assert str(e.value) in logger.error.call_args.args[0]
+        error_message = f"fastenv error: FileNotFoundError {e.value}"
+        assert caplog.record_tuples == [("fastenv", logging.ERROR, error_message)]
 
     @pytest.mark.anyio
     async def test_load_dotenv_incorrect_path_no_raise(
@@ -672,22 +669,20 @@ class TestDotEnvMethods:
         `raise_exceptions=False` returns an empty `DotEnv` instance.
         """
         mocker.patch.dict(os.environ, clear=True)
-        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         _ = await fastenv.dotenv.load_dotenv("/not/a/file", raise_exceptions=False)
 
     @pytest.mark.anyio
     async def test_load_dotenv_incorrect_path_with_raise(
-        self, mocker: MockerFixture
+        self, caplog: pytest.LogCaptureFixture, mocker: MockerFixture
     ) -> None:
         """Assert that calling `load_dotenv` with an incorrect path and
         `raise_exceptions=True` raises an exception.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         with pytest.raises(FileNotFoundError) as e:
             _ = await fastenv.dotenv.load_dotenv("/not/a/file", raise_exceptions=True)
-        assert "FileNotFoundError" in logger.error.call_args.args[0]
-        assert str(e.value) in logger.error.call_args.args[0]
+        error_message = f"fastenv error: FileNotFoundError {e.value}"
+        assert caplog.record_tuples == [("fastenv", logging.ERROR, error_message)]
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("sort_dotenv", (False, True))
@@ -696,7 +691,6 @@ class TestDotEnvMethods:
     ) -> None:
         """Assert that a `DotEnv` instance serializes into a dictionary as expected."""
         mocker.patch.dict(os.environ, clear=True)
-        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv = fastenv.dotenv.DotEnv("zzz=123", **input_kwargs)
         result = await fastenv.dotenv.dotenv_values(dotenv, sort_dotenv=sort_dotenv)
         dotenv_keys = list(result.keys())
@@ -708,7 +702,6 @@ class TestDotEnvMethods:
     ) -> None:
         """Assert that calling `dotenv_values` with a path also calls `load_dotenv`."""
         mocker.patch.dict(os.environ, clear=True)
-        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         load_dotenv = mocker.patch.object(
             fastenv.dotenv,
             "load_dotenv",
@@ -721,6 +714,7 @@ class TestDotEnvMethods:
     @pytest.mark.anyio
     async def test_dotenv_values_with_env_file_path(
         self,
+        caplog: pytest.LogCaptureFixture,
         dotenv_args: tuple[tuple[str, str, str], ...],
         env_file: anyio.Path,
         mocker: MockerFixture,
@@ -730,16 +724,14 @@ class TestDotEnvMethods:
         `DotEnv` instance into a dictionary as expected.
         """
         environ = mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         result = await fastenv.dotenv.dotenv_values(env_file)
         assert isinstance(result, dict)
         for _, output_key, output_value in dotenv_args:
             assert result[output_key] == output_value
             assert environ[output_key] == output_value
         assert len(result) == len(dotenv_args)
-        logger.info.assert_called_once_with(
-            f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
-        )
+        info_message = f"fastenv loaded {len(dotenv_args)} variables from {env_file}"
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     @pytest.mark.parametrize("sort_dotenv", (False, True))
@@ -753,7 +745,6 @@ class TestDotEnvMethods:
         sorted if `sort_dotenv=True`, or unsorted if `sort_dotenv=False`.
         """
         mocker.patch.dict(os.environ, clear=True)
-        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         result = await fastenv.dotenv.dotenv_values(
             env_file_unsorted, sort_dotenv=sort_dotenv
         )
@@ -763,16 +754,20 @@ class TestDotEnvMethods:
 
     @pytest.mark.anyio
     async def test_dump_dotenv_str(
-        self, env_file: anyio.Path, env_str: str, mocker: MockerFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
+        env_file: anyio.Path,
+        env_str: str,
+        mocker: MockerFixture,
     ) -> None:
         """Assert that calling `dump_dotenv` with a string containing keys and values
         successfully writes to a file at the expected destination.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         destination = env_file.parent / ".env.dumpedstring"
         _ = await fastenv.dotenv.dump_dotenv(env_str, destination)
-        logger.info.assert_called_once_with(f"fastenv dumped to {destination}")
+        info_message = f"fastenv dumped to {destination}"
+        assert caplog.record_tuples == [("fastenv", logging.INFO, info_message)]
 
     @pytest.mark.anyio
     async def test_dump_dotenv_file(
@@ -785,7 +780,6 @@ class TestDotEnvMethods:
         """Dump a `DotEnv` instance to a file, load the file into a new `DotEnv`
         instance, and assert that the new `DotEnv` instance has the expected contents.
         """
-        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         environ = mocker.patch.dict(os.environ, clear=True)
         dotenv_source = fastenv.dotenv.DotEnv(*input_args)
         destination = env_file.parent / ".env.dumped"
@@ -807,7 +801,6 @@ class TestDotEnvMethods:
         instance, and assert that the new `DotEnv` instance is sorted as expected.
         """
         mocker.patch.dict(os.environ, clear=True)
-        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         dotenv_source = fastenv.dotenv.DotEnv(env_str_unsorted)
         destination = env_file.parent / ".env.dumpedandsorted"
         dump = await fastenv.dotenv.dump_dotenv(
@@ -819,21 +812,20 @@ class TestDotEnvMethods:
 
     @pytest.mark.anyio
     async def test_dump_dotenv_incorrect_path_with_raise(
-        self, mocker: MockerFixture
+        self, caplog: pytest.LogCaptureFixture, mocker: MockerFixture
     ) -> None:
         """Assert that calling `dump_dotenv` with an incorrect destination
         and `raise_exceptions=True` raises an exception.
         """
         mocker.patch.dict(os.environ, clear=True)
-        logger = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         source = fastenv.dotenv.DotEnv()
         destination = "s3://mybucket/.env"
         with pytest.raises(FileNotFoundError) as e:
             _ = await fastenv.dotenv.dump_dotenv(
                 source, destination, raise_exceptions=True
             )
-        assert "FileNotFoundError" in logger.error.call_args.args[0]
-        assert str(e.value) in logger.error.call_args.args[0]
+        error_message = f"fastenv error: FileNotFoundError {e.value}"
+        assert caplog.record_tuples == [("fastenv", logging.ERROR, error_message)]
 
     @pytest.mark.anyio
     async def test_dump_dotenv_incorrect_path_no_raise(
@@ -843,7 +835,6 @@ class TestDotEnvMethods:
         and `raise_exceptions=False` returns a `pathlib.Path` instance.
         """
         mocker.patch.dict(os.environ, clear=True)
-        _ = mocker.patch.object(fastenv.dotenv, "logger", autospec=True)
         source = fastenv.dotenv.DotEnv()
         destination = anyio.Path("s3://mybucket/.env")
         _ = await fastenv.dotenv.dump_dotenv(

@@ -252,4 +252,6 @@ Try running `python example.py` again, then opening `.env.dump` in a text editor
 
     fastenv will provide a small amount of [logging](https://docs.python.org/3/library/logging.html) when loading or dumping _.env_ files. Successes will be logged at the `logging.INFO` level, and errors will be logged at the `logging.ERROR` level.
 
-    If you're managing your loggers individually in a logging configuration file, all fastenv logging uses the `"fastenv"` logger. Logging can be disabled by adding `{"loggers": {"fastenv": {"propagate": False}}}` to a logging configuration dictionary.
+    The `"fastenv"` logger sets its own level to `logging.INFO`, but fastenv doesn't add a [handler](https://docs.python.org/3/library/logging.html#handler-objects). To see the `INFO` logs, configure a handler in your application, such as by calling [`logging.basicConfig()`](https://docs.python.org/3/library/logging.html#logging.basicConfig). Without a handler, Python will only show the errors. To hide the `INFO` logs, raise the level of the logger with `logging.getLogger("fastenv").setLevel(logging.WARNING)`.
+
+    If you're managing your loggers individually in a logging configuration file, all fastenv logging uses the `"fastenv"` logger. To hide all fastenv logs, including errors, add `{"loggers": {"fastenv": {"level": "CRITICAL"}}}` to a logging configuration dictionary.

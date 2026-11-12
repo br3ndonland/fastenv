@@ -519,7 +519,6 @@ class TestDotenvSource:
         second = tmp_path / "override.env"
         _ = first.write_text("COUNT=4\nTOKEN=first\n")
         _ = second.write_text("COUNT=9\nTOKEN=second\nCONNECTION__PORT=7000\n")
-        caplog.set_level("INFO", logger="fastenv")
         _ = DotEnvSettingsSource(SourceSettings, env_file=[first, missing, second])()
         assert f"loaded 2 variables from {first}" in caplog.text
         assert f"loaded 3 variables from {second}" in caplog.text
@@ -812,7 +811,6 @@ class TestConfigFileSources:
         _ = path.write_text(
             '{"token":"configured","service":{"hostname":"first","port":9000}}'
         )
-        caplog.set_level("INFO", logger="fastenv")
         _ = JsonConfigSettingsSource(FileSettings, [missing, path])()
         assert f"loaded 2 variables from {path}" in caplog.text
         assert str(missing) not in caplog.text
