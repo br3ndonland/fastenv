@@ -6,7 +6,7 @@ _Unified environment variable and settings management for FastAPI and beyond_
 
 ## Description
 
-fastenv [\[fæst iː ən v\]](https://en.wikipedia.org/wiki/Help:IPA/English) is a Python package for managing environment variables and application settings.
+fastenv [/fæst iː ɛn viː/](https://en.wikipedia.org/wiki/Help:IPA/English) is a Python package for managing environment variables and application settings.
 
 [Environment variables](https://en.wikipedia.org/wiki/Environment_variable) are key-value pairs provided to the operating system with syntax like `VARIABLE_NAME=value`. Collections of environment variables are stored in files commonly named `.env` and called "dotenv" files. The Python standard library `os` module provides tools for reading environment variables, such as `os.getenv("VARIABLE_NAME")`, but only handles strings, and doesn't include tools for file I/O. Additional logic is therefore needed to load environment variables from files before they can be read by Python, and to convert variables from strings to other Python types.
 
