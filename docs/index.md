@@ -49,15 +49,15 @@ dotenv["ANOTHER_VARIABLE"] = "another_value"
 del dotenv["ANOTHER_VARIABLE"]
 # add a variable by calling the instance
 dotenv("I_THINK_FASTENV_IS=awesome")
-# {'I_THINK_FASTENV_IS': 'awesome'}
+# Output: {'I_THINK_FASTENV_IS': 'awesome'}
 # return a dict of the variables in the DotEnv instance
 dict(dotenv)
-# {'EXAMPLE_VARIABLE': 'example_value', 'I_THINK_FASTENV_IS': 'awesome'}
-# save the DotEnv instance to a file
+# Output: {'EXAMPLE_VARIABLE': 'example_value', 'I_THINK_FASTENV_IS': 'awesome'}
+# save the DotEnv instance to a file and display its name
 import anyio
 
-anyio.run(fastenv.dump_dotenv, dotenv)
-# Path('/path/to/this/dir/.env')
+anyio.run(fastenv.dump_dotenv, dotenv).name
+# Output: '.env'
 ```
 
 Use a Pydantic settings model in your FastAPI app to load the `.env` file created above:

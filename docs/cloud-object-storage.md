@@ -189,33 +189,7 @@ Here's an example of how the code might look. Save the code snippet below as _ex
 !!!example "Uploading a _.env_ file to a bucket"
 
     ```py
-    #!/usr/bin/env python3
-    # example.py
-    from __future__ import annotations
-
-    import anyio
-    import fastenv
-    import httpx2
-
-
-    async def upload_my_dotenv(
-        bucket_host: str,
-        bucket_region: str,
-        bucket_path: str = "uploads/fastenv-docs/.env",
-        source: anyio.Path | str = ".env",
-    ) -> httpx2.Response | None:
-        config = fastenv.ObjectStorageConfig(  # (1)
-            bucket_host=bucket_host,
-            bucket_region=bucket_region,
-        )
-        client = fastenv.ObjectStorageClient(config=config)  # (2)
-        return await client.upload(bucket_path, source)  # (3)
-
-
-    if __name__ == "__main__":
-        bucket_host = "<BUCKET_NAME>.s3.<REGION>.backblazeb2.com"
-        bucket_region = "<REGION>"
-        anyio.run(upload_my_dotenv, bucket_host, bucket_region)
+    --8<-- "docs/snippets/cloud_object_storage/uploading_dotenv_file.py"
     ```
 
     1. Step 1: create a configuration instance
@@ -237,48 +211,7 @@ We now have a bucket with a _.env_ file in it. Let's download the file. Steps ar
 !!!example "Downloading a _.env_ file from a bucket"
 
     ```py
-    #!/usr/bin/env python3
-    # example.py
-    from __future__ import annotations
-
-    import anyio
-    import fastenv
-    import httpx2
-
-
-    async def upload_my_dotenv(
-        bucket_host: str,
-        bucket_region: str,
-        bucket_path: str = "uploads/fastenv-docs/.env",
-        source: anyio.Path | str = ".env",
-    ) -> httpx2.Response | None:
-        config = fastenv.ObjectStorageConfig(
-            bucket_host=bucket_host,
-            bucket_region=bucket_region,
-        )
-        client = fastenv.ObjectStorageClient(config=config)
-        return await client.upload(bucket_path, source)
-
-
-    async def download_my_dotenv(
-        bucket_host: str,
-        bucket_region: str,
-        bucket_path: str = "uploads/fastenv-docs/.env",
-        destination: anyio.Path | str = ".env.download",
-    ) -> anyio.Path:
-        config = fastenv.ObjectStorageConfig(
-            bucket_host=bucket_host,
-            bucket_region=bucket_region,
-        )
-        client = fastenv.ObjectStorageClient(config=config)
-        return await client.download(bucket_path, destination)
-
-
-    if __name__ == "__main__":
-        bucket_host = "<BUCKET_NAME>.s3.<REGION>.backblazeb2.com"
-        bucket_region = "<REGION>"
-        # anyio.run(upload_my_dotenv, bucket_host, bucket_region)
-        anyio.run(download_my_dotenv, bucket_host, bucket_region)
+    --8<-- "docs/snippets/cloud_object_storage/downloading_dotenv_file.py"
     ```
 
     Then set credentials and run the script from a shell. Remember to activate the virtualenv if you haven't already done so.
@@ -298,34 +231,7 @@ Here's an example of how this could be implemented.
 !!!example "Downloading multiple _.env_ files"
 
     ```py
-    #!/usr/bin/env python3
-    # example.py
-    from __future__ import annotations
-
-    import anyio
-    import fastenv
-
-
-    async def download_my_dotenvs(
-        bucket_host: str,
-        bucket_region: str,
-        bucket_path_to_common_env: str = ".env.common",
-        bucket_path_to_custom_env: str = ".env.custom",
-    ) -> fastenv.DotEnv:
-        config = fastenv.ObjectStorageConfig(
-            bucket_host=bucket_host,
-            bucket_region=bucket_region,
-        )
-        client = fastenv.ObjectStorageClient(config=config)
-        env_common = await client.download(bucket_path_to_common_env)
-        env_custom = await client.download(bucket_path_to_custom_env)
-        return fastenv.DotEnv(env_common, env_custom)
-
-
-    if __name__ == "__main__":
-        bucket_host = "<BUCKET_NAME>.s3.<REGION>.backblazeb2.com"
-        bucket_region = "<REGION>"
-        anyio.run(download_my_dotenvs, bucket_host, bucket_region)
+    --8<-- "docs/snippets/cloud_object_storage/downloading_multiple_dotenv_files.py"
     ```
 
 ## Cloud object storage comparisons

@@ -69,21 +69,7 @@ The example below demonstrates how this works. Note that this is written as a _s
 !!!example "Loading a _.env_ file into a `DotEnv` model"
 
     ```py
-    #!/usr/bin/env python3
-    # example.py
-    import anyio
-    import fastenv
-
-
-    async def load_my_dotenv(filename: str = ".env") -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv(filename)
-        print(dotenv.source)
-        print(dict(dotenv))
-        return dotenv
-
-
-    if __name__ == "__main__":
-        anyio.run(load_my_dotenv)
+    --8<-- "docs/snippets/dotenv/loading_dotenv_file.py"
     ```
 
     ```{ .sh .no-copy }
@@ -143,29 +129,7 @@ Now, we will update our `example.py` module to load both files. The order is imp
 !!!example "Loading multiple _.env_ files into a `DotEnv` model"
 
     ```py
-    #!/usr/bin/env python3
-    # example.py
-    import anyio
-    import fastenv
-
-
-    async def load_my_dotenv(filename: str = ".env") -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv(filename)
-        print(dotenv.source)
-        print(dict(dotenv))
-        return dotenv
-
-
-    async def load_my_dotenvs(*filenames: str) -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv(*filenames)
-        print(dotenv.source)
-        print(dict(dotenv))
-        return dotenv
-
-
-    if __name__ == "__main__":
-        # anyio.run(load_my_dotenv)
-        anyio.run(load_my_dotenvs, ".env", ".env.override")
+    --8<-- "docs/snippets/dotenv/loading_multiple_dotenv_files.py"
     ```
 
     ```{ .sh .no-copy }
@@ -204,36 +168,7 @@ Let's update the `example.py` script to not only load `.env`, but also dump it b
 !!!example "Dumping a `DotEnv` instance to a _.env_ file"
 
     ```py
-    #!/usr/bin/env python3
-    # example.py
-    import anyio
-    import fastenv
-
-
-    async def load_my_dotenv(filename: str = ".env") -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv(filename)
-        print(dotenv.source)
-        print(dict(dotenv))
-        return dotenv
-
-
-    async def load_my_dotenvs(*filenames: str) -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv(*filenames)
-        print(dotenv.source)
-        print(dict(dotenv))
-        return dotenv
-
-
-    async def load_and_dump_my_dotenvs(*filenames: str) -> fastenv.DotEnv:
-        dotenv = await fastenv.load_dotenv(*filenames)
-        await fastenv.dump_dotenv(dotenv, ".env.dump")
-        return dotenv
-
-
-    if __name__ == "__main__":
-        # anyio.run(load_my_dotenv)
-        # anyio.run(load_my_dotenvs, ".env", ".env.override")
-        anyio.run(load_and_dump_my_dotenvs, ".env", ".env.override")
+    --8<-- "docs/snippets/dotenv/dumping_dotenv_file.py"
     ```
 
 Try running `python example.py` again, then opening `.env.dump` in a text editor. The new `.env.dump` file should have the variables from the `DotEnv` instance.

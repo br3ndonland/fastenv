@@ -33,34 +33,7 @@ SERVICE_DATABASE__PORT=6543
 Next, describe the settings you expect. Settings classes come from `fastenv`. Models, fields, aliases, validators, and types still come from `pydantic`:
 
 ```py
-from pydantic import BaseModel
-
-from fastenv import BaseSettings, SettingsConfigDict
-
-
-class Database(BaseModel):
-    host: str = "localhost"
-    port: int = 5432
-
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="SERVICE_",
-        env_file=".env",
-        env_nested_delimiter="__",
-    )
-    debug: bool = False
-    allowed_hosts: list[str] = ["localhost"]
-    database: Database = Database()
-
-
-settings = Settings()
-settings.debug
-# True
-settings.allowed_hosts
-# ['localhost', '127.0.0.1']
-settings.database
-# Database(host='localhost', port=6543)
+--8<-- "docs/snippets/settings/pydantic_getting_started.py:2:"
 ```
 
 Every value in the file is a string, and every value on the model has the type you declared. `SERVICE_DEBUG=true` became a Boolean, the JSON array became a list, and `SERVICE_DATABASE__PORT` reached into the nested `Database` model while `host` kept its default.
@@ -76,16 +49,7 @@ You can create the model directly, or let an async class method create it for yo
 If you're already inside an async function, use `await Settings.load()`. It reads the files in [AnyIO worker threads](https://anyio.readthedocs.io/en/stable/threads.html), so the event loop stays free:
 
 ```py
-import anyio
-
-
-async def main() -> None:
-    settings = await Settings.load()
-    print(settings.database.port)
-    # 6543
-
-
-anyio.run(main)
+--8<-- "docs/snippets/settings/pydantic_async_loading.py:2:"
 ```
 
 `load()` accepts the same arguments as the constructor. A FastAPI or Starlette lifespan function is a good place for it, as shown in the [quickstart](index.md#quickstart).
@@ -105,14 +69,7 @@ When the same setting shows up in more than one place, the source highest on thi
 With the `.env` file above, an environment variable beats the file, and an argument beats both:
 
 ```py
-import os
-
-os.environ["SERVICE_DATABASE__PORT"] = "7000"
-
-Settings().database.port
-# 7000
-Settings(debug=False).debug
-# False
+--8<-- "docs/snippets/settings/pydantic_source_priority.py:2:"
 ```
 
 Nested models are merged across sources, not replaced. In this example, the port comes from the environment while `host` still comes from the model default.
@@ -132,8 +89,7 @@ Files that don't exist are skipped without a line, and secret files aren't logge
 To change an option for one instance, pass it with a leading underscore, as in pydantic-settings:
 
 ```py
-Settings(_env_file=".env.production")  # read a different file
-Settings(_env_file=None)  # skip dotenv files
+--8<-- "docs/snippets/settings/pydantic_instance_options.py:2:"
 ```
 
 One thing to watch for: a name in a dotenv file that doesn't match a field is rejected, just like an unknown argument. If you share your `.env` file with other tools, add `extra="ignore"` to the model config. Unknown environment variables are always ignored.
@@ -156,14 +112,7 @@ Lists, dictionaries, and nested models are decoded from JSON. A JSON object in `
 To give a field another name, use Pydantic's `validation_alias`. It accepts a single name, an `AliasChoices` with several names to try in order, or an `AliasPath` into a JSON value. Aliases are used as written, without the prefix:
 
 ```py
-from pydantic import AliasChoices, Field
-
-from fastenv import BaseSettings
-
-
-class Settings(BaseSettings, env_prefix="SERVICE_"):
-    debug: bool = False
-    port: int = Field(default=8000, validation_alias=AliasChoices("PORT", "HTTP_PORT"))
+--8<-- "docs/snippets/settings/pydantic_field_aliases.py"
 ```
 
 Here, `debug` is read from `SERVICE_DEBUG` and `port` from `PORT` or `HTTP_PORT`. The example also shows that options can be passed as class keywords instead of `model_config`.
@@ -184,10 +133,7 @@ If your files rely on python-dotenv's interpolation or whitespace handling, give
 `parse_dotenv` works on its own too, with or without Pydantic. It returns key-value pairs, so wrap it in `dict()` to keep the last value for each name:
 
 ```py
-import fastenv
-
-dict(fastenv.parse_dotenv("PORT=8000 LABEL='local service'"))
-# {'PORT': '8000', 'LABEL': 'local service'}
+--8<-- "docs/snippets/settings/pydantic_dotenv_parsing.py"
 ```
 
 ### Custom and file sources
@@ -197,28 +143,7 @@ The default sources are only a starting point. Override `settings_customise_sour
 For example, this reads `service.toml` with a priority between environment variables and dotenv files:
 
 ```py
-from fastenv import BaseSettings, TomlConfigSettingsSource
-
-
-class Settings(BaseSettings):
-    port: int = 8000
-
-    @classmethod
-    def settings_customise_sources(
-        cls,
-        settings_cls,
-        init_settings,
-        env_settings,
-        dotenv_settings,
-        file_secret_settings,
-    ):
-        return (
-            init_settings,
-            env_settings,
-            TomlConfigSettingsSource(settings_cls, toml_file="service.toml"),
-            dotenv_settings,
-            file_secret_settings,
-        )
+--8<-- "docs/snippets/settings/pydantic_toml_source.py:2:"
 ```
 
 File sources like this one are opt-in. Setting `toml_file` or `json_file` in the model config isn't enough on its own, and fastenv warns you if the source is missing.
@@ -240,28 +165,7 @@ Do you keep dotenv files in S3-compatible object storage? Download the file with
 A source can be as simple as a function that returns a dictionary. With `await Settings.load()`, it can be an async function too:
 
 ```py
-from typing import Any
-
-from fastenv import BaseSettings
-
-
-async def fetch_remote_settings() -> dict[str, Any]:
-    return {"port": 9000}  # imagine an HTTP request here
-
-
-class Settings(BaseSettings):
-    port: int = 8000
-
-    @classmethod
-    def settings_customise_sources(
-        cls,
-        settings_cls,
-        init_settings,
-        env_settings,
-        dotenv_settings,
-        file_secret_settings,
-    ):
-        return (init_settings, env_settings, fetch_remote_settings)
+--8<-- "docs/snippets/settings/pydantic_custom_async_source.py:2:"
 ```
 
 An async source needs `await Settings.load()`. Calling `Settings()` with one raises `SettingsError`.
@@ -275,19 +179,7 @@ The built-in file sources read their files when they're called or loaded, never 
 fastenv doesn't generate command-line interfaces from settings models. The [comparison with pydantic-settings](comparisons.md#command-line-interfaces) explains why. Parse arguments with Click or Python's standard library `argparse` as usual, then pass the ones the user supplied to `Settings(...)`:
 
 ```py
-import argparse
-
-from fastenv import BaseSettings
-
-
-class Settings(BaseSettings):
-    port: int = 8000
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--port", type=int, default=argparse.SUPPRESS)
-overrides = vars(parser.parse_args())
-settings = Settings(**overrides)
+--8<-- "docs/snippets/settings/pydantic_command_line_arguments.py:2:"
 ```
 
 `argparse.SUPPRESS` leaves omitted options out of the mapping, so environment variables, files, and model defaults can still supply them. With Click, likewise pass only the options the user set.
@@ -343,22 +235,13 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 Then load it and read your settings:
 
 ```py
-import fastenv
-from starlette.datastructures import CommaSeparatedStrings
-
-config = fastenv.StarletteConfig(".env")
-
-DEBUG = config("DEBUG", cast=bool, default=False)
-PORT = config("PORT", cast=int, default=8000)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=CommaSeparatedStrings, default="localhost")
+--8<-- "docs/snippets/settings/starlette_load_file_in_constructor.py"
 ```
 
 To add local overrides, create `.env.local` and pass both paths:
 
 ```py
-import fastenv
-
-config = fastenv.StarletteConfig(env_file=[".env", ".env.local"])
+--8<-- "docs/snippets/settings/starlette_load_multiple_files.py"
 ```
 
 The constructor waits until loading finishes. It uses `anyio.run()` to run the same async file reader used by the async option below.
@@ -368,14 +251,7 @@ The constructor waits until loading finishes. It uses `anyio.run()` to run the s
 If you're already inside an async function, use `await StarletteConfig.load(...)`. It creates a new config instance and loads the files without blocking the event loop:
 
 ```py
-import fastenv
-
-
-async def load_settings() -> fastenv.StarletteConfig:
-    config = await fastenv.StarletteConfig.load(env_file=[".env", ".env.local"])
-    port = config("PORT", cast=int, default=8000)
-    print(f"Using port {port}")
-    return config
+--8<-- "docs/snippets/settings/starlette_async_loading.py"
 ```
 
 You don't need to create an instance first. `load()` is a class method that returns the populated config. It accepts the same arguments as the constructor.
@@ -396,13 +272,7 @@ An environment variable always wins over a file value. Within a load, settings a
 For example, this loads base values from `pyproject.toml`, then applies `.env` and `.env.local`. An existing environment variable overrides all three:
 
 ```py
-import fastenv
-
-config = fastenv.StarletteConfig(
-    env_file=[".env", ".env.local"],
-    toml_file="pyproject.toml",
-)
-PORT = config("PORT", cast=int, default=8000)
+--8<-- "docs/snippets/settings/starlette_source_precedence.py"
 ```
 
 In async code, pass those same arguments to `await StarletteConfig.load(...)`.
@@ -428,7 +298,7 @@ Only files you name are loaded. Relative paths start from the current working di
 You can also import the class directly from its module:
 
 ```py
-from fastenv.settings.starlette_config import StarletteConfig
+--8<-- "docs/snippets/settings/starlette_direct_import.py:2:"
 ```
 
 ### TOML settings
@@ -444,14 +314,7 @@ dependencies = ["fastenv[starlette]"]
 ```
 
 ```py
-import fastenv
-
-config = fastenv.StarletteConfig(toml_file="pyproject.toml")
-
-APP_NAME = config("NAME")
-APP_VERSION = config("VERSION")
-REQUIRES_PYTHON = config("REQUIRES-PYTHON")
-DEPENDENCIES = config("DEPENDENCIES")
+--8<-- "docs/snippets/settings/starlette_project_metadata.py"
 ```
 
 The table's immediate keys become uppercase. Hyphens stay in place, so `requires-python` becomes `REQUIRES-PYTHON`. Values keep their native types, including integers, booleans, lists, and dictionaries. Nested keys stay as written in the file.
@@ -469,17 +332,7 @@ port = 5432
 ```
 
 ```py
-import fastenv
-
-config = fastenv.StarletteConfig(
-    toml_file="settings.toml",
-    toml_table="application",
-)
-
-DEBUG = config("DEBUG", cast=bool)
-PORT = config("PORT", cast=int)
-DATABASE = config("DATABASE")
-# {"host": "localhost", "port": 5432}
+--8<-- "docs/snippets/settings/starlette_custom_toml_table.py"
 ```
 
 Environment and dotenv values are strings. Use `cast` when you want a consistent type regardless of which source supplies a setting. TOML parsing uses Python's standard library `tomllib`, available in Python 3.11 and later.
@@ -491,16 +344,7 @@ Settings lookups work as they do in Starlette. For example, `cast=bool` recogniz
 An environment prefix applies across all sources. Here, `config("DEBUG")` reads `APP_DEBUG`:
 
 ```py
-import fastenv
-from starlette.datastructures import Secret
-
-config = fastenv.StarletteConfig(
-    environ={"APP_DEBUG": "false", "APP_SECRET_KEY": "example-secret"},
-    env_prefix="APP_",
-)
-
-DEBUG = config("DEBUG", cast=bool)
-SECRET_KEY = config("SECRET_KEY", cast=Secret)
+--8<-- "docs/snippets/settings/starlette_environment_prefix.py"
 ```
 
 The default `starlette.config.environ` mapping also keeps Starlette's protection against changing environment variables after they've been read. See [the Starlette comparison](comparisons.md#one-way-configuration-preference) for details.
@@ -510,14 +354,7 @@ The default `starlette.config.environ` mapping also keeps Starlette's protection
 By default, a missing, unreadable, or invalid file is logged and raises an exception. If some files are optional, pass `raise_exceptions=False` to log the error and skip the failed source:
 
 ```py
-import fastenv
-
-config = fastenv.StarletteConfig(
-    env_file=[".env", ".env.local"],
-    toml_file="pyproject.toml",
-    raise_exceptions=False,
-)
-DEBUG = config("DEBUG", cast=bool, default=False)
+--8<-- "docs/snippets/settings/starlette_file_errors.py"
 ```
 
 The async factory accepts the same option. Successfully loaded sources remain available. Missing required settings and invalid casts still raise exceptions when you read them.
@@ -527,33 +364,7 @@ The async factory accepts the same option. Successfully loaded sources remain av
 A lifespan function is a good place to load settings once, before your application starts handling requests. Since the server already has an event loop running, use the async factory:
 
 ```py
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from typing import TypedDict
-
-import fastenv
-from starlette.applications import Starlette
-from starlette.requests import Request
-from starlette.responses import JSONResponse
-from starlette.routing import Route
-
-
-class LifespanState(TypedDict):
-    config: fastenv.StarletteConfig
-
-
-@asynccontextmanager
-async def lifespan(_: Starlette) -> AsyncIterator[LifespanState]:
-    config = await fastenv.StarletteConfig.load(".env")
-    yield {"config": config}
-
-
-async def homepage(request: Request) -> JSONResponse:
-    config = request.state.config
-    return JSONResponse({"debug": config("DEBUG", cast=bool, default=False)})
-
-
-app = Starlette(routes=[Route("/", homepage)], lifespan=lifespan)
+--8<-- "docs/snippets/settings/starlette_application_startup.py:2:"
 ```
 
 The server calls the lifespan function for you. The same approach works with FastAPI. If you want to load dotenv files into the process environment instead, use [`fastenv.load_dotenv`](dotenv.md#loading-a-env-file).

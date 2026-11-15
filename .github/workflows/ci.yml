@@ -101,6 +101,11 @@ jobs:
           CLOUDFLARE_R2_SECRET_KEY_FASTENV: ${{ secrets.CLOUDFLARE_R2_SECRET_KEY_FASTENV }}
       - name: Enforce test coverage
         run: hatch run ${{ env.HATCH_ENV }}:coverage report
+      - name: Build documentation
+        if: matrix.python-version == '3.14'
+        env:
+          HATCH_ENV_TYPE_VIRTUAL_PATH: .venv-docs
+        run: hatch run docs:zensical build --clean
       - name: Build Python package
         run: hatch build
       - name: Upload Python package artifacts

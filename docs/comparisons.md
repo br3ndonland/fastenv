@@ -39,23 +39,7 @@ The fastenv [Pydantic integration](settings.md#pydantic-integration) offers a si
 !!!example "Simple Pydantic settings model"
 
     ```py
-    import os
-
-    from fastenv import BaseSettings
-
-    os.environ["BOOLEAN_SETTING"] = "false"
-    os.environ["INTEGER_SETTING"] = "123"
-    os.environ["STRING_SETTING"] = "example_value"
-
-
-    class SimpleSettings(BaseSettings):
-        boolean_setting: bool = True
-        integer_setting: int = 000
-        string_setting: str = "default_value"
-
-
-    print(SimpleSettings().model_dump())
-    # {"boolean_setting": False, "integer_setting": 123, "string_setting": "example_value"}
+    --8<-- "docs/snippets/comparisons/pydantic_settings_configuration.py"
     ```
 
 ### File I/O
@@ -168,8 +152,8 @@ Something like the following is therefore needed instead of using `dotenv.load_d
 
 
     def find_and_load_my_dotenv(env_file: str = ".env") -> DotEnv:
+        logger = logging.getLogger()
         try:
-            logger = logging.getLogger()
             source = find_dotenv(filename=env_file, raise_error_if_not_found=True)
             dotenv = DotEnv(source, verbose=True)
             dotenv.set_as_environment_variables()
@@ -213,10 +197,7 @@ Starlette offers a [config module](https://starlette.dev/config/) for working wi
 !!!example
 
     ```py
-    import starlette.config
-
-    config = starlette.config.Config()
-    config("FOO_VARIABLE", cast=str, default="baz")
+    --8<-- "docs/snippets/comparisons/starlette_settings_configuration.py"
     ```
 
 Starlette will look for an environment variable `FOO_VARIABLE`. For example, setting `FOO_VARIABLE=bar` in the environment makes this lookup return `"bar"`. If the environment variable is unset, the lookup returns `"baz"`. The `cast` keyword argument allows use of Starlette type-casting.
@@ -233,13 +214,7 @@ Type-casting provides improvements over some aspects of the standard library. Fo
     ```
 
     ```py
-    bool("false")
-    # True
-    import starlette.config
-
-    config = starlette.config.Config()
-    config("BOOLEAN_SETTING", cast=bool, default="false")
-    # False
+    --8<-- "docs/snippets/comparisons/starlette_type_casting.py"
     ```
 
 ### One-way configuration preference
@@ -258,29 +233,7 @@ While it is useful to have `starlette.config.environ` synchronized with `os.envi
     ```
 
     ```py
-    import os
-    import starlette.config
-
-    os.environ.get("FOO_VARIABLE")
-    starlette.config.environ["FOO_VARIABLE"] = "bar"
-    os.environ.get("FOO_VARIABLE")
-    # 'bar'
-    config = starlette.config.Config()
-    config("FOO_VARIABLE", cast=str, default="baz")
-    # 'bar'
-    starlette.config.environ["FOO_VARIABLE"] = "foo"
-    # Traceback (most recent call last):
-    # File ".venv/lib/python/site-packages/starlette/config.py", line 26, in __setitem__
-    #     raise EnvironError(
-    # starlette.config.EnvironError: Attempting to set environ['FOO_VARIABLE'],
-    # but the value has already been read.
-    os.environ["FOO_VARIABLE"] = "foo"
-    os.environ["FOO_VARIABLE"]
-    # 'foo'
-    starlette.config.environ["FOO_VARIABLE"]
-    # 'foo'
-    config("FOO_VARIABLE", cast=str, default="baz")
-    # 'foo'
+    --8<-- "docs/snippets/comparisons/starlette_environment_protection.py"
     ```
 
 ### File I/O

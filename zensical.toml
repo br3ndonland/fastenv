@@ -33,6 +33,7 @@ repo_url_shortener = true
 repo_url_shorthand = true
 
 [project.markdown_extensions.pymdownx.snippets]
+check_paths = true
 
 [project.markdown_extensions.pymdownx.superfences]
 

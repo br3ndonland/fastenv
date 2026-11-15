@@ -66,6 +66,10 @@ build-backend = "hatchling.build"
 [tool.basedpyright]
 pythonVersion = "3.11"
 reportImplicitOverride = "information"
+exclude = ["public"]
+executionEnvironments = [
+  { root = "docs/snippets", reportUnusedCallResult = false },
+]
 
 [tool.coverage.report]
 exclude_lines = ["if TYPE_CHECKING:", "pragma: no cover"]
@@ -137,13 +141,24 @@ minversion = "9.0"
 testpaths = ["tests"]
 
 [tool.ruff]
-src = ["fastenv", "tests"]
+src = ["docs/snippets", "fastenv", "tests"]
 
 [tool.ruff.format]
 docstring-code-format = true
+exclude = [
+  "docs/cloud-object-storage.md",
+  "docs/comparisons.md",
+  "docs/dotenv.md",
+  "docs/environment.md",
+  "docs/settings.md",
+]
 
 [tool.ruff.lint]
 extend-select = ["I", "UP"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["fastenv", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"docs/snippets/**/*.py" = ["B018", "EXE001", "F401", "F821", "I001", "RUF012"]
+"tests/docs/*.py" = ["B010", "S102"]

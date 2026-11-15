@@ -37,9 +37,7 @@ Next, we will [use the Python interpreter](https://docs.python.org/3/tutorial/in
     ```
 
     ```py
-    import fastenv
-
-    dotenv = fastenv.DotEnv()
+    --8<-- "docs/snippets/environment/creating_dotenv.py"
     ```
 
 That's it! We are ready to start managing our environment variables with fastenv.
@@ -59,20 +57,7 @@ Here is an example REPL session demonstrating how to use the `os.environ`-style 
     ```
 
     ```py
-    import os
-    import fastenv
-
-    dotenv = fastenv.DotEnv()
-    dotenv["EXAMPLE_VARIABLE"] = "example_value"
-    dotenv["EXAMPLE_VARIABLE"]
-    # 'example_value'
-    os.environ["EXAMPLE_VARIABLE"]
-    # 'example_value'
-    del dotenv["EXAMPLE_VARIABLE"]
-    dotenv.getenv("EXAMPLE_VARIABLE", "variable_was_deleted")
-    # 'variable_was_deleted'
-    os.getenv("EXAMPLE_VARIABLE", "variable_was_deleted")
-    # 'variable_was_deleted'
+    --8<-- "docs/snippets/environment/os_environ_style_api.py"
     ```
 
 ### Instantiating `class DotEnv`
@@ -86,11 +71,7 @@ Environment variables can be set when creating instances of `class DotEnv`. Posi
     ```
 
     ```py
-    import fastenv
-
-    dotenv = fastenv.DotEnv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
-    dict(dotenv)
-    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
+    --8<-- "docs/snippets/environment/creating_dotenv_with_variables.py"
     ```
 
 ### Calling `DotEnv` instances
@@ -110,16 +91,7 @@ Multiple positional arguments (and multi-variable strings) with keys only will r
     ```
 
     ```py
-    import fastenv
-
-    dotenv = fastenv.DotEnv("KEY1=value1")
-    dotenv("KEY1")
-    # 'value1'
-    dotenv("NOT_SET")
-    dotenv.getenv("NOT_SET", "default_value")
-    # 'default_value'
-    dotenv("KEY1", "NOT_SET NOT_SET_EITHER")
-    # {'KEY1': 'value1', 'NOT_SET': None, 'NOT_SET_EITHER': None}
+    --8<-- "docs/snippets/environment/getting_variables.py"
     ```
 
 #### Setting variables
@@ -135,14 +107,7 @@ If no return value is needed, the `setenv` method can be used.
     ```
 
     ```py
-    import fastenv
-
-    dotenv = fastenv.DotEnv()
-    dotenv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
-    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
-    dotenv.setenv(key5="value5")
-    dict(dotenv)
-    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4', 'KEY5': 'value5'}
+    --8<-- "docs/snippets/environment/setting_variables.py"
     ```
 
 #### Getting and setting in the same call
@@ -156,11 +121,7 @@ Complex combinations of getting and setting can be accomplished in the same call
     ```
 
     ```py
-    import fastenv
-
-    dotenv = fastenv.DotEnv("KEY1=value1")
-    dotenv("KEY1", "KEY2=value2 KEY3=value3", key4="value4")
-    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
+    --8<-- "docs/snippets/environment/getting_and_setting_variables.py"
     ```
 
 #### Deleting variables
@@ -176,15 +137,7 @@ Multiple variables can be deleted by calling the `delenv` method.
     ```
 
     ```py
-    import fastenv
-
-    dotenv = fastenv.DotEnv()
-    dotenv("KEY1=value1", "KEY2=value2 KEY3=value3", key4="value4")
-    # {'KEY1': 'value1', 'KEY2': 'value2', 'KEY3': 'value3', 'KEY4': 'value4'}
-    del dotenv["KEY4"]
-    dotenv.delenv("KEY1", "KEY2", "KEY3")
-    len(dotenv)
-    # 0
+    --8<-- "docs/snippets/environment/deleting_variables.py"
     ```
 
 ## Tips
@@ -218,9 +171,5 @@ Multiple variables can be deleted by calling the `delenv` method.
     ```
 
     ```py
-    import fastenv
-
-    dotenv = fastenv.DotEnv(incorrect_type=[1, 2, 3])
-    dict(dotenv)
-    # {'INCORRECT_TYPE': '[1, 2, 3]'}
+    --8<-- "docs/snippets/environment/handling_non_string_values.py:2:"
     ```
