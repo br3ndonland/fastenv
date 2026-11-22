@@ -4,6 +4,90 @@ icon: lucide/clipboard-clock
 
 # Changelog
 
+## 1.0.0 - 2026-11-22
+
+**This is the first major release of the project. With this release, the
+goals of this project as stated in the README have now been achieved.**
+
+### Changes
+
+**Add Starlette Config integration** (#45,
+e3864ecd43c6f972b023a105ac388c37e2e720f3)
+
+[Starlette offers a `Config` model](https://starlette.dev/config/) for
+managing settings related to a Starlette application. The model is
+simple and useful, but has some limitations
+([br3ndonland/fastenv#19](https://github.com/br3ndonland/fastenv/discussions/19)).
+
+This release will add an enhanced subclass of `starlette.config.Config`,
+`fastenv.StarletteConfig`, through a new `fastenv[starlette]` optional
+extra. The subclass will preserve Starlette's casting, defaults,
+prefixes, and environment read protection, with enhancements that enable
+`fastenv.StarletteConfig` to load multiple dotenv files and TOML files
+such as `pyproject.toml`.
+
+**Add Pydantic settings integration** (#46,
+4761cffa823f24db743691dd6767dea4f92fdbaf)
+
+One of the goals of this project, as stated in the README, is to "unify
+settings management for FastAPI." Pydantic is one of the dependencies of
+FastAPI, and therefore one of the
+[suggested](https://fastapi.tiangolo.com/advanced/settings/) settings
+managers.
+[Pydantic settings management](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/)
+requires a separate
+[pydantic-settings](https://github.com/pydantic/pydantic-settings)
+package that depends on python-dotenv. Another goal of this project, as
+stated in the README, is to _replace_ python-dotenv, so there should not
+be a dependency on python-dotenv. Instead of depending on python-dotenv,
+this release will add a Pydantic settings integration through a new
+`fastenv[settings]` optional extra. The settings integration offers a
+similar API to pydantic-settings, with some intentional limitations:
+
+- Omit CLI support.
+- Omit third-party cloud SDKs (AWS Boto3, Azure, Google Cloud Platform),
+  keeping cloud integration limited to fastenv's existing async
+  S3-compatible object storage client.
+- Omit YAML settings support, and use the Python standard library for
+  JSON and TOML parsing.
+- Read settings files in AnyIO worker threads from `Settings.load()` so
+  file I/O never blocks the event loop.
+
+New docs are available at:
+
+- [fastenv.bws.bio/settings](https://fastenv.bws.bio/settings)
+- [fastenv.bws.bio/comparisons](https://fastenv.bws.bio/comparisons)
+
+AI disclosure: This work was performed with the help of Codex with GPT-6
+Astra, with adversarial review in [Amp](https://ampcode.com/) with
+Claude Fable 5.1, and additional human review. The Amp thread can be
+viewed
+[here](https://ampcode.com/threads/T-01a19476-006d-7021-80a0-607e74a48337/view).
+
+### Commits
+
+- Bump version from 0.9.0 to 1.0.0 (88be97b)
+- Test code examples in docs (397445b)
+- Add missing `__init__.py` to tests (603c887)
+- Migrate from HTTPXYZ to HTTPX2 (#49) (208b715)
+- Fix IPA in README (3b5f86e)
+- Update to Zensical 0.1 (c68f788)
+- Update to Ruff 0.17 (7c6b9aa)
+- Update to FastAPI 0.162 (2f40d7d)
+- Use variable icon for environment variable docs (40e6a8f)
+- Set logger level to INFO and test with caplog (cfe45dc)
+- Add Pydantic settings integration (#46) (4761cff)
+- Add Starlette Config integration (#45) (e3864ec)
+- Update to Zensical 0.0.68 (4923bd6)
+- Update to Hatch 1.18 (fb44a7f)
+- Update to pipx 1.17 (e9cf9f1)
+- Enable Zensical strict mode (f024efb)
+- Update to Zensical 0.0.59 (0e9dcad)
+- Update to BasedPyright 1.40 (b0e5d1a)
+- Update to Ruff 0.16 (fe73ef8)
+- Update to `pypa/gh-action-pypi-publish@v1.14.2` (765461d)
+- Update changelog for version 0.9.0 (#44) (4ee00e7)
+
 ## 0.9.0 - 2026-07-27
 
 ### Changes
