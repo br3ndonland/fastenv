@@ -6,7 +6,6 @@ from contextlib import ExitStack, asynccontextmanager
 from pathlib import Path
 from typing import ClassVar, TypedDict, cast
 
-import httpxyz
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
@@ -88,8 +87,7 @@ class TestFastAPISettings:
         with TestClient(app) as test_client:
             settings = cast(object, test_client.app_state["settings"])
             assert isinstance(settings, Settings)
-            # Starlette's type annotations assume HTTPX2, but the client uses HTTPXYZ.
-            response = cast(httpxyz.Client, test_client).get("/settings")
+            response = test_client.get("/settings")
             assert response.status_code == 200
             assert response.json() == {
                 "example_variable": expected_example,
@@ -116,6 +114,6 @@ class TestFastAPISettings:
         _ = settings_file.write_text(contents)
         before = dict(os.environ)
         with pytest.raises(ValidationError) as exc_info, ExitStack() as stack:
-            stack.enter_context(TestClient(app))
+            _ = stack.enter_context(TestClient(app))
         assert exc_info.value.errors()[0]["loc"] == (error_field,)
         assert dict(os.environ) == before
