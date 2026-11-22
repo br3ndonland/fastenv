@@ -11,7 +11,7 @@ import urllib.parse
 from typing import TYPE_CHECKING
 
 import anyio
-import httpxyz
+import httpx2
 
 from fastenv.utilities import logger
 
@@ -139,7 +139,7 @@ class ObjectStorageClient:
 
     AWS S3, Backblaze B2, and Cloudflare R2 are directly supported and tested.
 
-    This class requires both an HTTPX client and an `ObjectStorageConfig` instance.
+    This class requires both an HTTPX2 client and an `ObjectStorageConfig` instance.
     They will be automatically instantiated if not provided as arguments.
     Any additional arguments will be used to instantiate `ObjectStorageConfig`.
 
@@ -156,11 +156,11 @@ class ObjectStorageClient:
 
     def __init__(
         self,
-        client: httpxyz.AsyncClient | None = None,
+        client: httpx2.AsyncClient | None = None,
         config: ObjectStorageConfig | None = None,
         **config_options: str,
     ) -> None:
-        self._client: httpxyz.AsyncClient = client or httpxyz.AsyncClient()
+        self._client: httpx2.AsyncClient = client or httpx2.AsyncClient()
         self._config: ObjectStorageConfig = config or ObjectStorageConfig(
             **config_options
         )
@@ -201,9 +201,9 @@ class ObjectStorageClient:
         bucket_path: os.PathLike[str] | str,
         *,
         expires: int = 3600,
-        headers: httpxyz.Headers | dict[str, str] | None = None,
+        headers: httpx2.Headers | dict[str, str] | None = None,
         service: str = "s3",
-    ) -> httpxyz.URL:
+    ) -> httpx2.URL:
         """Generate a presigned URL for S3-compatible object storage.
 
         Requests to S3-compatible object storage can be authenticated either with
@@ -240,7 +240,7 @@ class ObjectStorageClient:
         params = self._set_presigned_url_query_params(
             method, key, expires=expires, headers=headers, service=service
         )
-        return httpxyz.URL(
+        return httpx2.URL(
             scheme="https", host=self._config.bucket_host, path=key, params=params
         )
 
@@ -250,10 +250,10 @@ class ObjectStorageClient:
         key: str,
         *,
         expires: int,
-        headers: httpxyz.Headers | dict[str, str] | None = None,
+        headers: httpx2.Headers | dict[str, str] | None = None,
         service: str = "s3",
         payload_hash: str = "UNSIGNED-PAYLOAD",
-    ) -> httpxyz.QueryParams:
+    ) -> httpx2.QueryParams:
         """Set query parameters for a presigned URL.
 
         Setting presigned URL query parameters is a four-step process
@@ -266,13 +266,10 @@ class ObjectStorageClient:
         4. Add signature to request
 
         This function performs the four steps and returns an instance of
-        `httpxyz.QueryParams` that complies with AWS Signature Version 4.
+        `httpx2.QueryParams` that complies with AWS Signature Version 4.
 
-        As of HTTPX 0.18, instances of `httpxyz.QueryParams` are immutable.
-        When multiple instances of query params are supplied in the same
-        request, HTTPX will merge them into a new instance.
-        https://github.com/encode/httpx/discussions/1599
-        https://github.com/encode/httpx/releases/tag/0.18.0
+        Instances of `httpx2.QueryParams` are immutable. HTTPX2 merges client
+        and request query parameters into a new instance.
         """
         now = datetime.datetime.now(tz=datetime.UTC)
         x_amz_date = now.strftime("%Y%m%dT%H%M%SZ")
@@ -292,9 +289,9 @@ class ObjectStorageClient:
         params["X-Amz-SignedHeaders"] = "host"
         default_headers = {"host": self._config.bucket_host}
         if headers:
-            signed_headers = httpxyz.Headers({**default_headers, **headers})
+            signed_headers = httpx2.Headers({**default_headers, **headers})
         else:
-            signed_headers = httpxyz.Headers(default_headers)
+            signed_headers = httpx2.Headers(default_headers)
         params["X-Amz-SignedHeaders"] = (
             ";".join(keys) if len(keys := sorted(signed_headers)) > 1 else "host"
         )
@@ -317,14 +314,14 @@ class ObjectStorageClient:
         signature = self._calculate_signature(signing_key, string_to_sign)
         # 4. add signature to request
         params["X-Amz-Signature"] = signature
-        return httpxyz.QueryParams(params)
+        return httpx2.QueryParams(params)
 
     @staticmethod
     def _create_canonical_request(
         method: Literal["DELETE", "GET", "HEAD", "POST", "PUT"],
         key: str,
-        params: httpxyz.QueryParams | dict[str, str],
-        headers: httpxyz.Headers | dict[str, str],
+        params: httpx2.QueryParams | dict[str, str],
+        headers: httpx2.Headers | dict[str, str],
         payload_hash: str,
     ) -> str:
         """Create a canonical request for AWS Signature Version 4.
@@ -337,14 +334,14 @@ class ObjectStorageClient:
         `signed_headers` must be alphabetically-sorted, semicolon-separated, and
         lowercased. Note that the `sorted` built-in function ("builtin") sorts strings
         case-sensitively by default. To sort case-insensitively, strings should be
-        lowercased before the function call (done automatically by `httpxyz.Headers`) or
+        lowercased before the function call (done automatically by `httpx2.Headers`) or
         lowercased during the function call (`sorted(key=str.lower)`).
         https://docs.python.org/3/howto/sorting.html
         """
         canonical_uri = urllib.parse.quote(key if key.startswith("/") else f"/{key}")
-        canonical_query_params = httpxyz.QueryParams(params)
+        canonical_query_params = httpx2.QueryParams(params)
         canonical_query_string = str(canonical_query_params)
-        headers = httpxyz.Headers(headers)
+        headers = httpx2.Headers(headers)
         header_keys = sorted(headers)
         canonical_headers = "".join(f"{key}:{headers[key]}\n" for key in header_keys)
         signed_headers = ";".join(header_keys)
@@ -429,7 +426,7 @@ class ObjectStorageClient:
         method: Literal["POST", "PUT"] = "PUT",
         server_side_encryption: Literal["AES256"] | None = None,
         specify_content_disposition: bool = True,
-    ) -> httpxyz.Response | None:
+    ) -> httpx2.Response | None:
         """Upload a file to cloud object storage.
 
         `bucket_path`: destination path for the uploaded file within the bucket.
@@ -466,7 +463,7 @@ class ObjectStorageClient:
             content_length = len(content)
             if method == "PUT":
                 content_md5 = base64.b64encode(hashlib.md5(content).digest())
-                headers = httpxyz.Headers({b"Content-MD5": content_md5})
+                headers = httpx2.Headers({b"Content-MD5": content_md5})
                 headers["Content-Length"] = str(content_length)
                 headers["Content-Type"] = content_type
                 if specify_content_disposition:
@@ -520,7 +517,7 @@ class ObjectStorageClient:
         specify_content_disposition: bool = True,
         additional_policy_conditions: UploadPolicyConditions | None = None,
         additional_form_data: dict[str, str] | None = None,
-    ) -> tuple[httpxyz.URL, dict[str, str]]:
+    ) -> tuple[httpx2.URL, dict[str, str]]:
         """Generate the URL and form fields for a POST to S3-compatible object storage.
 
         Instead of using query parameters like presigned URLs, uploads to AWS S3 with
@@ -567,7 +564,7 @@ class ObjectStorageClient:
         https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
         """
         key = key.lstrip("/") if (key := str(bucket_path)).startswith("/") else key
-        url = httpxyz.URL(scheme="https", host=self._config.bucket_host, path="/")
+        url = httpx2.URL(scheme="https", host=self._config.bucket_host, path="/")
         form_data = self._set_presigned_post_form_data(
             key,
             content_length=content_length,
@@ -608,7 +605,7 @@ class ObjectStorageClient:
         4. Add signature to form data
 
         This function performs the four steps and returns a `dict` suitable for
-        submission as form data in the `data` argument of an HTTPX POST request.
+        submission as form data in the `data` argument of an HTTPX2 POST request.
 
         The expiration time format for a POST policy is different from `X-Amz-Date`,
         though AWS calls both ISO 8601. Python datetime objects do not automatically
@@ -824,7 +821,7 @@ class ObjectStorageClient:
                 raise KeyError("Missing required form data key: key")
         return form_data_to_return
 
-    async def authorize_backblaze_b2_account(self) -> httpxyz.Response:
+    async def authorize_backblaze_b2_account(self) -> httpx2.Response:
         """Get an authorization token and API URL from Backblaze B2.
 
         https://www.backblaze.com/b2/docs/b2_authorize_account.html
@@ -836,8 +833,8 @@ class ObjectStorageClient:
         return await self._client.get(authorization_url, headers=headers)
 
     async def get_backblaze_b2_upload_url(
-        self, authorization_response: httpxyz.Response
-    ) -> httpxyz.Response:
+        self, authorization_response: httpx2.Response
+    ) -> httpx2.Response:
         """Get an upload URL from Backblaze B2, using the authorization token
         and URL obtained from a call to `b2_authorize_account`.
 
@@ -862,7 +859,7 @@ class ObjectStorageClient:
         *,
         content_type: str = "text/plain",
         server_side_encryption: Literal["AES256"] | None = None,
-    ) -> httpxyz.Response:
+    ) -> httpx2.Response:
         """Upload a file to Backblaze B2 object storage, using the authorization token
         and URL obtained from a call to `b2_get_upload_url`.
 

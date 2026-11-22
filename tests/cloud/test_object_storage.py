@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, final
 
 import anyio
 import freezegun
-import httpxyz
+import httpx2
 import pytest
 
 import fastenv.cloud.object_storage
@@ -313,7 +313,7 @@ class TestObjectStorageConfig:
         self, scheme: str, mocker: MockerFixture
     ) -> None:
         """Assert that bucket host scheme ("http" or "https") is removed if present.
-        Scheme is added automatically when generating instances of `httpxyz.URL()`.
+        Scheme is added automatically when generating instances of `httpx2.URL()`.
         """
         mocker.patch.dict(os.environ, clear=True)
         bucket_host = f"{scheme}://{self.example_bucket_host}"
@@ -977,7 +977,7 @@ class TestObjectStorageClientIntegration:
     This class contains integration tests, defined as tests that require resources
     outside this project's Python code (object storage buckets, for example).
 
-    The HTTPX client instances have extended timeouts and support for retries.
+    The HTTPX2 client instances have extended timeouts and support for retries.
     This can help account for network issues.
     """
 
@@ -997,10 +997,10 @@ class TestObjectStorageClientIntegration:
         """
         mocker.patch.dict(os.environ, clear=True)
         environ = mocker.patch.dict(os.environ, clear=True)
-        transport = httpxyz.AsyncHTTPTransport(retries=5)
-        httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
+        transport = httpx2.AsyncHTTPTransport(retries=5)
+        httpx2_client = httpx2.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
-            client=httpx_client, config=object_storage_config
+            client=httpx2_client, config=object_storage_config
         )
         destination = env_file.parent / f".env.{object_storage_config.access_key}"
         env_file_download = await object_storage_client.download(self.key, destination)
@@ -1027,10 +1027,10 @@ class TestObjectStorageClientIntegration:
         """
         mocker.patch.dict(os.environ, clear=True)
         environ = mocker.patch.dict(os.environ, clear=True)
-        transport = httpxyz.AsyncHTTPTransport(retries=5)
-        httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
+        transport = httpx2.AsyncHTTPTransport(retries=5)
+        httpx2_client = httpx2.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
-            client=httpx_client, config=object_storage_config
+            client=httpx2_client, config=object_storage_config
         )
         env_file_contents = await object_storage_client.download(self.key)
         assert isinstance(env_file_contents, str)
@@ -1053,20 +1053,20 @@ class TestObjectStorageClientIntegration:
         and assert that an `HTTPStatusError` is raised with the expected status code.
 
         This test sometimes suffers from connection resets and timeouts.
-        To prevent this test from being flaky, `httpxyz.ReadError` is allowed.
+        To prevent this test from being flaky, `httpx2.ReadError` is allowed.
         """
         mocker.patch.dict(os.environ, clear=True)
-        transport = httpxyz.AsyncHTTPTransport(retries=5)
-        httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
+        transport = httpx2.AsyncHTTPTransport(retries=5)
+        httpx2_client = httpx2.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
-            client=httpx_client, config=object_storage_config
+            client=httpx2_client, config=object_storage_config
         )
-        expected_exceptions = (httpxyz.HTTPStatusError, httpxyz.ReadError)
+        expected_exceptions = (httpx2.HTTPStatusError, httpx2.ReadError)
         with pytest.raises(expected_exceptions) as e:
             _ = await object_storage_client.download(
                 bucket_path=f"{self.key}-does-not-exist"
             )
-        if e.type is httpxyz.HTTPStatusError:
+        if e.type is httpx2.HTTPStatusError:
             status_code = int(
                 e.value.response.status_code  # type: ignore[attr-defined]
             )
@@ -1097,10 +1097,10 @@ class TestObjectStorageClientIntegration:
         ):
             pytest.skip("Cloudflare R2 does not support uploads with POST")
         mocker.patch.dict(os.environ, clear=True)
-        transport = httpxyz.AsyncHTTPTransport(retries=5)
-        httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
+        transport = httpx2.AsyncHTTPTransport(retries=5)
+        httpx2_client = httpx2.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
-            client=httpx_client, config=object_storage_config
+            client=httpx2_client, config=object_storage_config
         )
         bucket_path = (
             f"{object_storage_client_upload_prefix}/.env.from-file."
@@ -1140,10 +1140,10 @@ class TestObjectStorageClientIntegration:
         ):
             pytest.skip("Cloudflare R2 does not support uploads with POST")
         mocker.patch.dict(os.environ, clear=True)
-        transport = httpxyz.AsyncHTTPTransport(retries=5)
-        httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
+        transport = httpx2.AsyncHTTPTransport(retries=5)
+        httpx2_client = httpx2.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
-            client=httpx_client, config=object_storage_config
+            client=httpx2_client, config=object_storage_config
         )
         bucket_path = (
             f"{object_storage_client_upload_prefix}/.env.from-string."
@@ -1183,10 +1183,10 @@ class TestObjectStorageClientIntegration:
         ):
             pytest.skip("Cloudflare R2 does not support uploads with POST")
         mocker.patch.dict(os.environ, clear=True)
-        transport = httpxyz.AsyncHTTPTransport(retries=5)
-        httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
+        transport = httpx2.AsyncHTTPTransport(retries=5)
+        httpx2_client = httpx2.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
-            client=httpx_client, config=object_storage_config
+            client=httpx2_client, config=object_storage_config
         )
         bucket_path = (
             f"{object_storage_client_upload_prefix}/.env.from-bytes."
@@ -1220,10 +1220,10 @@ class TestObjectStorageClientIntegration:
         expected logger message is provided.
         """
         mocker.patch.dict(os.environ, clear=True)
-        transport = httpxyz.AsyncHTTPTransport(retries=5)
-        httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
+        transport = httpx2.AsyncHTTPTransport(retries=5)
+        httpx2_client = httpx2.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
-            client=httpx_client, config=object_storage_config_backblaze_static
+            client=httpx2_client, config=object_storage_config_backblaze_static
         )
         bucket_path = (
             f"{object_storage_client_upload_prefix}/.env.from-bytes."
@@ -1261,20 +1261,20 @@ class TestObjectStorageClientIntegration:
         and assert that an `HTTPStatusError` is raised with the expected status code.
 
         This test sometimes suffers from connection resets and timeouts.
-        To prevent this test from being flaky, `httpxyz.ReadError` is allowed.
+        To prevent this test from being flaky, `httpx2.ReadError` is allowed.
         """
         mocker.patch.dict(os.environ, clear=True)
-        transport = httpxyz.AsyncHTTPTransport(retries=5)
-        httpx_client = httpxyz.AsyncClient(timeout=30, transport=transport)
+        transport = httpx2.AsyncHTTPTransport(retries=5)
+        httpx2_client = httpx2.AsyncClient(timeout=30, transport=transport)
         object_storage_client = fastenv.cloud.object_storage.ObjectStorageClient(
-            client=httpx_client, config=object_storage_config_incorrect
+            client=httpx2_client, config=object_storage_config_incorrect
         )
-        expected_exceptions = (httpxyz.HTTPStatusError, httpxyz.ReadError)
+        expected_exceptions = (httpx2.HTTPStatusError, httpx2.ReadError)
         with pytest.raises(expected_exceptions) as e:
             _ = await object_storage_client.upload(
                 bucket_path=".env.upload-error", source=env_bytes
             )
-        if e.type is httpxyz.HTTPStatusError:
+        if e.type is httpx2.HTTPStatusError:
             status_code = int(
                 e.value.response.status_code  # type: ignore[attr-defined]
             )

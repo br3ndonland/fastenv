@@ -12,7 +12,7 @@ Dotenv files are commonly kept in [cloud object storage](https://en.wikipedia.or
 
     fastenv uses its own object storage client. _Why implement a client here instead of using [Boto3](https://github.com/boto/boto3)?_
 
-    -   **Async**. fastenv uses [HTTPXYZ](https://httpxyz.org/) for asynchronous HTTP operations. Boto3's methods use synchronous I/O.
+    -   **Async**. fastenv uses [HTTPX2](https://pydantic.dev/docs/httpx2/) for asynchronous HTTP operations. Boto3's methods use synchronous I/O.
     -   **Simple**. fastenv is a small, simple project that provides the necessary features without the bloat of Boto3. Why install all of Boto3 if you just need a few of the features? And if you actually want to understand what your code is doing, you can try sifting through Boto's subpackages and dynamically-generated objects, but wouldn't you rather just look at a few hundred lines of code right in front of you?
     -   **Type-annotated**. fastenv is fully type-annotated. Boto3 is not type-annotated. Its objects are dynamically generated at runtime using factory methods, making the code difficult to annotate and read. Some attempts are being made to add type annotations (see [alliefitter/boto3_type_annotations](https://github.com/alliefitter/boto3_type_annotations), [boto/botostubs](https://github.com/boto/botostubs), [vemel/mypy_boto3_builder](https://github.com/vemel/mypy_boto3_builder), and [vemel/boto3-ide](https://github.com/vemel/boto3-ide)), but these attempts are still works-in-progress.
 
@@ -181,7 +181,7 @@ Backblaze calls these credentials "[application keys](https://www.backblaze.com/
 Now that we have a bucket, let's upload the _.env_ file to the bucket. It's a three step process:
 
 1. **Create a configuration instance**. To instantiate `fastenv.ObjectStorageConfig`, provide a bucket and a region. Buckets can be specified with the `bucket_host` argument in "[virtual-hosted-style](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html)," like `<BUCKET_NAME>.s3.<REGION>.amazonaws.com` for AWS S3 or `<BUCKET_NAME>.s3.<REGION>.backblazeb2.com` for Backblaze B2. For AWS S3 only, the bucket can be also provided with the `bucket_name` argument as just `<BUCKET_NAME>`. If credentials are not provided as arguments, `fastenv.ObjectStorageConfig` will auto-detect configuration from the default AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`, and the region from either `AWS_S3_REGION`, `AWS_REGION`, or `AWS_DEFAULT_REGION`, in that order. [Boto3 detects credentials](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html) from several other locations, including credential files and instance metadata endpoints. These other locations are not currently supported.
-2. **Create a client instance**. `fastenv.ObjectStorageClient` instances have two attributes: an instance of `fastenv.ObjectStorageConfig`, and an instance of [`httpxyz.AsyncClient`](https://httpxyz.org/async/). They can be automatically instantiated if not provided as arguments. We've instantiated the `fastenv.ObjectStorageConfig` instance separately in step 1 to see how it works, but we'll let `fastenv.ObjectStorageClient` instantiate its `httpxyz.AsyncClient` automatically. As a shortcut, you could skip step 1 and just provide the configuration arguments to `fastenv.ObjectStorageClient`, like `fastenv.ObjectStorageClient(bucket_host="<BUCKET_NAME>.s3.<REGION>.backblazeb2.com", bucket_region="<REGION>")`.
+2. **Create a client instance**. `fastenv.ObjectStorageClient` instances have two attributes: an instance of `fastenv.ObjectStorageConfig`, and an instance of [`httpx2.AsyncClient`](https://pydantic.dev/docs/httpx2/guides/async/). They can be automatically instantiated if not provided as arguments. We've instantiated the `fastenv.ObjectStorageConfig` instance separately in step 1 to see how it works, but we'll let `fastenv.ObjectStorageClient` instantiate its `httpx2.AsyncClient` automatically. As a shortcut, you could skip step 1 and just provide the configuration arguments to `fastenv.ObjectStorageClient`, like `fastenv.ObjectStorageClient(bucket_host="<BUCKET_NAME>.s3.<REGION>.backblazeb2.com", bucket_region="<REGION>")`.
 3. **Use the client's upload method to upload the file**. To upload, we need to specify a source, and a destination path. The destination path is like a file path. AWS uses the term "[key](https://docs.aws.amazon.com/general/latest/gr/glos-chap.html#K)" for these bucket paths because buckets don't have actual directories. The "file path" inside the bucket is just a virtual path, not a concrete file path.
 
 Here's an example of how the code might look. Save the code snippet below as _example.py_.
@@ -195,7 +195,7 @@ Here's an example of how the code might look. Save the code snippet below as _ex
 
     import anyio
     import fastenv
-    import httpxyz
+    import httpx2
 
 
     async def upload_my_dotenv(
@@ -203,7 +203,7 @@ Here's an example of how the code might look. Save the code snippet below as _ex
         bucket_region: str,
         bucket_path: str = "uploads/fastenv-docs/.env",
         source: anyio.Path | str = ".env",
-    ) -> httpxyz.Response | None:
+    ) -> httpx2.Response | None:
         config = fastenv.ObjectStorageConfig(  # (1)
             bucket_host=bucket_host,
             bucket_region=bucket_region,
@@ -243,7 +243,7 @@ We now have a bucket with a _.env_ file in it. Let's download the file. Steps ar
 
     import anyio
     import fastenv
-    import httpxyz
+    import httpx2
 
 
     async def upload_my_dotenv(
@@ -251,7 +251,7 @@ We now have a bucket with a _.env_ file in it. Let's download the file. Steps ar
         bucket_region: str,
         bucket_path: str = "uploads/fastenv-docs/.env",
         source: anyio.Path | str = ".env",
-    ) -> httpxyz.Response | None:
+    ) -> httpx2.Response | None:
         config = fastenv.ObjectStorageConfig(
             bucket_host=bucket_host,
             bucket_region=bucket_region,
